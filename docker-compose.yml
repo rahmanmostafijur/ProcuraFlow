@@ -1,0 +1,57 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: procuraflow
+      POSTGRES_PASSWORD: procuraflow
+      POSTGRES_DB: procuraflow
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U procuraflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://procuraflow:procuraflow@postgres:5432/procuraflow
+      TEST_DATABASE_URL: postgresql+asyncpg://procuraflow:procuraflow@postgres:5432/procuraflow_test
+      JWT_SECRET_KEY: dev-secret-change-in-production
+      CORS_ORIGINS: http://localhost:5173
+      DEFAULT_ADMIN_EMAIL: admin@procuraflow.com
+      DEFAULT_ADMIN_PASSWORD: ChangeMe123!
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: sh -c "alembic upgrade head && python -m app.seeds.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000/api/v1
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0
+
+  adminer:
+    image: adminer:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:

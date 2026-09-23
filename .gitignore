@@ -1,0 +1,21 @@
+## Python
+backend/.venv/
+backend/__pycache__/
+**/__pycache__/
+*.pyc
+backend/.pytest_cache/
+backend/.env
+
+## Node
+frontend/node_modules/
+frontend/dist/
+
+## Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+## Env files (never commit real secrets)
+.env
+.env.local
