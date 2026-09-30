@@ -15,6 +15,7 @@ frontend/dist/
 .idea/
 .DS_Store
 Thumbs.db
+.claude/
 
 ## Env files (never commit real secrets)
 .env
