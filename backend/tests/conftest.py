@@ -1,9 +1,10 @@
 import os
-from collections.abc import AsyncGenerator, Callable
+from collections.abc import AsyncGenerator, Awaitable, Callable
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -17,11 +18,13 @@ from app.core.security import hash_password
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+from app.models.inventory import InventoryTransaction
 from app.models.permission import Permission
 from app.models.product import Product
 from app.models.role import Role
 from app.models.supplier import Supplier
 from app.models.user import User
+from app.services.inventory_service import record_opening_balance
 
 settings = get_settings()
 
@@ -63,6 +66,23 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 @pytest.fixture
 def session_factory() -> async_sessionmaker[AsyncSession]:
     return TestSessionLocal
+
+
+@pytest.fixture
+def assert_stock_matches_ledger() -> Callable[[int], Awaitable[None]]:
+    """Check the ledger invariant: a product's stock equals the sum of its inventory movements."""
+
+    async def _assert(product_id: int) -> None:
+        async with TestSessionLocal() as session:
+            stock = await session.scalar(select(Product.current_stock).where(Product.id == product_id))
+            ledger_total = await session.scalar(
+                select(func.coalesce(func.sum(InventoryTransaction.quantity_delta), 0)).where(
+                    InventoryTransaction.product_id == product_id
+                )
+            )
+        assert stock == ledger_total, f"product {product_id}: stock {stock} != ledger total {ledger_total}"
+
+    return _assert
 
 
 @pytest_asyncio.fixture
@@ -131,16 +151,13 @@ async def supplier(db_session: AsyncSession) -> Supplier:
 
 
 @pytest_asyncio.fixture
-async def product(db_session: AsyncSession, supplier: Supplier) -> Product:
-    product_obj = Product(
-        sku="TEST-001",
-        name="Test Widget",
-        cost=10,
-        current_stock=50,
-        minimum_stock=10,
-        supplier_id=supplier.id,
-    )
+async def product(db_session: AsyncSession, supplier: Supplier, make_user: Callable) -> Product:
+    # Stock is booked through the ledger like in production, so the fixture satisfies the stock invariant.
+    stock_keeper = await make_user("stock-keeper@example.com", "warehouse_manager")
+    product_obj = Product(sku="TEST-001", name="Test Widget", cost=10, minimum_stock=10, supplier_id=supplier.id)
     db_session.add(product_obj)
+    await db_session.flush()
+    await record_opening_balance(db_session, product_id=product_obj.id, quantity=50, created_by=stock_keeper.id)
     await db_session.commit()
     await db_session.refresh(product_obj)
     return product_obj

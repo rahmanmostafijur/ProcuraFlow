@@ -87,7 +87,7 @@ export interface PurchaseOrder {
   total: string;
 }
 
-export type InventoryTransactionType = "receive" | "adjustment" | "po_receipt";
+export type InventoryTransactionType = "receive" | "adjustment" | "po_receipt" | "opening_balance";
 
 export interface InventoryTransaction {
   id: number;

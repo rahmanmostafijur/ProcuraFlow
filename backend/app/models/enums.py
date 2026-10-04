@@ -22,3 +22,4 @@ class InventoryTransactionType(str, enum.Enum):
     RECEIVE = "receive"
     ADJUSTMENT = "adjustment"
     PO_RECEIPT = "po_receipt"
+    OPENING_BALANCE = "opening_balance"

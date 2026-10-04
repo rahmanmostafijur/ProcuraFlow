@@ -64,5 +64,6 @@ async def test_adjustment_creates_auditable_transaction_history(client: AsyncCli
 
     assert response.status_code == 200
     items = response.json()["items"]
-    assert len(items) == 1
+    assert len(items) == 2  # the fixture's opening balance, then this adjustment
     assert items[0]["reason"] == "Restock"
+    assert items[1]["type"] == "opening_balance"

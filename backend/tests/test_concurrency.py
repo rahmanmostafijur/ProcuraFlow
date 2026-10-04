@@ -11,10 +11,11 @@ from app.models.enums import InventoryTransactionType, POStatus
 from app.models.inventory import InventoryTransaction
 from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
+from app.models.supplier import Supplier
 from app.models.purchase_order_item import PurchaseOrderItem
 from app.models.user import User
 from app.services import purchase_order_service as po_service
-from app.services.inventory_service import apply_inventory_transaction, lock_products
+from app.services.inventory_service import apply_inventory_transaction, lock_products, record_opening_balance
 
 # How long the second writer must stay blocked while the first one holds its row locks.
 BLOCKED_WINDOW_SECONDS = 0.5
@@ -102,6 +103,13 @@ def _adjust(product_id: int, delta: int, user_id: int) -> SessionWork:
     return work
 
 
+def _open_balance(product_id: int, quantity: int, user_id: int) -> SessionWork:
+    async def work(session: AsyncSession) -> None:
+        await record_opening_balance(session, product_id=product_id, quantity=quantity, created_by=user_id)
+
+    return work
+
+
 def _transition(po_id: int, action: str, user: User) -> SessionWork:
     async def work(session: AsyncSession) -> None:
         po = await po_service.get_purchase_order_for_update(session, po_id)
@@ -127,7 +135,7 @@ async def test_concurrent_receipts_of_the_full_quantity_only_book_stock_once(
     assert "status 'received'" in rejected.value.detail
     stock, ledger_total = await _stock_and_ledger_total(session_factory, product.id)
     assert stock == 50 + ORDERED_QUANTITY
-    assert ledger_total == ORDERED_QUANTITY
+    assert ledger_total == 50 + ORDERED_QUANTITY
 
 
 async def test_concurrent_receipt_sees_the_quantity_already_received(
@@ -147,7 +155,7 @@ async def test_concurrent_receipt_sees_the_quantity_already_received(
     assert "only 4 remain" in rejected.value.detail
     stock, ledger_total = await _stock_and_ledger_total(session_factory, product.id)
     assert stock == 56
-    assert ledger_total == 6
+    assert ledger_total == 50 + 6
 
 
 async def test_concurrent_adjustments_cannot_drive_stock_negative(session_factory, make_user, product):
@@ -160,7 +168,25 @@ async def test_concurrent_adjustments_cannot_drive_stock_negative(session_factor
     assert rejected.value.status_code == 409
     stock, ledger_total = await _stock_and_ledger_total(session_factory, product.id)
     assert stock == 20
-    assert ledger_total == -30
+    assert ledger_total == 50 - 30
+
+
+async def test_concurrent_opening_balances_record_only_one(
+    session_factory, db_session, make_user, supplier: Supplier, assert_stock_matches_ledger
+):
+    user = await make_user("stock-taker@example.com", "warehouse_manager")
+    fresh = Product(sku="RACE-OB", name="Unstocked Widget", cost=1, supplier_id=supplier.id)
+    db_session.add(fresh)
+    await db_session.commit()
+
+    with pytest.raises(HTTPException) as rejected:
+        await _race(session_factory, _open_balance(fresh.id, 30, user.id), _open_balance(fresh.id, 30, user.id))
+
+    assert rejected.value.status_code == 409
+    stock, ledger_total = await _stock_and_ledger_total(session_factory, fresh.id)
+    assert stock == 30
+    assert ledger_total == 30
+    await assert_stock_matches_ledger(fresh.id)
 
 
 @pytest.mark.parametrize(
@@ -211,7 +237,7 @@ async def test_parallel_receive_requests_accept_exactly_one(
     assert sorted(response.status_code for response in responses) == [200, 409]
     stock, ledger_total = await _stock_and_ledger_total(session_factory, product.id)
     assert stock == 50 + ORDERED_QUANTITY
-    assert ledger_total == ORDERED_QUANTITY
+    assert ledger_total == 50 + ORDERED_QUANTITY
 
 
 async def test_parallel_purchase_order_creations_get_unique_numbers(

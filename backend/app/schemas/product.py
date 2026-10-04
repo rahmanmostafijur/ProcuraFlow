@@ -18,7 +18,9 @@ class ProductBase(BaseModel):
 
 
 class ProductCreate(ProductBase):
-    current_stock: int = Field(ge=0, default=0)
+    # New products start at zero stock; opening stock is booked through the inventory ledger.
+    # Forbidding unknown fields makes clients that still send current_stock fail loudly.
+    model_config = ConfigDict(extra="forbid")
 
 
 class ProductUpdate(BaseModel):

@@ -11,6 +11,12 @@ class InventoryAdjustmentCreate(BaseModel):
     reason: str = Field(min_length=1, max_length=255)
 
 
+class OpeningBalanceCreate(BaseModel):
+    product_id: int
+    quantity: int = Field(gt=0)
+    reason: str | None = Field(default=None, min_length=1, max_length=255)
+
+
 class InventoryTransactionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

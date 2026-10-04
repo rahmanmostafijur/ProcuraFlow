@@ -9,9 +9,9 @@ from app.models.enums import InventoryTransactionType
 from app.models.inventory import InventoryTransaction
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
-from app.schemas.inventory import InventoryAdjustmentCreate, InventoryTransactionRead
+from app.schemas.inventory import InventoryAdjustmentCreate, InventoryTransactionRead, OpeningBalanceCreate
 from app.services.audit_service import record_audit_event
-from app.services.inventory_service import apply_inventory_transaction, lock_products
+from app.services.inventory_service import apply_inventory_transaction, lock_products, record_opening_balance
 
 router = APIRouter(prefix="/inventory", tags=["inventory"])
 
@@ -58,6 +58,31 @@ async def create_adjustment(
         entity_type="product",
         entity_id=product.id,
         extra_data={"quantity_delta": payload.quantity_delta, "reason": payload.reason},
+    )
+    await db.commit()
+    await db.refresh(transaction)
+    return transaction
+
+
+@router.post("/opening-balance", response_model=InventoryTransactionRead, status_code=status.HTTP_201_CREATED)
+async def create_opening_balance(
+    payload: OpeningBalanceCreate, db: DbSession, current_user: RequireInventoryWrite
+) -> InventoryTransaction:
+    transaction = await record_opening_balance(
+        db,
+        product_id=payload.product_id,
+        quantity=payload.quantity,
+        created_by=current_user.id,
+        reason=payload.reason,
+    )
+    await db.flush()
+    await record_audit_event(
+        db,
+        user_id=current_user.id,
+        action="inventory_opening_balance",
+        entity_type="product",
+        entity_id=payload.product_id,
+        extra_data={"quantity": payload.quantity, "reason": payload.reason},
     )
     await db.commit()
     await db.refresh(transaction)

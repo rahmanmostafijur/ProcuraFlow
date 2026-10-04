@@ -14,6 +14,7 @@ from app.models.product import Product
 from app.models.role import Role
 from app.models.supplier import Supplier
 from app.models.user import User
+from app.services.inventory_service import record_opening_balance
 
 KNOWN_DEFAULT_ADMIN_PASSWORDS = frozenset({"change-this-admin-password", "ChangeMe123!"})
 MIN_ADMIN_PASSWORD_LENGTH = 12
@@ -63,28 +64,29 @@ async def seed_permissions_and_roles(db: AsyncSession) -> dict[str, Role]:
     return existing_roles
 
 
-async def seed_admin_user(db: AsyncSession, roles: dict[str, Role], settings: Settings) -> None:
+async def seed_admin_user(db: AsyncSession, roles: dict[str, Role], settings: Settings) -> User:
     existing = (
         await db.execute(select(User).where(User.email == settings.default_admin_email))
     ).scalar_one_or_none()
     # An existing admin keeps its password; the env value only bootstraps the first account.
     if existing is not None:
-        return
+        return existing
 
     ensure_admin_password_is_safe(settings)
     admin_role = roles["admin"]
-    db.add(
-        User(
-            email=settings.default_admin_email,
-            hashed_password=hash_password(settings.default_admin_password),
-            full_name="System Administrator",
-            role_id=admin_role.id,
-            is_active=True,
-        )
+    admin = User(
+        email=settings.default_admin_email,
+        hashed_password=hash_password(settings.default_admin_password),
+        full_name="System Administrator",
+        role_id=admin_role.id,
+        is_active=True,
     )
+    db.add(admin)
+    await db.flush()
+    return admin
 
 
-async def seed_demo_data(db: AsyncSession) -> None:
+async def seed_demo_data(db: AsyncSession, admin: User) -> None:
     existing_supplier = (await db.execute(select(Supplier))).scalars().first()
     if existing_supplier is not None:
         return
@@ -121,77 +123,95 @@ async def seed_demo_data(db: AsyncSession) -> None:
     db.add_all(suppliers)
     await db.flush()
 
-    products = [
-        Product(
-            sku="OFF-1001",
-            name="A4 Copy Paper (Ream)",
-            category_id=categories["Office Supplies"].id,
-            unit="ream",
-            cost=4.50,
-            current_stock=500,
-            minimum_stock=100,
-            supplier_id=suppliers[0].id,
+    opening_stock = [
+        (
+            Product(
+                sku="OFF-1001",
+                name="A4 Copy Paper (Ream)",
+                category_id=categories["Office Supplies"].id,
+                unit="ream",
+                cost=4.50,
+                minimum_stock=100,
+                supplier_id=suppliers[0].id,
+            ),
+            500,
         ),
-        Product(
-            sku="OFF-1002",
-            name="Ballpoint Pens (Box of 50)",
-            category_id=categories["Office Supplies"].id,
-            unit="box",
-            cost=8.25,
-            current_stock=120,
-            minimum_stock=30,
-            supplier_id=suppliers[0].id,
+        (
+            Product(
+                sku="OFF-1002",
+                name="Ballpoint Pens (Box of 50)",
+                category_id=categories["Office Supplies"].id,
+                unit="box",
+                cost=8.25,
+                minimum_stock=30,
+                supplier_id=suppliers[0].id,
+            ),
+            120,
         ),
-        Product(
-            sku="ELC-2001",
-            name="USB-C Cable 1m",
-            category_id=categories["Electronics"].id,
-            unit="unit",
-            cost=2.10,
-            current_stock=40,
-            minimum_stock=50,
-            supplier_id=suppliers[1].id,
+        (
+            Product(
+                sku="ELC-2001",
+                name="USB-C Cable 1m",
+                category_id=categories["Electronics"].id,
+                unit="unit",
+                cost=2.10,
+                minimum_stock=50,
+                supplier_id=suppliers[1].id,
+            ),
+            40,
         ),
-        Product(
-            sku="ELC-2002",
-            name="Wireless Mouse",
-            category_id=categories["Electronics"].id,
-            unit="unit",
-            cost=11.75,
-            current_stock=75,
-            minimum_stock=20,
-            supplier_id=suppliers[1].id,
+        (
+            Product(
+                sku="ELC-2002",
+                name="Wireless Mouse",
+                category_id=categories["Electronics"].id,
+                unit="unit",
+                cost=11.75,
+                minimum_stock=20,
+                supplier_id=suppliers[1].id,
+            ),
+            75,
         ),
-        Product(
-            sku="PKG-3001",
-            name="Corrugated Box (Medium)",
-            category_id=categories["Packaging"].id,
-            unit="unit",
-            cost=0.85,
-            current_stock=800,
-            minimum_stock=200,
-            supplier_id=suppliers[2].id,
+        (
+            Product(
+                sku="PKG-3001",
+                name="Corrugated Box (Medium)",
+                category_id=categories["Packaging"].id,
+                unit="unit",
+                cost=0.85,
+                minimum_stock=200,
+                supplier_id=suppliers[2].id,
+            ),
+            800,
         ),
-        Product(
-            sku="RAW-4001",
-            name="Aluminum Sheet 1mm",
-            category_id=categories["Raw Materials"].id,
-            unit="sheet",
-            cost=15.00,
-            current_stock=25,
-            minimum_stock=30,
-            supplier_id=suppliers[0].id,
+        (
+            Product(
+                sku="RAW-4001",
+                name="Aluminum Sheet 1mm",
+                category_id=categories["Raw Materials"].id,
+                unit="sheet",
+                cost=15.00,
+                minimum_stock=30,
+                supplier_id=suppliers[0].id,
+            ),
+            25,
         ),
     ]
-    db.add_all(products)
+    db.add_all(product for product, _ in opening_stock)
+    await db.flush()
+    # Opening stock goes through the ledger, like any other stock change.
+    for product, quantity in opening_stock:
+        await record_opening_balance(
+            db, product_id=product.id, quantity=quantity, created_by=admin.id, reason="Demo opening stock"
+        )
 
 
 async def run_seed() -> None:
     settings = get_settings()
     async with AsyncSessionLocal() as db:
         roles = await seed_permissions_and_roles(db)
-        await seed_admin_user(db, roles, settings)
-        await seed_demo_data(db)
+        admin = await seed_admin_user(db, roles, settings)
+        await seed_demo_data(db, admin)
         await db.commit()
     print("Seed complete.")
 

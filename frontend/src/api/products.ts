@@ -21,7 +21,6 @@ export interface ProductInput {
   cost: string;
   minimum_stock: number;
   supplier_id?: number | null;
-  current_stock?: number;
 }
 
 export function useProducts(params: ProductListParams) {

@@ -1,14 +1,22 @@
 from collections.abc import Callable
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
 from app.core.security import verify_password
+from app.models.enums import InventoryTransactionType
+from app.models.inventory import InventoryTransaction
+from app.models.product import Product
 from app.models.role import Role
 from app.models.user import User
-from app.seeds.seed import UnsafeAdminPasswordError, ensure_admin_password_is_safe, seed_admin_user
+from app.seeds.seed import (
+    UnsafeAdminPasswordError,
+    ensure_admin_password_is_safe,
+    seed_admin_user,
+    seed_demo_data,
+)
 
 STRONG_SECRET = "k3Vq9xLr0TzP7mWb2NcY8sHd5FgJ1aUe6RoXiQ4vEyZt"
 STRONG_PASSWORD = "Vq9-xLr0-TzP7-mWb2"
@@ -82,3 +90,41 @@ async def test_seed_never_overwrites_existing_admin_password(
     await db_session.refresh(admin)
     assert verify_password("Original-Pass-123", admin.hashed_password)
     assert not verify_password(STRONG_PASSWORD, admin.hashed_password)
+
+
+async def _row_counts(db_session: AsyncSession) -> list[int]:
+    return [
+        await db_session.scalar(select(func.count()).select_from(model)) for model in (Product, InventoryTransaction)
+    ]
+
+
+async def test_seed_records_demo_opening_stock_through_the_ledger(
+    db_session: AsyncSession, roles: dict[str, Role], assert_stock_matches_ledger
+):
+    admin = await seed_admin_user(db_session, roles, make_settings("test", "ChangeMe123!"))
+    await seed_demo_data(db_session, admin)
+    await db_session.commit()
+
+    products = (await db_session.execute(select(Product))).scalars().all()
+    ledger = (await db_session.execute(select(InventoryTransaction))).scalars().all()
+    assert products
+    assert all(product.current_stock > 0 for product in products)
+    assert sorted(row.product_id for row in ledger) == sorted(product.id for product in products)
+    assert {row.type for row in ledger} == {InventoryTransactionType.OPENING_BALANCE}
+    assert {row.created_by for row in ledger} == {admin.id}
+    for product in products:
+        await assert_stock_matches_ledger(product.id)
+
+
+async def test_seed_demo_data_is_idempotent(db_session: AsyncSession, roles: dict[str, Role]):
+    admin = await seed_admin_user(db_session, roles, make_settings("test", "ChangeMe123!"))
+    await seed_demo_data(db_session, admin)
+    await db_session.commit()
+    counts = await _row_counts(db_session)
+
+    again = await seed_admin_user(db_session, roles, make_settings("test", "ChangeMe123!"))
+    await seed_demo_data(db_session, again)
+    await db_session.commit()
+
+    assert again.id == admin.id
+    assert await _row_counts(db_session) == counts

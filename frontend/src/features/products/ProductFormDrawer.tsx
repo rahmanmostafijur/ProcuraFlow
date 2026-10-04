@@ -1,10 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 
 import { useCategories } from "@/api/categories";
-import type { ProductInput } from "@/api/products";
 import { useSuppliers } from "@/api/suppliers";
 import type { Product } from "@/api/types";
 import { Button } from "@/components/ui/Button";
@@ -13,25 +11,13 @@ import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Select } from "@/components/ui/Select";
 
-const schema = z.object({
-  sku: z.string().min(1, "SKU is required").max(64),
-  name: z.string().min(1, "Name is required").max(255),
-  category_id: z.string().optional(),
-  unit: z.string().min(1, "Unit is required").max(32),
-  cost: z.coerce.number().min(0, "Cost must be zero or more"),
-  minimum_stock: z.coerce.number().int().min(0, "Minimum stock must be zero or more"),
-  supplier_id: z.string().optional(),
-  current_stock: z.coerce.number().int().min(0).optional(),
-  is_active: z.enum(["true", "false"]).optional(),
-});
-
-type FormValues = z.infer<typeof schema>;
+import { type ProductFormValues, type ProductPayload, productFormSchema, toProductPayload } from "./productPayload";
 
 interface ProductFormDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   product: Product | null;
-  onSubmit: (values: ProductInput & { is_active?: boolean }) => Promise<void>;
+  onSubmit: (values: ProductPayload) => Promise<void>;
   isSubmitting: boolean;
 }
 
@@ -44,7 +30,7 @@ export function ProductFormDrawer({ isOpen, onClose, product, onSubmit, isSubmit
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  } = useForm<ProductFormValues>({ resolver: zodResolver(productFormSchema) });
 
   useEffect(() => {
     if (isOpen) {
@@ -56,24 +42,13 @@ export function ProductFormDrawer({ isOpen, onClose, product, onSubmit, isSubmit
         cost: product ? Number(product.cost) : 0,
         minimum_stock: product?.minimum_stock ?? 0,
         supplier_id: product?.supplier_id ? String(product.supplier_id) : "",
-        current_stock: product?.current_stock ?? 0,
         is_active: product ? (product.is_active ? "true" : "false") : "true",
       });
     }
   }, [isOpen, product, reset]);
 
   const submit = handleSubmit(async (values) => {
-    await onSubmit({
-      sku: values.sku,
-      name: values.name,
-      category_id: values.category_id ? Number(values.category_id) : null,
-      unit: values.unit,
-      cost: values.cost.toFixed(2),
-      minimum_stock: values.minimum_stock,
-      supplier_id: values.supplier_id ? Number(values.supplier_id) : null,
-      current_stock: product ? undefined : values.current_stock,
-      is_active: values.is_active ? values.is_active === "true" : undefined,
-    });
+    await onSubmit(toProductPayload(values, Boolean(product)));
   });
 
   return (
@@ -140,12 +115,6 @@ export function ProductFormDrawer({ isOpen, onClose, product, onSubmit, isSubmit
             />
           </div>
         </div>
-        {!product && (
-          <div>
-            <Label htmlFor="current_stock">Initial Stock</Label>
-            <Input id="current_stock" type="number" {...register("current_stock")} />
-          </div>
-        )}
         {product && (
           <div>
             <Label htmlFor="is_active">Status</Label>
