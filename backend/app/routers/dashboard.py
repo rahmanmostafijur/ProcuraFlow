@@ -77,7 +77,9 @@ async def get_dashboard_summary(db: DbSession, _: CurrentUser) -> DashboardSumma
 
 
 @router.get("/monthly-trends", response_model=list[MonthlyTrendPoint])
-async def get_monthly_trends(db: DbSession, _: CurrentUser, months: int = 6) -> list[MonthlyTrendPoint]:
+async def get_monthly_trends(
+    db: DbSession, _: CurrentUser, months: int = Query(6, ge=1, le=24)
+) -> list[MonthlyTrendPoint]:
     cutoff = date.today().replace(day=1) - timedelta(days=months * 31)
     month_expr = func.to_char(PurchaseOrder.created_at, "YYYY-MM")
     line_total = PurchaseOrderItem.quantity * PurchaseOrderItem.unit_price

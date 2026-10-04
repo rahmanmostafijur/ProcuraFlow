@@ -64,3 +64,31 @@ async def test_recent_activity_accepts_the_maximum_limit(
 
     assert response.status_code == 200
     assert len(response.json()) == 50
+
+
+MONTHLY_TRENDS_URL = "/api/v1/dashboard/monthly-trends"
+
+
+@pytest.mark.parametrize("months", [0, 25])
+async def test_monthly_trends_rejects_out_of_range_window(
+    client: AsyncClient, auth_headers: Callable, months: int
+) -> None:
+    headers = await auth_headers("viewer")
+
+    response = await client.get(MONTHLY_TRENDS_URL, headers=headers, params={"months": months})
+
+    assert response.status_code == 422
+    [error] = response.json()["detail"]
+    assert error["loc"] == ["query", "months"]
+
+
+@pytest.mark.parametrize("params", [{}, {"months": 1}, {"months": 24}])
+async def test_monthly_trends_accepts_the_default_and_bounds(
+    client: AsyncClient, auth_headers: Callable, params: dict[str, int]
+) -> None:
+    headers = await auth_headers("viewer")
+
+    response = await client.get(MONTHLY_TRENDS_URL, headers=headers, params=params)
+
+    assert response.status_code == 200
+    assert response.json() == []
