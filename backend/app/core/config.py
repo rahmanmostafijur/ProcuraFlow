@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     environment: str = "development"
     debug: bool = True
 
-    database_url: str = "postgresql+asyncpg://procuraflow:procuraflow@localhost:5432/procuraflow"
-    test_database_url: str = "postgresql+asyncpg://procuraflow:procuraflow@localhost:5432/procuraflow_test"
+    database_url: str = "postgresql+asyncpg://procuraflow:procuraflow@127.0.0.1:5432/procuraflow"
+    test_database_url: str = "postgresql+asyncpg://procuraflow:procuraflow@127.0.0.1:5432/procuraflow_test"
 
     jwt_secret_key: str = "insecure-dev-secret-change-me"
     jwt_algorithm: str = "HS256"
