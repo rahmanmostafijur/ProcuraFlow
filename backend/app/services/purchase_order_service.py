@@ -1,13 +1,13 @@
 from datetime import date, datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.delivery import Delivery
 from app.models.enums import DeliveryStatus, InventoryTransactionType, POStatus
-from app.models.purchase_order import PurchaseOrder
+from app.models.purchase_order import PO_NUMBER_SEQUENCE, PurchaseOrder
 from app.models.role import Role
 from app.models.user import User
 from app.services.inventory_service import apply_inventory_transaction, lock_products
@@ -57,8 +57,8 @@ async def get_purchase_order_for_update(db: AsyncSession, po_id: int) -> Purchas
 
 async def generate_po_number(db: AsyncSession) -> str:
     year = datetime.now(timezone.utc).year
-    count = (await db.execute(select(func.count()).select_from(PurchaseOrder))).scalar_one()
-    return f"PO-{year}-{count + 1:05d}"
+    number = await db.scalar(select(PO_NUMBER_SEQUENCE.next_value()))
+    return f"PO-{year}-{number:05d}"
 
 
 def submit_purchase_order(po: PurchaseOrder) -> None:

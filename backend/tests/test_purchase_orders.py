@@ -1,6 +1,13 @@
+import re
 from datetime import date, timedelta
 
 from httpx import AsyncClient
+from sqlalchemy import delete
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.purchase_order import PurchaseOrder
+
+PO_NUMBER_PATTERN = re.compile(r"PO-\d{4}-\d{5}")
 
 
 async def _create_draft_po(client: AsyncClient, headers: dict, supplier, product, **overrides) -> dict:
@@ -22,6 +29,21 @@ async def test_create_purchase_order_starts_in_draft(client: AsyncClient, auth_h
     assert po["status"] == "draft"
     assert po["po_number"].startswith("PO-")
     assert po["total"] == "100.00"
+
+
+async def test_po_numbers_stay_unique_after_a_purchase_order_is_deleted(
+    client: AsyncClient, auth_headers, db_session: AsyncSession, supplier, product
+):
+    headers = await auth_headers("procurement_manager")
+    first = await _create_draft_po(client, headers, supplier, product)
+    second = await _create_draft_po(client, headers, supplier, product)
+    await db_session.execute(delete(PurchaseOrder).where(PurchaseOrder.id == first["id"]))
+    await db_session.commit()
+
+    third = await _create_draft_po(client, headers, supplier, product)
+
+    assert third["po_number"] not in {first["po_number"], second["po_number"]}
+    assert PO_NUMBER_PATTERN.fullmatch(third["po_number"])
 
 
 async def test_full_lifecycle_draft_to_received_updates_inventory(

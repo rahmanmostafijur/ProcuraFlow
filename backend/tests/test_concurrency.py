@@ -22,6 +22,7 @@ BLOCKED_WINDOW_SECONDS = 0.5
 OPERATION_TIMEOUT_SECONDS = 10
 
 ORDERED_QUANTITY = 10
+PARALLEL_CREATIONS = 5
 
 SessionWork = Callable[[AsyncSession], Awaitable[None]]
 
@@ -211,3 +212,27 @@ async def test_parallel_receive_requests_accept_exactly_one(
     stock, ledger_total = await _stock_and_ledger_total(session_factory, product.id)
     assert stock == 50 + ORDERED_QUANTITY
     assert ledger_total == ORDERED_QUANTITY
+
+
+async def test_parallel_purchase_order_creations_get_unique_numbers(
+    client: AsyncClient, auth_headers, product
+):
+    headers = await auth_headers("procurement_manager")
+    payload = {
+        "supplier_id": product.supplier_id,
+        "items": [{"product_id": product.id, "quantity": ORDERED_QUANTITY, "unit_price": "10.00"}],
+    }
+
+    responses = await asyncio.wait_for(
+        asyncio.gather(
+            *(
+                client.post("/api/v1/purchase-orders", json=payload, headers=headers)
+                for _ in range(PARALLEL_CREATIONS)
+            )
+        ),
+        timeout=OPERATION_TIMEOUT_SECONDS,
+    )
+
+    assert [response.status_code for response in responses] == [201] * PARALLEL_CREATIONS
+    po_numbers = {response.json()["po_number"] for response in responses}
+    assert len(po_numbers) == PARALLEL_CREATIONS
