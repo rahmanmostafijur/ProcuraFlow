@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.core.permissions import PERMISSIONS, ROLE_DESCRIPTIONS, ROLE_PERMISSIONS
 from app.core.security import hash_password
 from app.db.session import AsyncSessionLocal
@@ -15,7 +15,28 @@ from app.models.role import Role
 from app.models.supplier import Supplier
 from app.models.user import User
 
-settings = get_settings()
+KNOWN_DEFAULT_ADMIN_PASSWORDS = frozenset({"change-this-admin-password", "ChangeMe123!"})
+MIN_ADMIN_PASSWORD_LENGTH = 12
+
+
+class UnsafeAdminPasswordError(RuntimeError):
+    pass
+
+
+def ensure_admin_password_is_safe(settings: Settings) -> None:
+    if settings.is_local:
+        return
+    password = settings.default_admin_password
+    if password in KNOWN_DEFAULT_ADMIN_PASSWORDS:
+        raise UnsafeAdminPasswordError(
+            f"DEFAULT_ADMIN_PASSWORD is a known default and cannot be used in {settings.environment}; "
+            f"set DEFAULT_ADMIN_PASSWORD to a unique password of at least {MIN_ADMIN_PASSWORD_LENGTH} characters"
+        )
+    if len(password) < MIN_ADMIN_PASSWORD_LENGTH:
+        raise UnsafeAdminPasswordError(
+            f"DEFAULT_ADMIN_PASSWORD must be at least {MIN_ADMIN_PASSWORD_LENGTH} characters "
+            f"in {settings.environment}; set DEFAULT_ADMIN_PASSWORD to a longer unique password"
+        )
 
 
 async def seed_permissions_and_roles(db: AsyncSession) -> dict[str, Role]:
@@ -42,13 +63,15 @@ async def seed_permissions_and_roles(db: AsyncSession) -> dict[str, Role]:
     return existing_roles
 
 
-async def seed_admin_user(db: AsyncSession, roles: dict[str, Role]) -> None:
+async def seed_admin_user(db: AsyncSession, roles: dict[str, Role], settings: Settings) -> None:
     existing = (
         await db.execute(select(User).where(User.email == settings.default_admin_email))
     ).scalar_one_or_none()
+    # An existing admin keeps its password; the env value only bootstraps the first account.
     if existing is not None:
         return
 
+    ensure_admin_password_is_safe(settings)
     admin_role = roles["admin"]
     db.add(
         User(
@@ -164,13 +187,21 @@ async def seed_demo_data(db: AsyncSession) -> None:
 
 
 async def run_seed() -> None:
+    settings = get_settings()
     async with AsyncSessionLocal() as db:
         roles = await seed_permissions_and_roles(db)
-        await seed_admin_user(db, roles)
+        await seed_admin_user(db, roles, settings)
         await seed_demo_data(db)
         await db.commit()
     print("Seed complete.")
 
 
+def main() -> None:
+    try:
+        asyncio.run(run_seed())
+    except UnsafeAdminPasswordError as exc:
+        raise SystemExit(f"Seed aborted: {exc}") from exc
+
+
 if __name__ == "__main__":
-    asyncio.run(run_seed())
+    main()
