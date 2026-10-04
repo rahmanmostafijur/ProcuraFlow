@@ -1,9 +1,14 @@
+import os
 from collections.abc import AsyncGenerator, Callable
 
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
+
+# Settings fail closed outside development/test, so defaults must exist before app modules load.
+os.environ.setdefault("ENVIRONMENT", "test")
+os.environ.setdefault("JWT_SECRET_KEY", "test-only-secret-key-0123456789abcdef0123456789abcdef")
 
 from app.core.config import get_settings
 from app.core.permissions import PERMISSIONS, ROLE_DESCRIPTIONS, ROLE_PERMISSIONS
