@@ -4,6 +4,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { useDashboardSummary, useMonthlyTrends, useRecentActivity } from "@/api/dashboard";
 import { Card } from "@/components/ui/Card";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { useAuth } from "@/lib/auth-context";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 
 function StatCard({
@@ -28,10 +29,39 @@ function StatCard({
   );
 }
 
+// Mounted only for audit:read holders, so other roles never request a feed the API would refuse.
+function RecentActivityCard() {
+  const { data: activity, isLoading } = useRecentActivity();
+
+  return (
+    <Card className="p-5">
+      <h2 className="mb-4 text-sm font-semibold text-slate-900">Recent Activity</h2>
+      {isLoading || !activity ? (
+        <LoadingState />
+      ) : activity.length === 0 ? (
+        <p className="py-12 text-center text-sm text-slate-500">No recent activity.</p>
+      ) : (
+        <ul className="space-y-3">
+          {activity.map((item) => (
+            <li key={item.id} className="text-sm">
+              <p className="text-slate-800">
+                <span className="font-medium">{item.user_name ?? "System"}</span>{" "}
+                {item.action.replace(/_/g, " ")}
+              </p>
+              <p className="text-xs text-slate-400">{formatDateTime(item.created_at)}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
 export function DashboardPage() {
+  const { hasPermission } = useAuth();
   const { data: summary, isLoading: summaryLoading } = useDashboardSummary();
   const { data: trends, isLoading: trendsLoading } = useMonthlyTrends();
-  const { data: activity, isLoading: activityLoading } = useRecentActivity();
+  const canViewActivity = hasPermission("audit:read");
 
   if (summaryLoading || !summary) {
     return <LoadingState label="Loading dashboard…" />;
@@ -55,7 +85,7 @@ export function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card className="p-5 lg:col-span-2">
+        <Card className={canViewActivity ? "p-5 lg:col-span-2" : "p-5 lg:col-span-3"}>
           <h2 className="mb-4 text-sm font-semibold text-slate-900">Committed Spend by Month</h2>
           {trendsLoading || !trends ? (
             <LoadingState />
@@ -74,26 +104,7 @@ export function DashboardPage() {
           )}
         </Card>
 
-        <Card className="p-5">
-          <h2 className="mb-4 text-sm font-semibold text-slate-900">Recent Activity</h2>
-          {activityLoading || !activity ? (
-            <LoadingState />
-          ) : activity.length === 0 ? (
-            <p className="py-12 text-center text-sm text-slate-500">No recent activity.</p>
-          ) : (
-            <ul className="space-y-3">
-              {activity.map((item) => (
-                <li key={item.id} className="text-sm">
-                  <p className="text-slate-800">
-                    <span className="font-medium">{item.user_name ?? "System"}</span>{" "}
-                    {item.action.replace(/_/g, " ")}
-                  </p>
-                  <p className="text-xs text-slate-400">{formatDateTime(item.created_at)}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+        {canViewActivity && <RecentActivityCard />}
       </div>
     </div>
   );

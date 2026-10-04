@@ -1,10 +1,11 @@
 from datetime import date, timedelta
+from typing import Annotated
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
-from app.core.deps import CurrentUser, DbSession
+from app.core.deps import CurrentUser, DbSession, require_permission
 from app.models.audit import AuditLog
 from app.models.delivery import Delivery
 from app.models.enums import COMMITTED_PO_STATUSES, DeliveryStatus, POStatus
@@ -12,9 +13,13 @@ from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
 from app.models.purchase_order_item import PurchaseOrderItem
 from app.models.supplier import Supplier
+from app.models.user import User
 from app.schemas.dashboard import DashboardSummary, MonthlyTrendPoint, RecentActivityItem
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+
+# The activity feed is a view of the audit log, so it carries the audit log's permission.
+RequireAuditRead = Annotated[User, Depends(require_permission("audit:read"))]
 
 _PENDING_STATUSES = (
     POStatus.DRAFT,
@@ -96,7 +101,9 @@ async def get_monthly_trends(db: DbSession, _: CurrentUser, months: int = 6) -> 
 
 
 @router.get("/recent-activity", response_model=list[RecentActivityItem])
-async def get_recent_activity(db: DbSession, _: CurrentUser, limit: int = 10) -> list[RecentActivityItem]:
+async def get_recent_activity(
+    db: DbSession, _: RequireAuditRead, limit: int = Query(10, ge=1, le=50)
+) -> list[RecentActivityItem]:
     stmt = (
         select(AuditLog).options(selectinload(AuditLog.user)).order_by(AuditLog.created_at.desc()).limit(limit)
     )
