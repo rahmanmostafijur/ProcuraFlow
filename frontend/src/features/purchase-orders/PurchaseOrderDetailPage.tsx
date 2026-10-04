@@ -18,6 +18,7 @@ import { useToast } from "@/components/ui/toast-context";
 import { useAuth } from "@/lib/auth-context";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 
+import { canApprovePurchaseOrder, needsAnotherApprover } from "./approval";
 import { ReceivePurchaseOrderModal } from "./ReceivePurchaseOrderModal";
 
 type PendingAction = "submit" | "approve" | "order" | "cancel" | null;
@@ -25,7 +26,7 @@ type PendingAction = "submit" | "approve" | "order" | "cancel" | null;
 export function PurchaseOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
   const { showToast } = useToast();
   const poId = id ? Number(id) : undefined;
 
@@ -77,13 +78,14 @@ export function PurchaseOrderDetailPage() {
   };
 
   const canCreate = hasPermission("po:create");
-  const canApprove = hasPermission("po:approve");
+  const canApprove = canApprovePurchaseOrder(po, user, hasPermission);
+  const showApproverHint = needsAnotherApprover(po, user, hasPermission);
   const canTransition = hasPermission("po:transition");
   const canReceive = hasPermission("inventory:write");
 
   const actions: { label: string; action: Exclude<PendingAction, null>; visible: boolean; variant?: "primary" | "danger" }[] = [
     { label: "Submit for Approval", action: "submit", visible: po.status === "draft" && canCreate },
-    { label: "Approve", action: "approve", visible: po.status === "submitted" && canApprove },
+    { label: "Approve", action: "approve", visible: canApprove },
     { label: "Mark as Ordered", action: "order", visible: po.status === "approved" && canTransition },
     {
       label: "Cancel Order",
@@ -121,6 +123,11 @@ export function PurchaseOrderDetailPage() {
               </Button>
             ))}
           {canReceiveNow && <Button onClick={() => setReceiveModalOpen(true)}>Receive Stock</Button>}
+          {showApproverHint && (
+            <p className="self-center text-sm text-slate-500">
+              You created this order, so another approver must approve it.
+            </p>
+          )}
         </div>
       </div>
 

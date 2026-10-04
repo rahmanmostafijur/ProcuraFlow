@@ -67,6 +67,12 @@ def submit_purchase_order(po: PurchaseOrder) -> None:
 
 
 def approve_purchase_order(po: PurchaseOrder, approver: User) -> None:
+    # Separation of duties: nobody, including admins, signs off on spend they raised themselves.
+    if po.created_by == approver.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You cannot approve a purchase order you created.",
+        )
     _ensure_transition_allowed(po.status, POStatus.APPROVED)
     po.status = POStatus.APPROVED
     po.approved_by = approver.id
