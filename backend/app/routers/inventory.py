@@ -7,12 +7,11 @@ from app.core.deps import CurrentUser, DbSession, require_permission
 from app.core.pagination import paginate
 from app.models.enums import InventoryTransactionType
 from app.models.inventory import InventoryTransaction
-from app.models.product import Product
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
 from app.schemas.inventory import InventoryAdjustmentCreate, InventoryTransactionRead
 from app.services.audit_service import record_audit_event
-from app.services.inventory_service import apply_inventory_transaction
+from app.services.inventory_service import apply_inventory_transaction, lock_products
 
 router = APIRouter(prefix="/inventory", tags=["inventory"])
 
@@ -39,7 +38,7 @@ async def list_inventory_transactions(
 async def create_adjustment(
     payload: InventoryAdjustmentCreate, db: DbSession, current_user: RequireInventoryWrite
 ) -> InventoryTransaction:
-    product = await db.get(Product, payload.product_id)
+    product = (await lock_products(db, [payload.product_id])).get(payload.product_id)
     if product is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
 

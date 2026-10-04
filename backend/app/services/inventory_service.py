@@ -1,9 +1,25 @@
+from collections.abc import Iterable
+
 from fastapi import HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.enums import InventoryTransactionType
 from app.models.inventory import InventoryTransaction
 from app.models.product import Product
+
+
+async def lock_products(db: AsyncSession, product_ids: Iterable[int]) -> dict[int, Product]:
+    # Lock order is purchase order first, then products by ascending id, in one statement.
+    # Every writer follows it, so concurrent receipts and adjustments cannot deadlock.
+    result = await db.execute(
+        select(Product)
+        .where(Product.id.in_(set(product_ids)))
+        .order_by(Product.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    return {product.id: product for product in result.scalars()}
 
 
 async def apply_inventory_transaction(

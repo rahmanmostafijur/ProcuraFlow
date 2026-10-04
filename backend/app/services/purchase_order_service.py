@@ -3,13 +3,24 @@ from datetime import date, datetime, timezone
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.delivery import Delivery
 from app.models.enums import DeliveryStatus, InventoryTransactionType, POStatus
-from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
+from app.models.role import Role
 from app.models.user import User
-from app.services.inventory_service import apply_inventory_transaction
+from app.services.inventory_service import apply_inventory_transaction, lock_products
+
+# Responses serialize creator/approver roles, and a refreshing load resets lazy relationships,
+# so load them eagerly instead of relying on objects already in the session.
+PO_LOAD_OPTIONS = (
+    selectinload(PurchaseOrder.supplier),
+    selectinload(PurchaseOrder.items),
+    selectinload(PurchaseOrder.creator).selectinload(User.role).selectinload(Role.permissions),
+    selectinload(PurchaseOrder.approver).selectinload(User.role).selectinload(Role.permissions),
+    selectinload(PurchaseOrder.delivery),
+)
 
 _ALLOWED_TRANSITIONS: dict[POStatus, set[POStatus]] = {
     POStatus.DRAFT: {POStatus.SUBMITTED, POStatus.CANCELLED},
@@ -28,6 +39,20 @@ def _ensure_transition_allowed(current: POStatus, target: POStatus) -> None:
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Cannot transition purchase order from '{current.value}' to '{target.value}'",
         )
+
+
+async def get_purchase_order_for_update(db: AsyncSession, po_id: int) -> PurchaseOrder:
+    result = await db.execute(
+        select(PurchaseOrder)
+        .options(*PO_LOAD_OPTIONS)
+        .where(PurchaseOrder.id == po_id)
+        .with_for_update(of=PurchaseOrder)
+        .execution_options(populate_existing=True)
+    )
+    po = result.scalar_one_or_none()
+    if po is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Purchase order not found")
+    return po
 
 
 async def generate_po_number(db: AsyncSession) -> str:
@@ -95,12 +120,12 @@ async def receive_purchase_order_items(
                 detail=f"Cannot receive {quantity} units of product {product_id}; only {remaining} remain",
             )
 
-        product_result = await db.execute(select(Product).where(Product.id == product_id))
-        product = product_result.scalar_one()
-
+    products = await lock_products(db, received_items)
+    for product_id, quantity in received_items.items():
+        item = items_by_product[product_id]
         await apply_inventory_transaction(
             db,
-            product=product,
+            product=products[product_id],
             quantity_delta=quantity,
             transaction_type=InventoryTransactionType.PO_RECEIPT,
             created_by=received_by,

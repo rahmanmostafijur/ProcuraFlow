@@ -2,7 +2,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
 from app.core.deps import CurrentUser, DbSession, require_permission
 from app.core.pagination import paginate
@@ -29,17 +28,11 @@ RequirePOApprove = Annotated[User, Depends(require_permission("po:approve"))]
 RequirePOTransition = Annotated[User, Depends(require_permission("po:transition"))]
 RequireInventoryWrite = Annotated[User, Depends(require_permission("inventory:write"))]
 
-_LOAD_OPTIONS = (
-    selectinload(PurchaseOrder.supplier),
-    selectinload(PurchaseOrder.items),
-    selectinload(PurchaseOrder.creator),
-    selectinload(PurchaseOrder.approver),
-    selectinload(PurchaseOrder.delivery),
-)
-
 
 async def _get_po_or_404(db: DbSession, po_id: int) -> PurchaseOrder:
-    result = await db.execute(select(PurchaseOrder).options(*_LOAD_OPTIONS).where(PurchaseOrder.id == po_id))
+    result = await db.execute(
+        select(PurchaseOrder).options(*po_service.PO_LOAD_OPTIONS).where(PurchaseOrder.id == po_id)
+    )
     po = result.scalar_one_or_none()
     if po is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Purchase order not found")
@@ -55,7 +48,7 @@ async def list_purchase_orders(
     status_filter: POStatus | None = Query(default=None, alias="status"),
     supplier_id: int | None = None,
 ) -> PaginatedResponse[PurchaseOrderRead]:
-    stmt = select(PurchaseOrder).options(*_LOAD_OPTIONS).order_by(PurchaseOrder.created_at.desc())
+    stmt = select(PurchaseOrder).options(*po_service.PO_LOAD_OPTIONS).order_by(PurchaseOrder.created_at.desc())
     if status_filter is not None:
         stmt = stmt.where(PurchaseOrder.status == status_filter)
     if supplier_id is not None:
@@ -112,7 +105,7 @@ async def create_purchase_order(
 async def update_purchase_order(
     po_id: int, payload: PurchaseOrderUpdate, db: DbSession, current_user: RequirePOCreate
 ) -> PurchaseOrder:
-    po = await _get_po_or_404(db, po_id)
+    po = await po_service.get_purchase_order_for_update(db, po_id)
     if po.status != POStatus.DRAFT:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Only draft purchase orders can be edited")
 
@@ -148,7 +141,7 @@ async def update_purchase_order(
 
 @router.post("/{po_id}/submit", response_model=PurchaseOrderRead)
 async def submit_purchase_order(po_id: int, db: DbSession, current_user: RequirePOCreate) -> PurchaseOrder:
-    po = await _get_po_or_404(db, po_id)
+    po = await po_service.get_purchase_order_for_update(db, po_id)
     po_service.submit_purchase_order(po)
     await record_audit_event(
         db, user_id=current_user.id, action="po_submitted", entity_type="purchase_order", entity_id=po.id
@@ -159,7 +152,7 @@ async def submit_purchase_order(po_id: int, db: DbSession, current_user: Require
 
 @router.post("/{po_id}/approve", response_model=PurchaseOrderRead)
 async def approve_purchase_order(po_id: int, db: DbSession, current_user: RequirePOApprove) -> PurchaseOrder:
-    po = await _get_po_or_404(db, po_id)
+    po = await po_service.get_purchase_order_for_update(db, po_id)
     po_service.approve_purchase_order(po, current_user)
     await record_audit_event(
         db, user_id=current_user.id, action="po_approved", entity_type="purchase_order", entity_id=po.id
@@ -172,7 +165,7 @@ async def approve_purchase_order(po_id: int, db: DbSession, current_user: Requir
 async def mark_purchase_order_ordered(
     po_id: int, db: DbSession, current_user: RequirePOTransition
 ) -> PurchaseOrder:
-    po = await _get_po_or_404(db, po_id)
+    po = await po_service.get_purchase_order_for_update(db, po_id)
     po_service.mark_purchase_order_ordered(db, po)
     await record_audit_event(
         db, user_id=current_user.id, action="po_ordered", entity_type="purchase_order", entity_id=po.id
@@ -183,7 +176,7 @@ async def mark_purchase_order_ordered(
 
 @router.post("/{po_id}/cancel", response_model=PurchaseOrderRead)
 async def cancel_purchase_order(po_id: int, db: DbSession, current_user: RequirePOTransition) -> PurchaseOrder:
-    po = await _get_po_or_404(db, po_id)
+    po = await po_service.get_purchase_order_for_update(db, po_id)
     po_service.cancel_purchase_order(po)
     await record_audit_event(
         db, user_id=current_user.id, action="po_cancelled", entity_type="purchase_order", entity_id=po.id
@@ -196,7 +189,7 @@ async def cancel_purchase_order(po_id: int, db: DbSession, current_user: Require
 async def receive_purchase_order(
     po_id: int, payload: ReceivePurchaseOrderRequest, db: DbSession, current_user: RequireInventoryWrite
 ) -> PurchaseOrder:
-    po = await _get_po_or_404(db, po_id)
+    po = await po_service.get_purchase_order_for_update(db, po_id)
     received_items = {item.product_id: item.quantity for item in payload.items}
     await po_service.receive_purchase_order_items(db, po, received_items, current_user.id)
     await record_audit_event(
