@@ -56,11 +56,11 @@ export function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="p-5 lg:col-span-2">
-          <h2 className="mb-4 text-sm font-semibold text-slate-900">Monthly Purchasing Trend</h2>
+          <h2 className="mb-4 text-sm font-semibold text-slate-900">Committed Spend by Month</h2>
           {trendsLoading || !trends ? (
             <LoadingState />
           ) : trends.length === 0 ? (
-            <p className="py-12 text-center text-sm text-slate-500">No purchase order activity yet.</p>
+            <p className="py-12 text-center text-sm text-slate-500">No committed purchase orders yet.</p>
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={trends}>
@@ -68,7 +68,7 @@ export function DashboardPage() {
                 <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#94a3b8" />
                 <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
                 <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                <Bar dataKey="total_spend" fill="#3660f5" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="total_spend" name="Committed spend" fill="#3660f5" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}

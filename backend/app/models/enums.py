@@ -11,6 +11,15 @@ class POStatus(str, enum.Enum):
     CANCELLED = "cancelled"
 
 
+# Orders the business has signed off on; spend metrics count only these, never drafts or cancellations.
+COMMITTED_PO_STATUSES = (
+    POStatus.APPROVED,
+    POStatus.ORDERED,
+    POStatus.PARTIALLY_RECEIVED,
+    POStatus.RECEIVED,
+)
+
+
 class DeliveryStatus(str, enum.Enum):
     PENDING = "pending"
     ON_TIME = "on_time"

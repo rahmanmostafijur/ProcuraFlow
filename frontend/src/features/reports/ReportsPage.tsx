@@ -17,8 +17,8 @@ export function ReportsPage() {
 
   const performanceColumns: Column<SupplierPerformance>[] = [
     { header: "Supplier", accessor: (row) => row.supplier_name },
-    { header: "Orders", accessor: (row) => row.order_count },
-    { header: "Total Spend", accessor: (row) => formatCurrency(row.total_spend) },
+    { header: "Committed Orders", accessor: (row) => row.order_count },
+    { header: "Committed Spend", accessor: (row) => formatCurrency(row.total_spend) },
   ];
 
   const delayedColumns: Column<DelayedDelivery>[] = [

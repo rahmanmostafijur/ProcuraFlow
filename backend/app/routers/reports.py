@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.deps import CurrentUser, DbSession
 from app.models.delivery import Delivery
-from app.models.enums import DeliveryStatus
+from app.models.enums import COMMITTED_PO_STATUSES, DeliveryStatus
 from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
 from app.models.purchase_order_item import PurchaseOrderItem
@@ -27,7 +27,11 @@ async def supplier_performance(db: DbSession, _: CurrentUser) -> list[dict]:
             func.count(func.distinct(PurchaseOrder.id)).label("order_count"),
             func.coalesce(func.sum(line_total), 0).label("total_spend"),
         )
-        .outerjoin(PurchaseOrder, PurchaseOrder.supplier_id == Supplier.id)
+        # The status filter sits in the join so suppliers without committed orders still get a zero row.
+        .outerjoin(
+            PurchaseOrder,
+            (PurchaseOrder.supplier_id == Supplier.id) & PurchaseOrder.status.in_(COMMITTED_PO_STATUSES),
+        )
         .outerjoin(PurchaseOrderItem, PurchaseOrderItem.po_id == PurchaseOrder.id)
         .group_by(Supplier.id, Supplier.name)
         .order_by(Supplier.name)

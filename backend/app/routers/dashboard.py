@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 from app.core.deps import CurrentUser, DbSession
 from app.models.audit import AuditLog
 from app.models.delivery import Delivery
-from app.models.enums import DeliveryStatus, POStatus
+from app.models.enums import COMMITTED_PO_STATUSES, DeliveryStatus, POStatus
 from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
 from app.models.purchase_order_item import PurchaseOrderItem
@@ -84,7 +84,7 @@ async def get_monthly_trends(db: DbSession, _: CurrentUser, months: int = 6) -> 
             func.count(func.distinct(PurchaseOrder.id)).label("order_count"),
         )
         .join(PurchaseOrderItem, PurchaseOrderItem.po_id == PurchaseOrder.id)
-        .where(PurchaseOrder.created_at >= cutoff)
+        .where(PurchaseOrder.created_at >= cutoff, PurchaseOrder.status.in_(COMMITTED_PO_STATUSES))
         .group_by(month_expr)
         .order_by(month_expr)
     )
