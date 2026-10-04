@@ -20,7 +20,7 @@ class PurchaseOrderItem(Base):
     po_id: Mapped[int] = mapped_column(
         ForeignKey("purchase_orders.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), nullable=False)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), nullable=False, index=True)
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     received_quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

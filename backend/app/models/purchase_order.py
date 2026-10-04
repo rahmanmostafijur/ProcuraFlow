@@ -19,14 +19,14 @@ class PurchaseOrder(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     po_number: Mapped[str] = mapped_column(String(32), unique=True, nullable=False, index=True)
-    supplier_id: Mapped[int] = mapped_column(ForeignKey("suppliers.id"), nullable=False)
+    supplier_id: Mapped[int] = mapped_column(ForeignKey("suppliers.id"), nullable=False, index=True)
     status: Mapped[POStatus] = mapped_column(
         SAEnum(POStatus, name="po_status"), nullable=False, default=POStatus.DRAFT, index=True
     )
     expected_delivery_date: Mapped[date | None] = mapped_column(Date)
     notes: Mapped[str | None] = mapped_column(Text)
-    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True)
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
