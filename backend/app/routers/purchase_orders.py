@@ -125,6 +125,9 @@ async def update_purchase_order(
             )
 
         po.items.clear()
+        # Delete the old lines first; the unit of work would otherwise insert the new ones before
+        # removing the orphans and trip the one-line-per-product constraint.
+        await db.flush()
         po.items = [
             PurchaseOrderItem(
                 product_id=item["product_id"], quantity=item["quantity"], unit_price=item["unit_price"]

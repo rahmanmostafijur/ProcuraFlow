@@ -1,15 +1,29 @@
 import re
 from datetime import date, timedelta
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import delete, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.audit import AuditLog
 from app.models.purchase_order import PurchaseOrder
+from app.models.purchase_order_item import PurchaseOrderItem
 
 PO_NUMBER_PATTERN = re.compile(r"PO-\d{4}-\d{5}")
 SELF_APPROVAL_DETAIL = "You cannot approve a purchase order you created."
+
+
+def _duplicate_product_detail(product_id: int) -> str:
+    return (
+        f"Each product can appear only once per purchase order (product {product_id} is repeated). "
+        "Combine the quantities into one line."
+    )
+
+
+def _validation_messages(response) -> list[str]:
+    return [error["msg"] for error in response.json()["detail"]]
 
 
 async def _create_draft_po(client: AsyncClient, headers: dict, supplier, product, **overrides) -> dict:
@@ -241,3 +255,63 @@ async def test_another_procurement_manager_can_approve_a_purchase_order(
     assert current["creator"]["email"] == "creator@example.com"
     assert current["approver"]["email"] == "approver@example.com"
     assert await _approval_event_count(db_session, po["id"]) == 1
+
+
+async def test_create_rejects_the_same_product_on_two_lines(
+    client: AsyncClient, auth_headers, db_session: AsyncSession, supplier, product
+):
+    headers = await auth_headers("procurement_manager")
+    line = {"product_id": product.id, "quantity": 5, "unit_price": "10.00"}
+
+    response = await client.post(
+        "/api/v1/purchase-orders", json={"supplier_id": supplier.id, "items": [line, line]}, headers=headers
+    )
+
+    assert response.status_code == 422
+    assert _duplicate_product_detail(product.id) in _validation_messages(response)
+    assert await db_session.scalar(select(func.count()).select_from(PurchaseOrder)) == 0
+
+
+async def test_update_rejects_the_same_product_on_two_lines(
+    client: AsyncClient, auth_headers, supplier, product
+):
+    headers = await auth_headers("procurement_manager")
+    po = await _create_draft_po(client, headers, supplier, product)
+    lines = [
+        {"product_id": product.id, "quantity": 3, "unit_price": "10.00"},
+        {"product_id": product.id, "quantity": 4, "unit_price": "12.00"},
+    ]
+
+    response = await client.patch(f"/api/v1/purchase-orders/{po['id']}", json={"items": lines}, headers=headers)
+
+    assert response.status_code == 422
+    assert _duplicate_product_detail(product.id) in _validation_messages(response)
+    current = (await client.get(f"/api/v1/purchase-orders/{po['id']}", headers=headers)).json()
+    assert [(item["product_id"], item["quantity"]) for item in current["items"]] == [(product.id, 10)]
+
+
+async def test_update_can_replace_a_line_for_the_same_product(
+    client: AsyncClient, auth_headers, supplier, product
+):
+    headers = await auth_headers("procurement_manager")
+    po = await _create_draft_po(client, headers, supplier, product)
+    lines = [{"product_id": product.id, "quantity": 7, "unit_price": "11.00"}]
+
+    response = await client.patch(f"/api/v1/purchase-orders/{po['id']}", json={"items": lines}, headers=headers)
+
+    assert response.status_code == 200
+    assert [(item["product_id"], item["quantity"]) for item in response.json()["items"]] == [(product.id, 7)]
+    assert response.json()["total"] == "77.00"
+
+
+async def test_database_rejects_a_second_line_for_the_same_product(
+    client: AsyncClient, auth_headers, db_session: AsyncSession, supplier, product
+):
+    headers = await auth_headers("procurement_manager")
+    po = await _create_draft_po(client, headers, supplier, product)
+
+    db_session.add(PurchaseOrderItem(po_id=po["id"], product_id=product.id, quantity=1, unit_price=1))
+
+    with pytest.raises(IntegrityError, match="uq_purchase_order_items_po_id_product_id"):
+        await db_session.commit()
+    await db_session.rollback()

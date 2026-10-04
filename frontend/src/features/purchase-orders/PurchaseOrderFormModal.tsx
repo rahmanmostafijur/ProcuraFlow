@@ -1,8 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
-import { z } from "zod";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 
 import type { PurchaseOrderInput } from "@/api/purchaseOrders";
 import { useProducts } from "@/api/products";
@@ -14,20 +13,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 
-const itemSchema = z.object({
-  product_id: z.string().min(1, "Select a product"),
-  quantity: z.coerce.number().int().positive("Must be greater than 0"),
-  unit_price: z.coerce.number().min(0, "Must be zero or more"),
-});
-
-const schema = z.object({
-  supplier_id: z.string().min(1, "Select a supplier"),
-  expected_delivery_date: z.string().optional(),
-  notes: z.string().optional(),
-  items: z.array(itemSchema).min(1, "Add at least one line item"),
-});
-
-type FormValues = z.infer<typeof schema>;
+import { productIdsChosenOnOtherLines, purchaseOrderFormSchema, type PurchaseOrderFormValues } from "./lineItems";
 
 interface PurchaseOrderFormModalProps {
   isOpen: boolean;
@@ -46,12 +32,13 @@ export function PurchaseOrderFormModal({ isOpen, onClose, onSubmit, isSubmitting
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+  } = useForm<PurchaseOrderFormValues>({
+    resolver: zodResolver(purchaseOrderFormSchema),
     defaultValues: { items: [{ product_id: "", quantity: 1, unit_price: 0 }] },
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
+  const lineItems = useWatch({ control, name: "items" }) ?? [];
 
   useEffect(() => {
     if (isOpen) {
@@ -119,40 +106,46 @@ export function PurchaseOrderFormModal({ isOpen, onClose, onSubmit, isSubmitting
           </div>
           {errors.items?.message && <p className="mb-2 text-xs text-red-600">{errors.items.message}</p>}
           <div className="space-y-2">
-            {fields.map((field, index) => (
-              <div key={field.id} className="flex items-start gap-2">
-                <div className="flex-1">
-                  <Select {...register(`items.${index}.product_id` as const)}>
-                    <option value="">Select a product</option>
-                    {products?.items.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {product.sku} &mdash; {product.name}
-                      </option>
-                    ))}
-                  </Select>
+            {fields.map((field, index) => {
+              const takenProductIds = productIdsChosenOnOtherLines(lineItems, index);
+              return (
+                <div key={field.id} className="flex items-start gap-2">
+                  <div className="flex-1">
+                    <Select
+                      error={errors.items?.[index]?.product_id?.message}
+                      {...register(`items.${index}.product_id` as const)}
+                    >
+                      <option value="">Select a product</option>
+                      {products?.items.map((product) => (
+                        <option key={product.id} value={product.id} disabled={takenProductIds.has(String(product.id))}>
+                          {product.sku} &mdash; {product.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="w-24">
+                    <Input type="number" placeholder="Qty" {...register(`items.${index}.quantity` as const)} />
+                  </div>
+                  <div className="w-28">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Unit price"
+                      {...register(`items.${index}.unit_price` as const)}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => remove(index)}
+                    disabled={fields.length === 1}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
-                <div className="w-24">
-                  <Input type="number" placeholder="Qty" {...register(`items.${index}.quantity` as const)} />
-                </div>
-                <div className="w-28">
-                  <Input
-                    type="number"
-                    step="0.01"
-                    placeholder="Unit price"
-                    {...register(`items.${index}.unit_price` as const)}
-                  />
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => remove(index)}
-                  disabled={fields.length === 1}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

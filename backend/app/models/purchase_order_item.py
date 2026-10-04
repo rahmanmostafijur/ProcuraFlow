@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from sqlalchemy import CheckConstraint, ForeignKey, Integer, Numeric
+from sqlalchemy import CheckConstraint, ForeignKey, Integer, Numeric, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -12,6 +12,8 @@ class PurchaseOrderItem(Base):
         CheckConstraint("quantity > 0", name="ck_po_items_quantity_positive"),
         CheckConstraint("unit_price >= 0", name="ck_po_items_unit_price_non_negative"),
         CheckConstraint("received_quantity >= 0", name="ck_po_items_received_quantity_non_negative"),
+        # Receiving matches lines by product, so a repeated product would make receipts ambiguous.
+        UniqueConstraint("po_id", "product_id", name="uq_purchase_order_items_po_id_product_id"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
