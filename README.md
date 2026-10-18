@@ -115,8 +115,16 @@ JWT access tokens (30 min) + refresh tokens (7 days), issued from
 (`passlib`). The frontend keeps the access token in memory only. The refresh
 token is an `HttpOnly`, `SameSite=Lax` cookie (`Secure` outside local
 development) scoped to `/api/v1/auth`, so page scripts can never read it and
-browsers don't send it on cross-site POSTs; `POST /api/v1/auth/logout` clears
-it. An axios response interceptor transparently refreshes an expired access
+browsers don't send it on cross-site POSTs. Refresh tokens rotate: each
+`POST /api/v1/auth/refresh` marks the presented token used and issues a
+successor from the same login (`refresh_tokens` table: random token id, family
+id, expiry, used/revoked timestamps). A token presented again after a short
+grace window (10 s, which absorbs two tabs or React StrictMode refreshing at
+once) is treated as stolen: its whole family is revoked and the event is
+written to the audit log. `POST /api/v1/auth/logout` revokes the session
+server-side and clears the cookie, leaving the user's other devices signed in.
+Tokens issued before rotation existed, or with no stored row, are rejected.
+An axios response interceptor transparently refreshes an expired access
 token and retries the original request once. The only thing in `localStorage`
 is a non-secret flag that tells the app whether a session probably exists.
 
@@ -297,8 +305,11 @@ page here before sharing this project publicly._
 Honest list of things a production deployment would need that this portfolio
 build doesn't include:
 
-- **Refresh token rotation / revocation list** — refresh tokens are currently
-  valid until expiry with no server-side revocation on logout.
+- **Absolute session lifetime** — refresh tokens rotate, but each refresh
+  starts a fresh 7-day window, so an actively used session never expires on
+  its own.
+- **Access tokens are not revocable** — a revoked session's last access token
+  (30 minutes) still works until it expires.
 - **Frontend code-splitting** — the production bundle is a single ~800KB
   chunk; route-based `React.lazy()` splitting would improve initial load.
 - **Dependency upgrades** — `npm audit` flags moderate-severity advisories in
