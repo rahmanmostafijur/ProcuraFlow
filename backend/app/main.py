@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import get_settings
+from app.core.proxy import TrustedProxyMiddleware
 from app.routers import (
     audit,
     auth,
@@ -30,6 +31,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Added last so it is the outermost layer and resolves the client address before anything else runs.
+app.add_middleware(TrustedProxyMiddleware, hops=lambda: settings.trusted_proxy_hops)
 
 
 @app.exception_handler(HTTPException)

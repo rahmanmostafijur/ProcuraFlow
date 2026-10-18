@@ -11,9 +11,9 @@ if [ "${SEED_ON_START:-true}" = "true" ]; then
     python -m app.seeds.seed
 fi
 
-# Behind a platform proxy, trust X-Forwarded-* so request URLs and client IPs are the real ones.
+# Uvicorn's own proxy handling is off: with a wildcard it would take the client-controlled leftmost
+# X-Forwarded-For entry. The app trusts exactly TRUSTED_PROXY_HOPS proxies itself (app/core/proxy.py).
 exec uvicorn app.main:app \
     --host 0.0.0.0 \
     --port "${PORT:-8000}" \
-    --proxy-headers \
-    --forwarded-allow-ips='*'
+    --no-proxy-headers

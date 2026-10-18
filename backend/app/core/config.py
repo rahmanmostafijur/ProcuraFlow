@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import field_validator, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.core.database_url import normalize_database_url, uses_connection_pooler
@@ -38,9 +38,13 @@ class Settings(BaseSettings):
     refresh_reuse_grace_seconds: int = 10
 
     # Failed sign-ins tolerated per account / per client address within the lockout window.
-    login_max_failures_per_account: int = 5
-    login_max_failures_per_ip: int = 20
-    login_lockout_seconds: int = 900
+    login_max_failures_per_account: int = Field(default=5, ge=1)
+    login_max_failures_per_ip: int = Field(default=20, ge=1)
+    login_lockout_seconds: int = Field(default=900, ge=1)
+
+    # How many reverse proxies in front of the app to trust for the client address (see app/core/proxy.py).
+    # 0 ignores X-Forwarded-* entirely, which is right for local development and direct exposure.
+    trusted_proxy_hops: int = Field(default=0, ge=0, le=5)
 
     # Unset means "local dev origins" locally and "no cross-origin access" elsewhere: a deployed
     # frontend reaches the API through a same-origin proxy and needs no CORS at all.

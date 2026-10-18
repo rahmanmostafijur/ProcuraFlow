@@ -1,3 +1,4 @@
+import logging
 import math
 from typing import Annotated
 
@@ -23,6 +24,7 @@ from app.services.refresh_token_service import (
     rotate_refresh_token,
 )
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 LoginThrottleDep = Annotated[LoginThrottle, Depends(get_login_throttle)]
@@ -61,6 +63,12 @@ async def login(
     user = result.scalar_one_or_none()
 
     if user is None or not user.is_active or not verify_password(payload.password, user.hashed_password):
+        # Logged so the proxy setup can be verified against a real request; never the email or password.
+        logger.warning(
+            "failed sign-in client_ip=%s forwarded_entries=%s",
+            client_ip,
+            getattr(request.state, "forwarded_entries", None),
+        )
         await throttle.record_failure(db, payload.email, client_ip)
         await db.commit()  # the failure must be stored even though this request ends in an error
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")

@@ -17,6 +17,12 @@ services:
       # which then only gets roles, permissions and the first admin.
       - key: SEED_DEMO_DATA
         value: "true"
+      # Trusted reverse proxies for the client address: Vercel (which sets the client IP) and Render's
+      # own proxy (which appends its peer), so the app sees exactly 2 X-Forwarded-For entries. Verify
+      # after the first deploy (README, "Post-deployment verification"); a wrong value degrades to
+      # per-account throttling only, it never trusts a spoofed address.
+      - key: TRUSTED_PROXY_HOPS
+        value: "2"
       # Generated once by Render and kept across deploys.
       - key: JWT_SECRET_KEY
         generateValue: true
