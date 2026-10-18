@@ -82,8 +82,9 @@ Alembic, PyJWT, passlib/bcrypt, pytest + pytest-asyncio + httpx.
 **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, TanStack Query, React
 Router v6, React Hook Form + Zod, Recharts, Vitest + Testing Library.
 
-**Infrastructure:** Docker Compose (PostgreSQL 16, backend, frontend,
-Adminer).
+**Infrastructure:** Docker Compose for local development (PostgreSQL 16,
+backend, frontend, Adminer); a production container image, Render blueprint
+and Vercel config for deployment (see [Deployment](#deployment)).
 
 ## Database Architecture
 
@@ -145,7 +146,7 @@ Interactive OpenAPI docs are served by FastAPI at `/docs` (Swagger UI) and
 cd backend
 python -m venv .venv
 .venv/Scripts/activate   # Windows; use `source .venv/bin/activate` on macOS/Linux
-pip install -r requirements.txt
+pip install -r requirements-dev.txt   # runtime + test dependencies
 cp .env.example .env     # adjust DATABASE_URL if not using the default port
 alembic upgrade head
 python -m app.seeds.seed
@@ -192,6 +193,45 @@ standard port regardless.
 > those platforms doesn't emit native change events that Vite's default
 > watcher relies on.
 
+## Deployment
+
+Target: **Neon** (PostgreSQL) + **Render** (API container) + **Vercel**
+(static frontend). Vercel proxies `/api/*` to Render, so the browser only ever
+talks to one origin — no CORS configuration and no third-party-cookie problems.
+
+1. **Database (Neon).** Create a project and copy its connection string. Either
+   the direct or the `-pooler` host works: provider-style URLs
+   (`postgresql://…?sslmode=require&channel_binding=require`) are rewritten for
+   asyncpg automatically, and the statement cache is disabled behind a pooler.
+2. **API (Render).** New → Blueprint, pointing at this repo (`render.yaml`).
+   When prompted, set `DATABASE_URL`, `DEFAULT_ADMIN_EMAIL` and
+   `DEFAULT_ADMIN_PASSWORD` (unique, 12+ characters). `JWT_SECRET_KEY` is
+   generated for you. On every start the container runs `alembic upgrade head`,
+   seeds roles/permissions and the first admin, then serves; the app refuses to
+   boot in production with a placeholder or short JWT secret.
+3. **Frontend (Vercel).** Import the repo with **Root Directory** `frontend`
+   (the Vite preset is detected). Before deploying, edit the `destination` in
+   `frontend/vercel.json` to your Render service URL. No environment variables
+   are needed.
+4. **Verify.** `https://<render-service>/health` (process is up) and
+   `/api/ready` (database answers) should both return 200, then sign in with
+   the admin credentials from step 2.
+
+Render's free tier sleeps after 15 minutes idle and takes about a minute to
+wake; Vercel waits up to 120 seconds for a response, so the first request after
+idle is slow rather than failed.
+
+To build and run the production image locally:
+
+```bash
+docker build -t procuraflow-api backend
+docker run --rm -p 8000:8000 -e ENVIRONMENT=production \
+  -e DATABASE_URL=postgresql://user:pass@host/db \
+  -e JWT_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')" \
+  -e DEFAULT_ADMIN_EMAIL=admin@example.com -e DEFAULT_ADMIN_PASSWORD='a-unique-12+char-password' \
+  procuraflow-api
+```
+
 ## Environment Variables
 
 See `backend/.env.example` and `frontend/.env.example`. Notable ones:
@@ -201,9 +241,11 @@ See `backend/.env.example` and `frontend/.env.example`. Notable ones:
 | `DATABASE_URL` | Async Postgres connection string |
 | `JWT_SECRET_KEY` | Signing key for access/refresh tokens — **must** be overridden outside local dev |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` / `REFRESH_TOKEN_EXPIRE_DAYS` | Token lifetimes |
-| `CORS_ORIGINS` | Comma-separated list of allowed frontend origins |
-| `DEFAULT_ADMIN_EMAIL` / `DEFAULT_ADMIN_PASSWORD` | Seeded admin credentials |
-| `VITE_API_BASE_URL` | Frontend's base URL for the API |
+| `CORS_ORIGINS` | Comma-separated list of allowed frontend origins. Unset: local origins in development/test, none in production |
+| `DEFAULT_ADMIN_EMAIL` / `DEFAULT_ADMIN_PASSWORD` | Seeded admin credentials (a unique password of 12+ characters is enforced outside local dev) |
+| `SEED_ON_START` | Production container only: `false` skips the seed step on boot (default `true`) |
+| `PORT` | Production container only: listen port (set by the host; default `8000`) |
+| `VITE_API_BASE_URL` | Frontend's base URL for the API. Unset in production builds, which use same-origin `/api/v1` |
 
 ## Testing
 
