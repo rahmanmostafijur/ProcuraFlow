@@ -112,9 +112,13 @@ joined on in the query patterns above.
 
 JWT access tokens (30 min) + refresh tokens (7 days), issued from
 `POST /api/v1/auth/login`. Passwords are hashed with bcrypt
-(`passlib`). The frontend keeps the access token in memory only and the
-refresh token in `localStorage`; an axios response interceptor transparently
-refreshes an expired access token and retries the original request once.
+(`passlib`). The frontend keeps the access token in memory only. The refresh
+token is an `HttpOnly`, `SameSite=Lax` cookie (`Secure` outside local
+development) scoped to `/api/v1/auth`, so page scripts can never read it and
+browsers don't send it on cross-site POSTs; `POST /api/v1/auth/logout` clears
+it. An axios response interceptor transparently refreshes an expired access
+token and retries the original request once. The only thing in `localStorage`
+is a non-secret flag that tells the app whether a session probably exists.
 
 ## Authorization (RBAC)
 
@@ -218,8 +222,11 @@ talks to one origin — no CORS configuration and no third-party-cookie problems
    the admin credentials from step 2.
 
 Render's free tier sleeps after 15 minutes idle and takes about a minute to
-wake; Vercel waits up to 120 seconds for a response, so the first request after
-idle is slow rather than failed.
+wake. The login page handles this: it polls `/api/ready` for up to 100 seconds,
+explains the cold start with a progress bar after 3 seconds, treats Render's
+HTML placeholder page and 502/503/504 as "still waking", and shows an error
+with a **Try again** button if the server never answers. Sign-in is enabled
+only once the database is reachable.
 
 To build and run the production image locally:
 
