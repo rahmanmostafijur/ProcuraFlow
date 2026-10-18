@@ -5,6 +5,7 @@ from fastapi import APIRouter, Response
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
+from app.core.csv_safety import neutralize_formula
 from app.core.deps import CurrentUser, DbSession
 from app.models.delivery import Delivery
 from app.models.enums import COMMITTED_PO_STATUSES, DeliveryStatus
@@ -87,8 +88,8 @@ async def inventory_status_csv(db: DbSession, _: CurrentUser) -> Response:
     writer.writerow(["SKU", "Name", "Current Stock", "Minimum Stock", "Cost", "Stock Value", "Low Stock"])
     for p in products:
         writer.writerow(
-            [p.sku, p.name, p.current_stock, p.minimum_stock, p.cost, p.current_stock * p.cost,
-             p.current_stock <= p.minimum_stock]
+            [neutralize_formula(p.sku), neutralize_formula(p.name), p.current_stock, p.minimum_stock, p.cost,
+             p.current_stock * p.cost, p.current_stock <= p.minimum_stock]
         )
 
     return Response(
