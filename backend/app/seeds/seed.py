@@ -1,12 +1,13 @@
 import asyncio
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
 from app.core.config import Settings, get_settings
 from app.core.permissions import PERMISSIONS, ROLE_DESCRIPTIONS, ROLE_PERMISSIONS
 from app.core.security import hash_password
+from app.db.locks import SEED_LOCK_KEY
 from app.db.session import AsyncSessionLocal
 from app.models.category import Category
 from app.models.permission import Permission
@@ -212,6 +213,8 @@ async def run_seed(
 ) -> None:
     settings = settings or get_settings()
     async with session_factory() as db:
+        # Instances that start together all seed; taking turns keeps them from inserting the same rows.
+        await db.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": SEED_LOCK_KEY})
         roles = await seed_permissions_and_roles(db)
         admin = await seed_admin_user(db, roles, settings)
         if settings.should_seed_demo_data:

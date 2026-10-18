@@ -79,3 +79,27 @@ async def test_migrations_round_trip_on_a_fresh_database(scratch_database_url: s
     _alembic(scratch_database_url, "upgrade", "head")
     reupgraded_tables, _ = await _schema(scratch_database_url)
     assert reupgraded_tables == upgraded_tables
+
+
+def _start_alembic(database_url: str, *args: str) -> subprocess.Popen:
+    return subprocess.Popen(
+        [sys.executable, "-m", "alembic", *args],
+        cwd=BACKEND_DIR,
+        env={**os.environ, "DATABASE_URL": database_url},
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+
+async def test_several_instances_upgrading_at_once_all_succeed(scratch_database_url: str):
+    """Instances that boot together each run `alembic upgrade head`; they must serialise, not collide."""
+    processes = [_start_alembic(scratch_database_url, "upgrade", "head") for _ in range(3)]
+
+    outcomes = [(process.communicate(timeout=240), process.returncode) for process in processes]
+
+    failures = [(code, stderr[-400:]) for (_, stderr), code in outcomes if code != 0]
+    assert not failures, failures
+    tables, _ = await _schema(scratch_database_url)
+    assert {"users", "refresh_tokens", "login_failures"} <= tables
+    assert "(head)" in _alembic(scratch_database_url, "current")

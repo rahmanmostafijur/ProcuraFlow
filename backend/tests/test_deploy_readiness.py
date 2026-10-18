@@ -115,3 +115,20 @@ async def test_ready_reports_503_when_the_database_is_unreachable(client: AsyncC
 
     assert response.status_code == 503
     assert response.json() == {"status": "unavailable"}
+
+
+def test_migrations_use_the_database_url_unless_a_direct_migration_url_is_given(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("MIGRATION_DATABASE_URL", raising=False)
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@ep-x-pooler.neon.tech/db?sslmode=require")
+
+    assert Settings(_env_file=None).migrations_database_url == "postgresql+asyncpg://u:p@ep-x-pooler.neon.tech/db?ssl=require"
+
+
+def test_a_direct_migration_url_is_normalised_and_preferred(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@ep-x-pooler.neon.tech/db?sslmode=require")
+    monkeypatch.setenv("MIGRATION_DATABASE_URL", "postgresql://u:p@ep-x.neon.tech/db?sslmode=require")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.migrations_database_url == "postgresql+asyncpg://u:p@ep-x.neon.tech/db?ssl=require"
+    assert settings.database_url.startswith("postgresql+asyncpg://u:p@ep-x-pooler")

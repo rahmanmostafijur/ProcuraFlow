@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import Callable
 
 import pytest
@@ -182,3 +183,20 @@ async def test_seed_adds_the_demo_catalogue_when_explicitly_enabled_and_stays_id
     assert await db_session.scalar(select(func.count()).select_from(Supplier)) == 3
     assert await db_session.scalar(select(func.count()).select_from(Product)) == 6
     assert await db_session.scalar(select(func.count()).select_from(User).where(User.email == ADMIN_EMAIL)) == 1
+
+
+async def test_several_instances_seeding_at_once_do_not_collide(db_session: AsyncSession, session_factory):
+    settings = Settings(
+        _env_file=None,
+        environment="production",
+        jwt_secret_key=STRONG_SECRET,
+        default_admin_email=ADMIN_EMAIL,
+        default_admin_password=STRONG_PASSWORD,
+        seed_demo_data=True,
+    )
+
+    await asyncio.gather(*[run_seed(settings, session_factory) for _ in range(3)])
+
+    assert await db_session.scalar(select(func.count()).select_from(User).where(User.email == ADMIN_EMAIL)) == 1
+    assert await db_session.scalar(select(func.count()).select_from(Role)) == 5
+    assert await db_session.scalar(select(func.count()).select_from(Supplier)) == 3
