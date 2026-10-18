@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
 
+    # Failed sign-ins tolerated per account / per client address within the lockout window.
+    login_max_failures_per_account: int = 5
+    login_max_failures_per_ip: int = 20
+    login_lockout_seconds: int = 900
+
     # Unset means "local dev origins" locally and "no cross-origin access" elsewhere: a deployed
     # frontend reaches the API through a same-origin proxy and needs no CORS at all.
     cors_origins: str | None = None
