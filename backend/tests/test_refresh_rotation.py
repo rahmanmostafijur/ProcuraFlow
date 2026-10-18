@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 import jwt
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth_cookie import REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH
@@ -295,3 +295,75 @@ async def test_expired_token_rows_are_purged_at_login(client: AsyncClient, db_se
     jtis = [row.jti for row in await _rows(db_session)]
     assert "long-expired" not in jtis
     assert len(jtis) == 1
+
+
+async def _age_session(db_session: AsyncSession, days: float) -> None:
+    """Pretend the login happened `days` ago, as a real session would have by the time it is refreshed."""
+    await db_session.execute(
+        update(RefreshToken).values(family_started_at=datetime.now(timezone.utc) - timedelta(days=days))
+    )
+    await db_session.commit()
+
+
+async def _session_starts(db_session: AsyncSession) -> list[datetime]:
+    db_session.expire_all()
+    result = await db_session.execute(select(RefreshToken.family_started_at).order_by(RefreshToken.id))
+    return list(result.scalars().all())
+
+
+async def test_login_stamps_when_the_session_started(client: AsyncClient, db_session: AsyncSession, user):
+    before = datetime.now(timezone.utc)
+    await _login(client)
+
+    (started,) = await _session_starts(db_session)
+
+    assert before - timedelta(seconds=5) <= started <= datetime.now(timezone.utc) + timedelta(seconds=5)
+
+
+async def test_rotation_keeps_the_original_session_start(client: AsyncClient, db_session: AsyncSession, user):
+    first = await _login(client)
+    await _age_session(db_session, days=3)
+    (original,) = await _session_starts(db_session)
+
+    await _present(client, first)
+
+    assert await _session_starts(db_session) == [original, original]
+
+
+async def test_a_session_past_the_absolute_limit_is_rejected_and_revoked(
+    client: AsyncClient, db_session: AsyncSession, user
+):
+    token = await _login(client)
+    await _age_session(db_session, days=get_settings().session_absolute_days + 1)
+
+    response = await _present(client, token)
+
+    assert response.status_code == 401
+    assert all(row.revoked_at is not None for row in await _rows(db_session))
+
+
+async def test_a_session_within_the_absolute_limit_keeps_refreshing(client: AsyncClient, db_session: AsyncSession, user):
+    token = await _login(client)
+    await _age_session(db_session, days=get_settings().session_absolute_days - 1)
+
+    assert (await _present(client, token)).status_code == 200
+
+
+async def test_the_absolute_limit_is_configurable(
+    client: AsyncClient, db_session: AsyncSession, user, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setattr(get_settings(), "session_absolute_days", 1)
+    token = await _login(client)
+    await _age_session(db_session, days=2)
+
+    assert (await _present(client, token)).status_code == 401
+
+
+async def test_the_absolute_limit_also_ends_a_session_whose_token_is_replayed_in_the_grace_window(
+    client: AsyncClient, db_session: AsyncSession, user, long_grace
+):
+    token = await _login(client)
+    await _present(client, token)  # rotates; `token` is now used but still inside the grace window
+    await _age_session(db_session, days=get_settings().session_absolute_days + 1)
+
+    assert (await _refresh_with(token)).status_code == 401

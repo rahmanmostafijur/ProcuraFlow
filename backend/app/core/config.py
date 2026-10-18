@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
+    # Hard ceiling on a session however actively it is refreshed: a real sign-in is needed at least this often.
+    session_absolute_days: int = Field(default=30, ge=1)
     # A refresh token seen again this soon after use is a double submit (two tabs, StrictMode), not theft.
     refresh_reuse_grace_seconds: int = 10
 

@@ -33,8 +33,16 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-async def issue_refresh_token(db: AsyncSession, user_id: int, family_id: str | None = None) -> str:
-    """Create and store a refresh token, starting a new family unless `family_id` continues one."""
+async def issue_refresh_token(
+    db: AsyncSession,
+    user_id: int,
+    family_id: str | None = None,
+    family_started_at: datetime | None = None,
+) -> str:
+    """Create and store a refresh token, starting a new family unless `family_id` continues one.
+
+    `family_started_at` is the original login time of a continued family; a new family starts now.
+    """
     settings = get_settings()
     jti = secrets.token_urlsafe(TOKEN_ID_BYTES)
     family = family_id or str(uuid.uuid4())
@@ -43,6 +51,7 @@ async def issue_refresh_token(db: AsyncSession, user_id: int, family_id: str | N
             jti=jti,
             family_id=family,
             user_id=user_id,
+            family_started_at=family_started_at or _now(),
             expires_at=_now() + timedelta(days=settings.refresh_token_expire_days),
         )
     )
@@ -106,7 +115,14 @@ async def rotate_refresh_token(db: AsyncSession, token: str) -> RotationResult:
         raise RefreshTokenError(SESSION_ENDED)
 
     now = _now()
-    grace = timedelta(seconds=get_settings().refresh_reuse_grace_seconds)
+    settings = get_settings()
+    if now - row.family_started_at >= timedelta(days=settings.session_absolute_days):
+        # However actively it was refreshed, a session ends after the absolute limit.
+        await _revoke_family(db, row.family_id)
+        await db.commit()
+        raise RefreshTokenError(SESSION_ENDED)
+
+    grace = timedelta(seconds=settings.refresh_reuse_grace_seconds)
     if row.used_at is not None and now - row.used_at >= grace:
         await _revoke_family(db, row.family_id)
         await record_audit_event(
@@ -131,7 +147,9 @@ async def rotate_refresh_token(db: AsyncSession, token: str) -> RotationResult:
         return RotationResult(user=user, refresh_token=None)
 
     row.used_at = now
-    successor = await issue_refresh_token(db, user.id, family_id=row.family_id)
+    successor = await issue_refresh_token(
+        db, user.id, family_id=row.family_id, family_started_at=row.family_started_at
+    )
     await db.commit()
     return RotationResult(user=user, refresh_token=successor)
 
