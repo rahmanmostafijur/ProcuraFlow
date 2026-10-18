@@ -217,3 +217,7 @@ def downgrade() -> None:
     op.drop_table('permissions')
     op.drop_table('categories')
     # ### end Alembic commands ###
+
+    # drop_table leaves the Postgres enum types behind, which would make a re-upgrade fail.
+    for enum_name in ('inventory_transaction_type', 'delivery_status', 'po_status'):
+        op.execute(f'DROP TYPE IF EXISTS {enum_name}')
