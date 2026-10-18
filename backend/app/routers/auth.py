@@ -84,7 +84,8 @@ async def refresh_access_token(response: Response, db: DbSession, refresh_token:
     except RefreshTokenError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
 
-    _set_refresh_cookie(response, rotation.refresh_token)
+    if rotation.refresh_token is not None:
+        _set_refresh_cookie(response, rotation.refresh_token)
     return AccessTokenResponse(access_token=create_access_token(str(rotation.user.id), rotation.user.role.name))
 
 

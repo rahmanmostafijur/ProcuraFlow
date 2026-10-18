@@ -24,7 +24,9 @@ class RefreshTokenError(Exception):
 @dataclass(frozen=True)
 class RotationResult:
     user: User
-    refresh_token: str
+    # None when the presented token was a replay inside the grace window: the caller already holds
+    # (or is about to receive) the canonical successor, so no second token chain may be started.
+    refresh_token: str | None
 
 
 def _now() -> datetime:
@@ -75,9 +77,12 @@ def _claims(token: str) -> tuple[str, str]:
 async def rotate_refresh_token(db: AsyncSession, token: str) -> RotationResult:
     """Exchange a refresh token for a successor, detecting replay of a token that was already used.
 
-    Presenting a used token within the grace window is accepted again: React StrictMode, or two
-    tabs refreshing at once, legitimately send the same token twice. Later than that, the token
-    is treated as stolen and its whole family is revoked.
+    Presenting a used token within the grace window is tolerated, because React StrictMode or two
+    tabs refreshing at once legitimately send the same token twice. Such a replay gets an access
+    token but no refresh token: the first request already minted the one successor, which the
+    browser stores. Issuing another would let a thief who replays a stolen token inside the window
+    keep a renewable session that reuse detection never notices. Later than the window, a used
+    token is treated as stolen and its whole family is revoked.
     """
     jti, _ = _claims(token)
     row = (
@@ -108,8 +113,10 @@ async def rotate_refresh_token(db: AsyncSession, token: str) -> RotationResult:
     if user is None or not user.is_active:
         raise RefreshTokenError("User is no longer active")
 
-    if row.used_at is None:
-        row.used_at = now
+    if row.used_at is not None:
+        return RotationResult(user=user, refresh_token=None)
+
+    row.used_at = now
     successor = await issue_refresh_token(db, user.id, family_id=row.family_id)
     await db.commit()
     return RotationResult(user=user, refresh_token=successor)
