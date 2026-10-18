@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
+    # A refresh token seen again this soon after use is a double submit (two tabs, StrictMode), not theft.
+    refresh_reuse_grace_seconds: int = 10
 
     # Failed sign-ins tolerated per account / per client address within the lockout window.
     login_max_failures_per_account: int = 5

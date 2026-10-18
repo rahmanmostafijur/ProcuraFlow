@@ -40,11 +40,12 @@ def create_access_token(user_id: str, role: str) -> str:
     )
 
 
-def create_refresh_token(user_id: str) -> str:
+def create_refresh_token(user_id: str, jti: str, family_id: str) -> str:
     return _create_token(
         subject=user_id,
         expires_delta=timedelta(days=settings.refresh_token_expire_days),
         token_type="refresh",
+        extra_claims={"jti": jti, "fam": family_id},
     )
 
 

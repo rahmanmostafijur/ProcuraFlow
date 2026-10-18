@@ -8,6 +8,7 @@ from app.models.permission import Permission, role_permissions
 from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
 from app.models.purchase_order_item import PurchaseOrderItem
+from app.models.refresh_token import RefreshToken
 from app.models.role import Role
 from app.models.supplier import Supplier
 from app.models.user import User
@@ -26,6 +27,7 @@ __all__ = [
     "PurchaseOrder",
     "PurchaseOrderItem",
     "POStatus",
+    "RefreshToken",
     "Role",
     "Supplier",
     "User",
