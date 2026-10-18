@@ -120,6 +120,19 @@ it. An axios response interceptor transparently refreshes an expired access
 token and retries the original request once. The only thing in `localStorage`
 is a non-secret flag that tells the app whether a session probably exists.
 
+### Sign-in throttling
+
+Failed logins are counted per account (the dependable control) and per client
+address (a weaker second layer against spraying many accounts). Past the limit,
+`POST /api/v1/auth/login` answers `429` with a `Retry-After` header — even for
+the correct password — until the window passes; a successful login clears that
+account's count. Known limits: the counters live in the API process, so they
+reset on restart and are not shared across instances (a scaled-out deployment
+would need a shared store such as Redis); the client address is taken from
+`X-Forwarded-For`, which a caller can spoof, which is why the per-account limit
+is the one to rely on; and locking an account lets someone else keep a known
+email locked out for the window.
+
 ## Authorization (RBAC)
 
 Permissions are rows in the database (`permissions` table), assigned to roles
@@ -248,6 +261,7 @@ See `backend/.env.example` and `frontend/.env.example`. Notable ones:
 | `DATABASE_URL` | Async Postgres connection string |
 | `JWT_SECRET_KEY` | Signing key for access/refresh tokens — **must** be overridden outside local dev |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` / `REFRESH_TOKEN_EXPIRE_DAYS` | Token lifetimes |
+| `LOGIN_MAX_FAILURES_PER_ACCOUNT` / `LOGIN_MAX_FAILURES_PER_IP` / `LOGIN_LOCKOUT_SECONDS` | Sign-in throttling: failures tolerated per account (default 5) and per client address (20) within the window (900 s) |
 | `CORS_ORIGINS` | Comma-separated list of allowed frontend origins. Unset: local origins in development/test, none in production |
 | `DEFAULT_ADMIN_EMAIL` / `DEFAULT_ADMIN_PASSWORD` | Seeded admin credentials (a unique password of 12+ characters is enforced outside local dev) |
 | `SEED_ON_START` | Production container only: `false` skips the seed step on boot (default `true`) |
@@ -290,7 +304,6 @@ build doesn't include:
 - **Dependency upgrades** — `npm audit` flags moderate-severity advisories in
   `vitest`'s mocker and `react-router-dom` 6.x that are fixed in major
   versions not yet adopted here to avoid an unplanned framework migration.
-- **Rate limiting** on authentication endpoints.
 - **Notifications** — the `notifications` table exists in the schema but
   isn't yet wired to any UI or background trigger (e.g. low-stock alerts).
 - **E2E test suite** (Playwright) for the critical flows currently verified
