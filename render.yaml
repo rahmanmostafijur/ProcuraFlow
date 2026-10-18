@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: procuraflow-api
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      # Migrations and the admin bootstrap run from start.sh; Render's free tier has no pre-deploy command.
+      - key: SEED_ON_START
+        value: "true"
+      # Generated once by Render and kept across deploys.
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      # Paste in the Render dashboard (never commit them): the Neon connection string, and the
+      # first admin's credentials (password must be unique and at least 12 characters).
+      - key: DATABASE_URL
+        sync: false
+      - key: DEFAULT_ADMIN_EMAIL
+        sync: false
+      - key: DEFAULT_ADMIN_PASSWORD
+        sync: false
