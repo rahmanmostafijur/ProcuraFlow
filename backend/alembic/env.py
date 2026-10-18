@@ -6,6 +6,7 @@ from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.core.config import get_settings
+from app.core.database_url import asyncpg_connect_args
 from app.db.base import Base
 from app.models import *  # noqa: F401,F403  (registers all models on Base.metadata)
 
@@ -42,6 +43,7 @@ async def run_migrations_online() -> None:
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args=asyncpg_connect_args(settings.database_url),
     )
 
     async with connectable.connect() as connection:

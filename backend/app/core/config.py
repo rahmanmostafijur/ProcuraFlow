@@ -1,10 +1,13 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.core.database_url import normalize_database_url, uses_connection_pooler
+
 LOCAL_ENVIRONMENTS = frozenset({"development", "test"})
+LOCAL_CORS_ORIGINS = "http://localhost:5173,http://localhost:3000"
 MIN_JWT_SECRET_LENGTH = 32
 PLACEHOLDER_JWT_SECRETS = frozenset(
     {
@@ -32,18 +35,32 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
 
-    cors_origins: str = "http://localhost:5173,http://localhost:3000"
+    # Unset means "local dev origins" locally and "no cross-origin access" elsewhere: a deployed
+    # frontend reaches the API through a same-origin proxy and needs no CORS at all.
+    cors_origins: str | None = None
 
     default_admin_email: str = "admin@procuraflow.com"
     default_admin_password: str = "change-this-admin-password"
+
+    @field_validator("database_url", "test_database_url")
+    @classmethod
+    def _normalize_database_url(cls, value: str) -> str:
+        return normalize_database_url(value)
 
     @property
     def is_local(self) -> bool:
         return self.environment in LOCAL_ENVIRONMENTS
 
     @property
+    def uses_connection_pooler(self) -> bool:
+        return uses_connection_pooler(self.database_url)
+
+    @property
     def cors_origin_list(self) -> list[str]:
-        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        raw = self.cors_origins
+        if raw is None:
+            raw = LOCAL_CORS_ORIGINS if self.is_local else ""
+        return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
     @model_validator(mode="after")
     def _require_strong_secret_outside_local(self) -> "Settings":
