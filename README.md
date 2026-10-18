@@ -116,13 +116,23 @@ JWT access tokens (30 min) + refresh tokens (7 days), issued from
 token is an `HttpOnly`, `SameSite=Lax` cookie (`Secure` outside local
 development) scoped to `/api/v1/auth`, so page scripts can never read it and
 browsers don't send it on cross-site POSTs. Refresh tokens rotate: each
-`POST /api/v1/auth/refresh` marks the presented token used and issues a
+`POST /api/v1/auth/refresh` marks the presented token used and issues one
 successor from the same login (`refresh_tokens` table: random token id, family
-id, expiry, used/revoked timestamps). A token presented again after a short
-grace window (10 s, which absorbs two tabs or React StrictMode refreshing at
-once) is treated as stolen: its whole family is revoked and the event is
-written to the audit log. `POST /api/v1/auth/logout` revokes the session
-server-side and clears the cookie, leaving the user's other devices signed in.
+id, expiry, used/revoked timestamps). React StrictMode or two tabs can
+legitimately send the same cookie twice at once, so a used token presented
+again within a 10-second grace window still gets a fresh access token but **no
+new refresh token**: the first request already minted the one successor, which
+the browser stores, so a replay can never start a second live chain. A used
+token presented after the window is treated as stolen: its whole login family
+is revoked and a `refresh_token_reuse` event is written to the audit log
+before the 401 is returned. `POST /api/v1/auth/logout` revokes the session
+server-side (whichever token of the chain is presented) and clears the cookie,
+leaving the user's other devices signed in. Changing a user's password or
+deactivating them revokes all of that user's sessions in the same transaction
+(audited as `user_sessions_revoked`), so a stolen refresh token does not
+survive a password reset and a reactivated account does not revive old logins;
+`PATCH /api/v1/users/{id}` is the only credential-change path today, so a
+future self-service change or reset endpoint must call `revoke_all_sessions`.
 Tokens issued before rotation existed, or with no stored row, are rejected.
 An axios response interceptor transparently refreshes an expired access
 token and retries the original request once. The only thing in `localStorage`
@@ -233,14 +243,15 @@ talks to one origin — no CORS configuration and no third-party-cookie problems
    `DEFAULT_ADMIN_PASSWORD` (unique, 12+ characters). `JWT_SECRET_KEY` is
    generated for you. On every start the container runs `alembic upgrade head`,
    seeds roles/permissions and the first admin, then serves; the app refuses to
-   boot in production with a placeholder or short JWT secret.
+   boot in production with a placeholder or short JWT secret. `render.yaml`
+   also sets `SEED_DEMO_DATA=true` so the public demo gets sample suppliers and
+   products; delete that variable for a real deployment, which then receives
+   only the roles, permissions and first admin.
 3. **Frontend (Vercel).** Import the repo with **Root Directory** `frontend`
    (the Vite preset is detected). Before deploying, edit the `destination` in
    `frontend/vercel.json` to your Render service URL. No environment variables
    are needed.
-4. **Verify.** `https://<render-service>/health` (process is up) and
-   `/api/ready` (database answers) should both return 200, then sign in with
-   the admin credentials from step 2.
+4. **Verify.** Work through [Post-deployment verification](#post-deployment-verification).
 
 Render's free tier sleeps after 15 minutes idle and takes about a minute to
 wake. The login page handles this: it polls `/api/ready` for up to 100 seconds,
@@ -248,6 +259,57 @@ explains the cold start with a progress bar after 3 seconds, treats Render's
 HTML placeholder page and 502/503/504 as "still waking", and shows an error
 with a **Try again** button if the server never answers. Sign-in is enabled
 only once the database is reachable.
+
+### Post-deployment verification
+
+None of these has been run against a real Render, Neon or Vercel environment
+yet; the automated tests cover the logic behind each one, not the hosting.
+
+1. `https://<render-service>/health` and `/api/ready` return 200, and so does
+   `https://<vercel-app>/api/ready` (proves the rewrite).
+2. After 15+ minutes idle, the login page shows the waking notice after about
+   3 seconds and enables sign-in once ready; it never spins forever.
+3. After signing in, DevTools shows a `refresh_token` cookie that is `HttpOnly`,
+   `Secure`, `SameSite=Lax`, path `/api/v1/auth`, on the Vercel domain. The
+   login response body contains no refresh token, and `localStorage` holds only
+   `procuraflow_has_session`.
+4. A hard reload keeps you signed in (`POST /api/v1/auth/refresh` 200, then
+   `/auth/me`), and the cookie value changes on each reload (rotation).
+5. Reloading two tabs at once, or firing two refreshes from the console, gives
+   200 for both and keeps you signed in; only one response sets a cookie.
+6. Reuse: copy the cookie, wait over 10 seconds, let the app refresh, then
+   `curl -X POST https://<vercel-app>/api/v1/auth/refresh --cookie "refresh_token=<old>"`
+   returns 401 and the app is signed out at its next refresh; an admin sees
+   `refresh_token_reuse` in the audit log.
+7. Logout clears the cookie and a later refresh returns 401, while a second
+   browser stays signed in. Changing that user's password (as admin) signs the
+   second browser out too.
+8. On a throwaway account (not the admin), five wrong passwords produce a 429
+   with a minutes message, and the right password is refused for 15 minutes.
+9. A deep link such as `/suppliers` loads the app, security headers are present
+   (`curl -I`), and Reports → Export Inventory CSV downloads a file.
+10. Render's logs show the migrations reaching the latest revision, and
+    `refresh_tokens` exists in Neon.
+
+### Security notes
+
+- The interactive API docs (`/docs`, `/openapi.json`) stay public on the Render
+  host so reviewers can read them; Vercel only forwards `/api/*`.
+- No `Content-Security-Policy` is set. The SPA's charts need inline styles, and
+  a policy cannot be validated without a browser, so a wrong one would risk a
+  blank page. `X-Frame-Options`, `nosniff`, HSTS, `Referrer-Policy` and
+  `Permissions-Policy` are set in `frontend/vercel.json`.
+- Uvicorn trusts `X-Forwarded-*` from any peer (`--forwarded-allow-ips='*'`).
+  That is only safe because the container is reachable solely through the
+  platform's proxy; do not expose it directly.
+- The seed re-syncs each role's permissions from `app/core/permissions.py` on
+  every start, so permission edits made directly in the database are
+  overwritten by design.
+- Report endpoints, including the CSV export, are available to any signed-in
+  user, like the other read endpoints; changing that means changing the RBAC
+  matrix.
+- Migrations run on every start, which is correct for one instance. A
+  scaled-out deployment needs a pre-deploy migration step instead.
 
 To build and run the production image locally:
 
@@ -273,14 +335,17 @@ See `backend/.env.example` and `frontend/.env.example`. Notable ones:
 | `CORS_ORIGINS` | Comma-separated list of allowed frontend origins. Unset: local origins in development/test, none in production |
 | `DEFAULT_ADMIN_EMAIL` / `DEFAULT_ADMIN_PASSWORD` | Seeded admin credentials (a unique password of 12+ characters is enforced outside local dev) |
 | `SEED_ON_START` | Production container only: `false` skips the seed step on boot (default `true`) |
+| `SEED_DEMO_DATA` | Seed sample suppliers/products. Unset: yes in development/test, no in staging/production; `render.yaml` sets it for the public demo |
 | `PORT` | Production container only: listen port (set by the host; default `8000`) |
 | `VITE_API_BASE_URL` | Frontend's base URL for the API. Unset in production builds, which use same-origin `/api/v1` |
 
 ## Testing
 
-Backend (26 tests covering auth, RBAC allow/deny per role, PO state machine
-valid/invalid transitions, inventory ledger correctness including the
-negative-stock guard, and delivery on-time/delayed classification):
+Backend (204 tests covering auth, refresh-token rotation and revocation,
+sign-in throttling, RBAC allow/deny per role, PO state machine valid/invalid
+transitions, inventory ledger correctness including the negative-stock guard,
+delivery on-time/delayed classification, the audit trail, seed safety, and a
+migration upgrade/downgrade/upgrade round trip on a fresh database):
 
 ```bash
 cd backend
@@ -288,7 +353,8 @@ createdb procuraflow_test   # or: docker exec <postgres-container> psql -U procu
 pytest
 ```
 
-Frontend (component and utility unit tests with Vitest + Testing Library):
+Frontend (56 component, utility, session and cold-start tests with Vitest +
+Testing Library; `npm run build` also type-checks):
 
 ```bash
 cd frontend
@@ -308,13 +374,19 @@ build doesn't include:
 - **Absolute session lifetime** — refresh tokens rotate, but each refresh
   starts a fresh 7-day window, so an actively used session never expires on
   its own.
-- **Access tokens are not revocable** — a revoked session's last access token
-  (30 minutes) still works until it expires.
+- **Access tokens are short-lived, not revocable** — after logout or a
+  password change, an access token already issued keeps working until it
+  expires (30 minutes), and a token replayed inside the 10-second grace window
+  yields one such access token. Deactivated users are cut off immediately,
+  because every request re-checks the account.
 - **Frontend code-splitting** — the production bundle is a single ~800KB
   chunk; route-based `React.lazy()` splitting would improve initial load.
-- **Dependency upgrades** — `npm audit` flags moderate-severity advisories in
-  `vitest`'s mocker and `react-router-dom` 6.x that are fixed in major
-  versions not yet adopted here to avoid an unplanned framework migration.
+- **Dependency advisories** — `npm audit --omit=dev` reports two moderate
+  advisories in `react-router` 6.x, in its server-side-rendering hydration
+  code. This is a client-rendered SPA with no server rendering, so that path
+  is not reachable; the fix needs the breaking v7 upgrade. Dev-only advisories
+  (vitest's mocker) are not shipped. The Python dependencies have not been
+  scanned.
 - **Notifications** — the `notifications` table exists in the schema but
   isn't yet wired to any UI or background trigger (e.g. low-stock alerts).
 - **E2E test suite** (Playwright) for the critical flows currently verified
