@@ -69,7 +69,7 @@ def test_migration_history_has_a_single_head():
 async def test_migrations_round_trip_on_a_fresh_database(scratch_database_url: str):
     _alembic(scratch_database_url, "upgrade", "head")
     upgraded_tables, _ = await _schema(scratch_database_url)
-    assert {"users", "purchase_orders", "refresh_tokens"} <= upgraded_tables
+    assert {"users", "purchase_orders", "refresh_tokens", "login_failures"} <= upgraded_tables
 
     _alembic(scratch_database_url, "downgrade", "base")
     downgraded_tables, leftover_enums = await _schema(scratch_database_url)

@@ -14,7 +14,6 @@ os.environ.setdefault("JWT_SECRET_KEY", "test-only-secret-key-0123456789abcdef01
 
 from app.core.config import get_settings
 from app.core.permissions import PERMISSIONS, ROLE_DESCRIPTIONS, ROLE_PERMISSIONS
-from app.core.rate_limit import get_login_guard
 from app.core.security import hash_password
 from app.db.base import Base
 from app.db.session import get_db
@@ -40,14 +39,6 @@ async def setup_database():
         await conn.run_sync(Base.metadata.create_all)
     yield
     await test_engine.dispose()
-
-
-@pytest.fixture(autouse=True)
-def reset_login_guard():
-    """The guard is process-wide state; every test starts with no recorded failures."""
-    get_login_guard.cache_clear()
-    yield
-    get_login_guard.cache_clear()
 
 
 @pytest_asyncio.fixture(autouse=True)

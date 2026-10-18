@@ -3,6 +3,7 @@ from app.models.category import Category
 from app.models.delivery import Delivery
 from app.models.enums import DeliveryStatus, InventoryTransactionType, POStatus
 from app.models.inventory import InventoryTransaction
+from app.models.login_failure import LoginFailure
 from app.models.notification import Notification
 from app.models.permission import Permission, role_permissions
 from app.models.product import Product
@@ -20,6 +21,7 @@ __all__ = [
     "DeliveryStatus",
     "InventoryTransaction",
     "InventoryTransactionType",
+    "LoginFailure",
     "Notification",
     "Permission",
     "role_permissions",

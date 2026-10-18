@@ -8,13 +8,13 @@ from sqlalchemy.orm import selectinload
 from app.core.auth_cookie import REFRESH_COOKIE_NAME, refresh_cookie_options
 from app.core.config import get_settings
 from app.core.deps import CurrentUser, DbSession
-from app.core.rate_limit import LoginAttemptGuard, get_login_guard
 from app.core.security import create_access_token, verify_password
 from app.models.role import Role
 from app.models.user import User
 from app.schemas.auth import AccessTokenResponse, LoginRequest
 from app.schemas.user import UserRead
 from app.services.audit_service import record_audit_event
+from app.services.login_throttle import LoginThrottle, get_login_throttle
 from app.services.refresh_token_service import (
     RefreshTokenError,
     issue_refresh_token,
@@ -25,9 +25,8 @@ from app.services.refresh_token_service import (
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-LoginGuard = Annotated[LoginAttemptGuard, Depends(get_login_guard)]
+LoginThrottleDep = Annotated[LoginThrottle, Depends(get_login_throttle)]
 RefreshCookie = Annotated[str | None, Cookie(alias=REFRESH_COOKIE_NAME)]
-UNKNOWN_CLIENT = "unknown"
 SECONDS_PER_MINUTE = 60
 
 
@@ -47,10 +46,10 @@ def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
 
 @router.post("/login", response_model=AccessTokenResponse)
 async def login(
-    payload: LoginRequest, request: Request, response: Response, db: DbSession, guard: LoginGuard
+    payload: LoginRequest, request: Request, response: Response, db: DbSession, throttle: LoginThrottleDep
 ) -> AccessTokenResponse:
-    client_ip = request.client.host if request.client else UNKNOWN_CLIENT
-    retry_after = guard.retry_after(payload.email, client_ip)
+    client_ip = request.client.host if request.client else None
+    retry_after = await throttle.retry_after(db, payload.email, client_ip)
     if retry_after:
         raise _too_many_attempts(retry_after)
 
@@ -62,10 +61,11 @@ async def login(
     user = result.scalar_one_or_none()
 
     if user is None or not user.is_active or not verify_password(payload.password, user.hashed_password):
-        guard.record_failure(payload.email, client_ip)
+        await throttle.record_failure(db, payload.email, client_ip)
+        await db.commit()  # the failure must be stored even though this request ends in an error
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
 
-    guard.record_success(payload.email)
+    await throttle.record_success(db, payload.email)
     await purge_expired_tokens(db)
     refresh_token = await issue_refresh_token(db, user.id)
     await record_audit_event(db, user_id=user.id, action="login", entity_type="user", entity_id=user.id)
