@@ -9,6 +9,7 @@ from app.routers import (
     categories,
     dashboard,
     deliveries,
+    health,
     inventory,
     products,
     purchase_orders,
@@ -41,10 +42,14 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     return JSONResponse(status_code=500, content={"detail": "An unexpected error occurred"})
 
 
+# Bare path for the hosting platform's health probe; /api/health and /api/ready are the
+# same-origin routes the frontend reaches through its /api proxy.
 @app.get("/health")
 async def health_check() -> dict:
     return {"status": "ok"}
 
+
+app.include_router(health.router, prefix="/api")
 
 API_PREFIX = "/api/v1"
 app.include_router(auth.router, prefix=API_PREFIX)
