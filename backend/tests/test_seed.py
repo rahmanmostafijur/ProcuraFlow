@@ -10,10 +10,12 @@ from app.models.enums import InventoryTransactionType
 from app.models.inventory import InventoryTransaction
 from app.models.product import Product
 from app.models.role import Role
+from app.models.supplier import Supplier
 from app.models.user import User
 from app.seeds.seed import (
     UnsafeAdminPasswordError,
     ensure_admin_password_is_safe,
+    run_seed,
     seed_admin_user,
     seed_demo_data,
 )
@@ -128,3 +130,55 @@ async def test_seed_demo_data_is_idempotent(db_session: AsyncSession, roles: dic
 
     assert again.id == admin.id
     assert await _row_counts(db_session) == counts
+
+
+@pytest.mark.parametrize(
+    "environment, expected",
+    [("development", True), ("test", True), ("staging", False), ("production", False)],
+)
+def test_demo_data_is_seeded_by_default_only_in_local_environments(
+    environment: str, expected: bool, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.delenv("SEED_DEMO_DATA", raising=False)
+
+    assert make_settings(environment, STRONG_PASSWORD).should_seed_demo_data is expected
+
+
+@pytest.mark.parametrize("flag", [True, False])
+def test_an_explicit_seed_demo_data_setting_overrides_the_environment_default(flag: bool):
+    settings = Settings(_env_file=None, environment="production", jwt_secret_key=STRONG_SECRET, seed_demo_data=flag)
+
+    assert settings.should_seed_demo_data is flag
+
+
+async def test_production_seed_creates_roles_and_admin_but_no_demo_catalogue_by_default(
+    db_session: AsyncSession, session_factory, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.delenv("SEED_DEMO_DATA", raising=False)
+
+    await run_seed(make_settings("production", STRONG_PASSWORD), session_factory)
+
+    assert await find_admin(db_session) is not None
+    assert await db_session.scalar(select(func.count()).select_from(Role)) > 0
+    assert await db_session.scalar(select(func.count()).select_from(Supplier)) == 0
+    assert await db_session.scalar(select(func.count()).select_from(Product)) == 0
+
+
+async def test_seed_adds_the_demo_catalogue_when_explicitly_enabled_and_stays_idempotent(
+    db_session: AsyncSession, session_factory
+):
+    settings = Settings(
+        _env_file=None,
+        environment="production",
+        jwt_secret_key=STRONG_SECRET,
+        default_admin_email=ADMIN_EMAIL,
+        default_admin_password=STRONG_PASSWORD,
+        seed_demo_data=True,
+    )
+
+    await run_seed(settings, session_factory)
+    await run_seed(settings, session_factory)
+
+    assert await db_session.scalar(select(func.count()).select_from(Supplier)) == 3
+    assert await db_session.scalar(select(func.count()).select_from(Product)) == 6
+    assert await db_session.scalar(select(func.count()).select_from(User).where(User.email == ADMIN_EMAIL)) == 1

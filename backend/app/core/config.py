@@ -49,6 +49,10 @@ class Settings(BaseSettings):
     default_admin_email: str = "admin@procuraflow.com"
     default_admin_password: str = "change-this-admin-password"
 
+    # Demo suppliers and products: seeded by default only in local environments. A deployment that
+    # wants them (a public demo) must say so; a real one never gets them by accident.
+    seed_demo_data: bool | None = None
+
     @field_validator("database_url", "test_database_url")
     @classmethod
     def _normalize_database_url(cls, value: str) -> str:
@@ -57,6 +61,10 @@ class Settings(BaseSettings):
     @property
     def is_local(self) -> bool:
         return self.environment in LOCAL_ENVIRONMENTS
+
+    @property
+    def should_seed_demo_data(self) -> bool:
+        return self.is_local if self.seed_demo_data is None else self.seed_demo_data
 
     @property
     def uses_connection_pooler(self) -> bool:

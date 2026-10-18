@@ -13,6 +13,10 @@ services:
       # Migrations and the admin bootstrap run from start.sh; Render's free tier has no pre-deploy command.
       - key: SEED_ON_START
         value: "true"
+      # Sample suppliers/products for the public demo. Delete this variable for a real deployment,
+      # which then only gets roles, permissions and the first admin.
+      - key: SEED_DEMO_DATA
+        value: "true"
       # Generated once by Render and kept across deploys.
       - key: JWT_SECRET_KEY
         generateValue: true

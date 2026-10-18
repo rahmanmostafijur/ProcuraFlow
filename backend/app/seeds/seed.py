@@ -1,7 +1,7 @@
 import asyncio
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
 from app.core.config import Settings, get_settings
@@ -206,12 +206,16 @@ async def seed_demo_data(db: AsyncSession, admin: User) -> None:
         )
 
 
-async def run_seed() -> None:
-    settings = get_settings()
-    async with AsyncSessionLocal() as db:
+async def run_seed(
+    settings: Settings | None = None,
+    session_factory: async_sessionmaker[AsyncSession] = AsyncSessionLocal,
+) -> None:
+    settings = settings or get_settings()
+    async with session_factory() as db:
         roles = await seed_permissions_and_roles(db)
         admin = await seed_admin_user(db, roles, settings)
-        await seed_demo_data(db, admin)
+        if settings.should_seed_demo_data:
+            await seed_demo_data(db, admin)
         await db.commit()
     print("Seed complete.")
 
