@@ -62,6 +62,20 @@ async def _revoke_family(db: AsyncSession, family_id: str) -> None:
     )
 
 
+async def revoke_all_sessions(db: AsyncSession, user_id: int) -> int:
+    """Revoke every live refresh token of `user_id` (all devices); returns how many were revoked.
+
+    Does not commit: callers run it inside the transaction of the credential change it belongs to,
+    so the change and the revocation succeed or fail together.
+    """
+    result = await db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
+        .values(revoked_at=_now())
+    )
+    return result.rowcount
+
+
 def _claims(token: str) -> tuple[str, str]:
     try:
         payload = decode_token(token, expected_type="refresh")

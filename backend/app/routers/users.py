@@ -12,6 +12,7 @@ from app.models.user import User
 from app.schemas.common import PaginatedResponse
 from app.schemas.user import UserCreate, UserRead, UserUpdate
 from app.services.audit_service import current_values, field_changes, record_audit_event
+from app.services.refresh_token_service import revoke_all_sessions
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -90,6 +91,23 @@ async def update_user(
         entity_id=user.id,
         extra_data={"changes": changes},
     )
+
+    # A new password or a deactivation must end the user's existing logins on every device. Doing it
+    # in this transaction also stops a later reactivation from reviving old refresh tokens.
+    revocation_reasons = []
+    if password:
+        revocation_reasons.append("password_changed")
+    if update_data.get("is_active") is False:
+        revocation_reasons.append("deactivated")
+    if revocation_reasons and await revoke_all_sessions(db, user.id):
+        await record_audit_event(
+            db,
+            user_id=current_user.id,
+            action="user_sessions_revoked",
+            entity_type="user",
+            entity_id=user.id,
+            extra_data={"reasons": revocation_reasons},
+        )
     await db.commit()
 
     result = await db.execute(select(User).options(*_LOAD_OPTIONS).where(User.id == user_id))
