@@ -60,6 +60,25 @@ describe("LoginPage backend readiness", () => {
     expect(signInButton()).toBeDisabled();
   });
 
+  it("announces a failed sign-in to assistive technology", async () => {
+    const login = vi.fn().mockRejectedValue(new Error("rejected"));
+    vi.mocked(useAuth).mockReturnValue({
+      user: null,
+      isLoading: false,
+      login,
+      logout: vi.fn(),
+      hasPermission: () => false,
+    });
+    renderLogin("ready");
+
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "ada@example.com" } });
+    fireEvent.change(screen.getByLabelText(/password/i), { target: { value: "wrong-password" } });
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/something went wrong/i);
+    expect(login).toHaveBeenCalledWith("ada@example.com", "wrong-password");
+  });
+
   it("caps the progress readout at the budget", () => {
     renderLogin("waking", 250_000);
 
