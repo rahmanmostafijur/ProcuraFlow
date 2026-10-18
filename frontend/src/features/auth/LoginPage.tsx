@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { useAuth } from "@/lib/auth-context";
+import { type BackendStatus, useBackendReadiness } from "@/lib/use-backend-readiness";
+
+import { BackendStatusNotice } from "./BackendStatusNotice";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -17,10 +20,18 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+const SUBMIT_LABELS: Record<BackendStatus, string> = {
+  checking: "Connecting…",
+  waking: "Waiting for server…",
+  ready: "Sign in",
+  unavailable: "Sign in",
+};
+
 export function LoginPage() {
   const { login, user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [formError, setFormError] = useState<string | null>(null);
+  const backend = useBackendReadiness();
 
   const {
     register,
@@ -42,6 +53,8 @@ export function LoginPage() {
     }
   };
 
+  const isBackendReady = backend.status === "ready";
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-sm">
@@ -52,6 +65,8 @@ export function LoginPage() {
           <h1 className="text-xl font-semibold text-slate-900">Sign in to ProcuraFlow</h1>
           <p className="text-sm text-slate-500">Procurement, inventory &amp; delivery management</p>
         </div>
+
+        <BackendStatusNotice status={backend.status} elapsedMs={backend.elapsedMs} onRetry={backend.retry} />
 
         <form
           onSubmit={handleSubmit(onSubmit)}
@@ -82,8 +97,8 @@ export function LoginPage() {
               {...register("password")}
             />
           </div>
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Signing in…" : "Sign in"}
+          <Button type="submit" className="w-full" disabled={isSubmitting || !isBackendReady}>
+            {isSubmitting ? "Signing in…" : SUBMIT_LABELS[backend.status]}
           </Button>
         </form>
       </div>
