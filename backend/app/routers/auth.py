@@ -1,7 +1,11 @@
-from fastapi import APIRouter, HTTPException, status
+from typing import Annotated
+
+from fastapi import APIRouter, Cookie, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from app.core.auth_cookie import REFRESH_COOKIE_NAME, refresh_cookie_options
+from app.core.config import get_settings
 from app.core.deps import CurrentUser, DbSession
 from app.core.security import (
     TokenError,
@@ -12,15 +16,15 @@ from app.core.security import (
 )
 from app.models.role import Role
 from app.models.user import User
-from app.schemas.auth import AccessTokenResponse, LoginRequest, RefreshRequest, TokenResponse
+from app.schemas.auth import AccessTokenResponse, LoginRequest
 from app.schemas.user import UserRead
 from app.services.audit_service import record_audit_event
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/login", response_model=TokenResponse)
-async def login(payload: LoginRequest, db: DbSession) -> TokenResponse:
+@router.post("/login", response_model=AccessTokenResponse)
+async def login(payload: LoginRequest, response: Response, db: DbSession) -> AccessTokenResponse:
     result = await db.execute(
         select(User)
         .options(selectinload(User.role).selectinload(Role.permissions))
@@ -34,16 +38,23 @@ async def login(payload: LoginRequest, db: DbSession) -> TokenResponse:
     await record_audit_event(db, user_id=user.id, action="login", entity_type="user", entity_id=user.id)
     await db.commit()
 
-    return TokenResponse(
-        access_token=create_access_token(str(user.id), user.role.name),
-        refresh_token=create_refresh_token(str(user.id)),
+    response.set_cookie(
+        REFRESH_COOKIE_NAME,
+        create_refresh_token(str(user.id)),
+        **refresh_cookie_options(get_settings()),
     )
+    return AccessTokenResponse(access_token=create_access_token(str(user.id), user.role.name))
 
 
 @router.post("/refresh", response_model=AccessTokenResponse)
-async def refresh_access_token(payload: RefreshRequest, db: DbSession) -> AccessTokenResponse:
+async def refresh_access_token(
+    db: DbSession,
+    refresh_token: Annotated[str | None, Cookie(alias=REFRESH_COOKIE_NAME)] = None,
+) -> AccessTokenResponse:
+    if refresh_token is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not signed in")
     try:
-        token_payload = decode_token(payload.refresh_token, expected_type="refresh")
+        token_payload = decode_token(refresh_token, expected_type="refresh")
     except TokenError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
 
@@ -54,6 +65,21 @@ async def refresh_access_token(payload: RefreshRequest, db: DbSession) -> Access
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User is no longer active")
 
     return AccessTokenResponse(access_token=create_access_token(str(user.id), user.role.name))
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout() -> Response:
+    """Drop the refresh cookie. Access tokens are short-lived and held in memory by the client."""
+    response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    options = refresh_cookie_options(get_settings())
+    response.delete_cookie(
+        REFRESH_COOKIE_NAME,
+        path=options["path"],
+        secure=options["secure"],
+        httponly=options["httponly"],
+        samesite=options["samesite"],
+    )
+    return response
 
 
 @router.get("/me", response_model=UserRead)
