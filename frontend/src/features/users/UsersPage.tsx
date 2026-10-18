@@ -99,6 +99,8 @@ export function UsersPage() {
         <div className="border-b border-slate-200 p-4">
           <Input
             placeholder="Search users…"
+            aria-label="Search users"
+            name="search"
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);

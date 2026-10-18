@@ -80,6 +80,8 @@ export function PurchaseOrdersPage() {
       <Card>
         <div className="border-b border-slate-200 p-4">
           <Select
+            aria-label="Filter by status"
+            name="status"
             value={status}
             onChange={(event) => {
               setStatus(event.target.value as POStatus | "");

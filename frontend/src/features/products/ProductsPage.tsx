@@ -105,6 +105,8 @@ export function ProductsPage() {
         <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 p-4">
           <Input
             placeholder="Search products…"
+            aria-label="Search products"
+            name="search"
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);
@@ -115,6 +117,7 @@ export function ProductsPage() {
           <label className="flex items-center gap-2 text-sm text-slate-600">
             <input
               type="checkbox"
+              name="lowStockOnly"
               checked={lowStockOnly}
               onChange={(event) => {
                 setLowStockOnly(event.target.checked);

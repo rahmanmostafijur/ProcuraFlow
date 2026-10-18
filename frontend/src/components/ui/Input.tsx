@@ -15,6 +15,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({ className, erro
         error ? "border-red-400" : "border-slate-300",
         className
       )}
+      // Most inputs here hold business records, which browsers must not autofill with personal data.
+      // A caller that wants autofill (the login form) passes its own value.
+      autoComplete="off"
       {...props}
     />
     {error && <p className="mt-1 text-xs text-red-600">{error}</p>}

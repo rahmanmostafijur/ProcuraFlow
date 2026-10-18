@@ -90,6 +90,8 @@ export function SuppliersPage() {
         <div className="border-b border-slate-200 p-4">
           <Input
             placeholder="Search suppliers…"
+            aria-label="Search suppliers"
+            name="search"
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);
