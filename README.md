@@ -134,6 +134,10 @@ survive a password reset and a reactivated account does not revive old logins;
 `PATCH /api/v1/users/{id}` is the only credential-change path today, so a
 future self-service change or reset endpoint must call `revoke_all_sessions`.
 Tokens issued before rotation existed, or with no stored row, are rejected.
+Every refresh family also records when its login happened, and a refresh more
+than `SESSION_ABSOLUTE_DAYS` (default 30) after that revokes the family and
+returns 401, so no session outlives the limit however actively it is
+refreshed; a legitimate user signs in at least monthly.
 An axios response interceptor transparently refreshes an expired access
 token and retries the original request once. The only thing in `localStorage`
 is a non-secret flag that tells the app whether a session probably exists.
@@ -144,12 +148,20 @@ Failed logins are counted per account (the dependable control) and per client
 address (a weaker second layer against spraying many accounts). Past the limit,
 `POST /api/v1/auth/login` answers `429` with a `Retry-After` header — even for
 the correct password — until the window passes; a successful login clears that
-account's count. Known limits: the counters live in the API process, so they
-reset on restart and are not shared across instances (a scaled-out deployment
-would need a shared store such as Redis); the client address is taken from
-`X-Forwarded-For`, which a caller can spoof, which is why the per-account limit
-is the one to rely on; and locking an account lets someone else keep a known
-email locked out for the window.
+account's count. The counts live in Postgres (`login_failures`), so they
+survive restarts and are shared by every instance; keys are HMAC hashes, so
+typed emails and addresses are never stored. A blocked request only reads, so
+hammering a locked account cannot grow the table, and expired rows are purged
+as new failures arrive. Known limits:
+
+- It is a rate control, not an exact counter: attempts racing each other can
+  slip a few past the limit before their failures are recorded. No
+  per-account lock is taken, because that would let an attacker park database
+  connections on a victim's lock.
+- Locking an account lets someone who knows an email keep it locked out for the
+  window (15 minutes by default).
+- The client address is only as trustworthy as the proxy setup; see
+  [Reverse proxy and client addresses](#reverse-proxy-and-client-addresses).
 
 ## Authorization (RBAC)
 
@@ -260,10 +272,61 @@ HTML placeholder page and 502/503/504 as "still waking", and shows an error
 with a **Try again** button if the server never answers. Sign-in is enabled
 only once the database is reachable.
 
+### Reverse proxy and client addresses
+
+Uvicorn runs with its own forwarded-header handling **off**: with a wildcard
+it would take the leftmost `X-Forwarded-For` entry, which the client controls.
+Instead the app trusts a number of proxy hops, `TRUSTED_PROXY_HOPS`
+(`app/core/proxy.py`):
+
+- `0` (the default, and local development) ignores `X-Forwarded-*`; the client
+  is the direct peer.
+- `N` accepts the chain only if it has **exactly N valid IP entries** and takes
+  the first as the client. Any other length (a spoofed prefix, or a count that
+  does not match the hosting) resolves to an *unknown* client, for which the
+  login throttle skips its address check, so a wrong value degrades to
+  per-account limiting instead of making unrelated users share one address.
+- The scheme comes from the last `X-Forwarded-Proto` value, so HTTPS detection
+  keeps working.
+
+`render.yaml` sets `2` for the chain client → Vercel → Render, on the
+assumption that Vercel sets the client address and Render's proxy appends the
+address it received the request from. **That assumption is unverified until
+the first deploy.** Check it: fail a sign-in once from your browser through the
+Vercel URL and read the Render log line
+`failed sign-in client_ip=<address> forwarded_entries=<n>`. `client_ip` should
+be your public address with `forwarded_entries=2`. If it is `None` with another
+count, set `TRUSTED_PROXY_HOPS` to that count. If it is a Vercel or Render
+address, do not raise the count; the chain is not what is assumed.
+
+Residual risk: someone who reaches the Render URL directly can send a chain of
+exactly N entries and choose their own address, which can evade or frame an
+address in the per-address check. Only restricting direct access (a paid Render
+feature) closes that; the per-account limit is unaffected.
+
+### Migrations and scaling
+
+One instance works as shipped: `start.sh` migrates, seeds, then serves.
+Instances that boot together are also safe: migrations hold a session-level
+Postgres advisory lock and the seed holds a transaction-level one, so they take
+turns and the second finds nothing to do (tested with three concurrent
+`alembic` processes and three concurrent seeds).
+
+- A session lock is not reliable through a transaction-pooling PgBouncer, so
+  with Neon set `MIGRATION_DATABASE_URL` to the **direct** (non-`-pooler`)
+  connection string; the app itself can keep using the pooled one.
+- To scale out, run `alembic upgrade head` once as a pre-deploy step (a paid
+  Render feature) and set `RUN_MIGRATIONS_ON_START=false` on the instances. The
+  login throttle already lives in Postgres, so nothing else is per-process.
+
 ### Post-deployment verification
 
 None of these has been run against a real Render, Neon or Vercel environment
 yet; the automated tests cover the logic behind each one, not the hosting.
+Most of items 3-9 were also exercised in real Chrome against the built frontend,
+served with the headers read from `frontend/vercel.json`, in front of a
+production-configured backend; what stays unverified is the real hosting path
+(Vercel's rewrite, Render's proxy headers, real TLS).
 
 1. `https://<render-service>/health` and `/api/ready` return 200, and so does
    `https://<vercel-app>/api/ready` (proves the rewrite).
@@ -289,27 +352,42 @@ yet; the automated tests cover the logic behind each one, not the hosting.
 9. A deep link such as `/suppliers` loads the app, security headers are present
    (`curl -I`), and Reports → Export Inventory CSV downloads a file.
 10. Render's logs show the migrations reaching the latest revision, and
-    `refresh_tokens` exists in Neon.
+    `refresh_tokens` and `login_failures` exist in Neon.
+11. Proxy trust: the check in
+    [Reverse proxy and client addresses](#reverse-proxy-and-client-addresses)
+    shows your own address with `forwarded_entries=2`.
+12. Content Security Policy: with DevTools open on the Vercel URL, the console
+    shows no `Content-Security-Policy` violations while you sign in and visit
+    the dashboard, Reports and a purchase order (Vercel *preview* deployments
+    inject a feedback toolbar script this policy blocks; production does not).
+13. The throttle persists: after a lockout (item 8), restart the Render service;
+    the account is still locked.
 
 ### Security notes
 
 - The interactive API docs (`/docs`, `/openapi.json`) stay public on the Render
   host so reviewers can read them; Vercel only forwards `/api/*`.
-- No `Content-Security-Policy` is set. The SPA's charts need inline styles, and
-  a policy cannot be validated without a browser, so a wrong one would risk a
-  blank page. `X-Frame-Options`, `nosniff`, HSTS, `Referrer-Policy` and
-  `Permissions-Policy` are set in `frontend/vercel.json`.
-- Uvicorn trusts `X-Forwarded-*` from any peer (`--forwarded-allow-ips='*'`).
-  That is only safe because the container is reachable solely through the
-  platform's proxy; do not expose it directly.
+- `frontend/vercel.json` sets a `Content-Security-Policy`: scripts and
+  stylesheets only from the app's own origin, inline style *attributes* allowed
+  (React and Recharts use them, never `<style>` elements), `connect-src 'self'`
+  because every API call goes through the same-origin `/api` proxy, no objects,
+  and `frame-ancestors 'none'`. It was validated in real Chrome with the built
+  app and the headers from this file: sign-in, session restore, all pages, the
+  chart and the CSV download produce no violations, and an injected inline
+  script or style element is blocked. If you later add a third-party script,
+  font or API host, extend the policy deliberately. `X-Frame-Options`,
+  `nosniff`, HSTS, `Referrer-Policy` and `Permissions-Policy` are set too.
+- Forwarded headers are only trusted by hop count; see
+  [Reverse proxy and client addresses](#reverse-proxy-and-client-addresses).
 - The seed re-syncs each role's permissions from `app/core/permissions.py` on
   every start, so permission edits made directly in the database are
   overwritten by design.
 - Report endpoints, including the CSV export, are available to any signed-in
   user, like the other read endpoints; changing that means changing the RBAC
   matrix.
-- Migrations run on every start, which is correct for one instance. A
-  scaled-out deployment needs a pre-deploy migration step instead.
+- Migrations run on every start, serialised by an advisory lock; see
+  [Migrations and scaling](#migrations-and-scaling) for the direct-connection
+  requirement and the scale-out path.
 
 To build and run the production image locally:
 
@@ -332,6 +410,10 @@ See `backend/.env.example` and `frontend/.env.example`. Notable ones:
 | `JWT_SECRET_KEY` | Signing key for access/refresh tokens — **must** be overridden outside local dev |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` / `REFRESH_TOKEN_EXPIRE_DAYS` | Token lifetimes |
 | `LOGIN_MAX_FAILURES_PER_ACCOUNT` / `LOGIN_MAX_FAILURES_PER_IP` / `LOGIN_LOCKOUT_SECONDS` | Sign-in throttling: failures tolerated per account (default 5) and per client address (20) within the window (900 s) |
+| `SESSION_ABSOLUTE_DAYS` | Hard ceiling on a session however actively it is refreshed (default 30) |
+| `TRUSTED_PROXY_HOPS` | Reverse proxies to trust for the client address (default 0 = ignore `X-Forwarded-*`; `render.yaml` sets 2) |
+| `MIGRATION_DATABASE_URL` | Optional direct (non-pooler) URL used only by migrations; falls back to `DATABASE_URL` |
+| `RUN_MIGRATIONS_ON_START` | Production container only: `false` leaves migrations to a pre-deploy step (default `true`) |
 | `CORS_ORIGINS` | Comma-separated list of allowed frontend origins. Unset: local origins in development/test, none in production |
 | `DEFAULT_ADMIN_EMAIL` / `DEFAULT_ADMIN_PASSWORD` | Seeded admin credentials (a unique password of 12+ characters is enforced outside local dev) |
 | `SEED_ON_START` | Production container only: `false` skips the seed step on boot (default `true`) |
@@ -341,11 +423,14 @@ See `backend/.env.example` and `frontend/.env.example`. Notable ones:
 
 ## Testing
 
-Backend (204 tests covering auth, refresh-token rotation and revocation,
-sign-in throttling, RBAC allow/deny per role, PO state machine valid/invalid
-transitions, inventory ledger correctness including the negative-stock guard,
-delivery on-time/delayed classification, the audit trail, seed safety, and a
-migration upgrade/downgrade/upgrade round trip on a fresh database):
+Backend (242 tests covering auth, refresh-token rotation, revocation and the
+absolute session limit, the Postgres-backed sign-in throttle (including
+concurrent attempts and a second instance), proxy-header trust, RBAC allow/deny
+per role, PO state machine valid/invalid transitions, inventory ledger
+correctness including the negative-stock guard, delivery on-time/delayed
+classification, the audit trail, seed safety, a migration
+upgrade/downgrade/upgrade round trip on a fresh database, and several
+instances migrating or seeding at once):
 
 ```bash
 cd backend
@@ -353,7 +438,7 @@ createdb procuraflow_test   # or: docker exec <postgres-container> psql -U procu
 pytest
 ```
 
-Frontend (56 component, utility, session and cold-start tests with Vitest +
+Frontend (58 component, utility, session and cold-start tests with Vitest +
 Testing Library; `npm run build` also type-checks):
 
 ```bash
@@ -371,9 +456,9 @@ page here before sharing this project publicly._
 Honest list of things a production deployment would need that this portfolio
 build doesn't include:
 
-- **Absolute session lifetime** — refresh tokens rotate, but each refresh
-  starts a fresh 7-day window, so an actively used session never expires on
-  its own.
+- **Network-level restriction of the API** — the per-address throttle can be
+  evaded or framed by anyone who reaches the Render URL directly; only
+  limiting direct access (a paid Render feature) fully closes that.
 - **Access tokens are short-lived, not revocable** — after logout or a
   password change, an access token already issued keeps working until it
   expires (30 minutes), and a token replayed inside the 10-second grace window
@@ -381,12 +466,14 @@ build doesn't include:
   because every request re-checks the account.
 - **Frontend code-splitting** — the production bundle is a single ~800KB
   chunk; route-based `React.lazy()` splitting would improve initial load.
-- **Dependency advisories** — `npm audit --omit=dev` reports two moderate
-  advisories in `react-router` 6.x, in its server-side-rendering hydration
-  code. This is a client-rendered SPA with no server rendering, so that path
-  is not reachable; the fix needs the breaking v7 upgrade. Dev-only advisories
-  (vitest's mocker) are not shipped. The Python dependencies have not been
-  scanned.
+- **Dependency advisories** — `pip-audit` on the runtime requirements and
+  `npm audit --omit=dev` are clean. What remains is development tooling that
+  never ships and never sees untrusted input: the Tailwind 3 build chain
+  (`braces`, `chokidar`, `micromatch`, `fast-glob`, `postcss-*`; denial of
+  service on crafted globs or selectors, fixed by a Tailwind 4 rewrite) and
+  `pytest` 8.3.4 in the test-only requirements (a UNIX shared-`/tmp`
+  directory issue for local users, fixed in pytest 9, which needs a
+  pytest-asyncio major upgrade).
 - **Notifications** — the `notifications` table exists in the schema but
   isn't yet wired to any UI or background trigger (e.g. low-stock alerts).
 - **E2E test suite** (Playwright) for the critical flows currently verified
