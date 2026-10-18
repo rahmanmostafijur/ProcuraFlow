@@ -4,7 +4,12 @@ import axios, { type InternalAxiosRequestConfig } from "axios";
 // httpOnly-cookie and CORS story stays simple. Local dev falls back to the standalone API port.
 const DEFAULT_API_BASE_URL = import.meta.env.PROD ? "/api/v1" : "http://localhost:8000/api/v1";
 export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL;
-const REFRESH_TOKEN_KEY = "procuraflow_refresh_token";
+
+// The refresh token lives in an httpOnly cookie that scripts cannot read. This flag is only a hint
+// that a session probably exists, so anonymous visitors skip a pointless refresh round trip.
+const SESSION_HINT_KEY = "procuraflow_has_session";
+const LOGIN_PATH = "/login";
+const AUTH_ENDPOINTS = ["/auth/login", "/auth/refresh", "/auth/logout"];
 
 let accessToken: string | null = null;
 
@@ -12,19 +17,19 @@ export function setAccessToken(token: string | null): void {
   accessToken = token;
 }
 
-export function getRefreshToken(): string | null {
-  return localStorage.getItem(REFRESH_TOKEN_KEY);
+export function hasSessionHint(): boolean {
+  return localStorage.getItem(SESSION_HINT_KEY) === "1";
 }
 
-export function setRefreshToken(token: string | null): void {
-  if (token) {
-    localStorage.setItem(REFRESH_TOKEN_KEY, token);
+export function setSessionHint(isSignedIn: boolean): void {
+  if (isSignedIn) {
+    localStorage.setItem(SESSION_HINT_KEY, "1");
   } else {
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(SESSION_HINT_KEY);
   }
 }
 
-export const apiClient = axios.create({ baseURL: API_BASE_URL });
+export const apiClient = axios.create({ baseURL: API_BASE_URL, withCredentials: true });
 
 apiClient.interceptors.request.use((config) => {
   if (accessToken) {
@@ -40,20 +45,24 @@ interface RetryableConfig extends InternalAxiosRequestConfig {
 let refreshPromise: Promise<string> | null = null;
 
 async function refreshAccessToken(): Promise<string> {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) {
-    throw new Error("No refresh token available");
-  }
-  const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, { refresh_token: refreshToken });
+  const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, undefined, { withCredentials: true });
   setAccessToken(data.access_token);
   return data.access_token as string;
+}
+
+function isAuthEndpoint(url: string | undefined): boolean {
+  return AUTH_ENDPOINTS.some((endpoint) => url?.startsWith(endpoint));
 }
 
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config as RetryableConfig | undefined;
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+    // Auth endpoints answer 401 for their own reasons (wrong password, no session); refreshing
+    // and bouncing to the login page there would hide the real error.
+    const canRetry =
+      error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint(originalRequest.url);
+    if (canRetry) {
       originalRequest._retry = true;
       try {
         refreshPromise ??= refreshAccessToken();
@@ -63,9 +72,11 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
       } catch (refreshError) {
         refreshPromise = null;
-        setRefreshToken(null);
+        setSessionHint(false);
         setAccessToken(null);
-        window.location.href = "/login";
+        if (window.location.pathname !== LOGIN_PATH) {
+          window.location.href = LOGIN_PATH;
+        }
         return Promise.reject(refreshError);
       }
     }

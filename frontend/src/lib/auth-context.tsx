@@ -1,6 +1,7 @@
+import axios from "axios";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
 
-import { apiClient, getRefreshToken, setAccessToken, setRefreshToken } from "@/api/client";
+import { apiClient, hasSessionHint, setAccessToken, setSessionHint } from "@/api/client";
 import type { User } from "@/api/types";
 
 interface AuthContextValue {
@@ -23,20 +24,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) {
+    if (!hasSessionHint()) {
       setIsLoading(false);
       return;
     }
 
+    // The refresh token rides in an httpOnly cookie, so a bare POST is enough to restore the session.
     apiClient
-      .post("/auth/refresh", { refresh_token: refreshToken })
+      .post("/auth/refresh")
       .then(async ({ data }) => {
         setAccessToken(data.access_token);
         await fetchCurrentUser();
       })
-      .catch(() => {
-        setRefreshToken(null);
+      .catch((error: unknown) => {
+        // Only a 401 means the session is really gone; a sleeping or unreachable backend must not sign the user out.
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          setSessionHint(false);
+        }
       })
       .finally(() => setIsLoading(false));
   }, [fetchCurrentUser]);
@@ -45,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (email: string, password: string) => {
       const { data } = await apiClient.post("/auth/login", { email, password });
       setAccessToken(data.access_token);
-      setRefreshToken(data.refresh_token);
+      setSessionHint(true);
       await fetchCurrentUser();
     },
     [fetchCurrentUser]
@@ -53,8 +57,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     setAccessToken(null);
-    setRefreshToken(null);
+    setSessionHint(false);
     setUser(null);
+    // Best effort: the user is signed out locally either way, and the cookie expires on its own.
+    void apiClient.post("/auth/logout").catch(() => undefined);
   }, []);
 
   const hasPermission = useCallback(
