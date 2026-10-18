@@ -1,4 +1,5 @@
-from typing import Annotated
+from collections.abc import Iterable, Mapping
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -19,7 +20,7 @@ from app.schemas.purchase_order import (
     ReceivePurchaseOrderRequest,
 )
 from app.services import purchase_order_service as po_service
-from app.services.audit_service import record_audit_event
+from app.services.audit_service import current_values, field_changes, record_audit_event
 
 router = APIRouter(prefix="/purchase-orders", tags=["purchase-orders"])
 
@@ -27,6 +28,16 @@ RequirePOCreate = Annotated[User, Depends(require_permission("po:create"))]
 RequirePOApprove = Annotated[User, Depends(require_permission("po:approve"))]
 RequirePOTransition = Annotated[User, Depends(require_permission("po:transition"))]
 RequireInventoryWrite = Annotated[User, Depends(require_permission("inventory:write"))]
+
+AUDITED_LINE_FIELDS = ("product_id", "quantity", "unit_price")
+
+
+def _audited_lines(lines: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    # Sorted by product so that reordering otherwise identical lines is not reported as a change.
+    return sorted(
+        ({field: line[field] for field in AUDITED_LINE_FIELDS} for line in lines),
+        key=lambda line: line["product_id"],
+    )
 
 
 async def _get_po_or_404(db: DbSession, po_id: int) -> PurchaseOrder:
@@ -111,6 +122,7 @@ async def update_purchase_order(
 
     update_data = payload.model_dump(exclude_unset=True)
     items_data = update_data.pop("items", None)
+    changes = field_changes(current_values(po, update_data), update_data)
     for field, value in update_data.items():
         setattr(po, field, value)
 
@@ -124,6 +136,9 @@ async def update_purchase_order(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown product ids: {sorted(missing)}"
             )
 
+        previous_lines = _audited_lines(current_values(item, AUDITED_LINE_FIELDS) for item in po.items)
+        changes = {**changes, **field_changes({"items": previous_lines}, {"items": _audited_lines(items_data)})}
+
         po.items.clear()
         # Delete the old lines first; the unit of work would otherwise insert the new ones before
         # removing the orphans and trip the one-line-per-product constraint.
@@ -136,7 +151,12 @@ async def update_purchase_order(
         ]
 
     await record_audit_event(
-        db, user_id=current_user.id, action="po_updated", entity_type="purchase_order", entity_id=po.id
+        db,
+        user_id=current_user.id,
+        action="po_updated",
+        entity_type="purchase_order",
+        entity_id=po.id,
+        extra_data={"changes": changes},
     )
     await db.commit()
     return await _get_po_or_404(db, po_id)

@@ -10,7 +10,7 @@ from app.models.product import Product
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
 from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
-from app.services.audit_service import record_audit_event
+from app.services.audit_service import current_values, field_changes, record_audit_event
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -88,11 +88,18 @@ async def update_product(
     if product is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
 
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    update_data = payload.model_dump(exclude_unset=True)
+    changes = field_changes(current_values(product, update_data), update_data)
+    for field, value in update_data.items():
         setattr(product, field, value)
 
     await record_audit_event(
-        db, user_id=current_user.id, action="product_updated", entity_type="product", entity_id=product.id
+        db,
+        user_id=current_user.id,
+        action="product_updated",
+        entity_type="product",
+        entity_id=product.id,
+        extra_data={"changes": changes},
     )
     await db.commit()
 

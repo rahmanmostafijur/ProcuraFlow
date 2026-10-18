@@ -11,7 +11,7 @@ from app.models.role import Role
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
 from app.schemas.user import UserCreate, UserRead, UserUpdate
-from app.services.audit_service import record_audit_event
+from app.services.audit_service import current_values, field_changes, record_audit_event
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -74,13 +74,21 @@ async def update_user(
 
     update_data = payload.model_dump(exclude_unset=True)
     password = update_data.pop("password", None)
+    changes = field_changes(current_values(user, update_data), update_data)
     if password:
         user.hashed_password = hash_password(password)
+        # Only the fact of the change is auditable; the password and its hash never leave the users table.
+        changes["password"] = "changed"
     for field, value in update_data.items():
         setattr(user, field, value)
 
     await record_audit_event(
-        db, user_id=current_user.id, action="user_updated", entity_type="user", entity_id=user.id
+        db,
+        user_id=current_user.id,
+        action="user_updated",
+        entity_type="user",
+        entity_id=user.id,
+        extra_data={"changes": changes},
     )
     await db.commit()
 

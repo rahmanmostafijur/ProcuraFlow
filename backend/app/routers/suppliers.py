@@ -9,7 +9,7 @@ from app.models.supplier import Supplier
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
 from app.schemas.supplier import SupplierCreate, SupplierRead, SupplierUpdate
-from app.services.audit_service import record_audit_event
+from app.services.audit_service import current_values, field_changes, record_audit_event
 
 router = APIRouter(prefix="/suppliers", tags=["suppliers"])
 
@@ -71,11 +71,18 @@ async def update_supplier(
     if supplier is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Supplier not found")
 
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    update_data = payload.model_dump(exclude_unset=True)
+    changes = field_changes(current_values(supplier, update_data), update_data)
+    for field, value in update_data.items():
         setattr(supplier, field, value)
 
     await record_audit_event(
-        db, user_id=current_user.id, action="supplier_updated", entity_type="supplier", entity_id=supplier.id
+        db,
+        user_id=current_user.id,
+        action="supplier_updated",
+        entity_type="supplier",
+        entity_id=supplier.id,
+        extra_data={"changes": changes},
     )
     await db.commit()
     await db.refresh(supplier)
