@@ -1,18 +1,38 @@
 import { Download } from "lucide-react";
+import { useState } from "react";
 
-import { API_BASE_URL } from "@/api/client";
+import { extractErrorMessage } from "@/api/client";
 import type { DelayedDelivery, SupplierPerformance } from "@/api/types";
-import { useDelayedDeliveries, useOnTimeDeliveryRate, useSupplierPerformance } from "@/api/reports";
+import {
+  downloadInventoryStatusCsv,
+  useDelayedDeliveries,
+  useOnTimeDeliveryRate,
+  useSupplierPerformance,
+} from "@/api/reports";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { useToast } from "@/components/ui/toast-context";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 export function ReportsPage() {
+  const { showToast } = useToast();
+  const [isExporting, setIsExporting] = useState(false);
   const { data: performance, isLoading: performanceLoading } = useSupplierPerformance();
   const { data: delayed, isLoading: delayedLoading } = useDelayedDeliveries();
   const { data: onTimeRate } = useOnTimeDeliveryRate();
+
+  const exportInventoryCsv = async () => {
+    setIsExporting(true);
+    try {
+      await downloadInventoryStatusCsv();
+    } catch (error) {
+      showToast(extractErrorMessage(error), "error");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const performanceColumns: Column<SupplierPerformance>[] = [
     { header: "Supplier", accessor: (row) => row.supplier_name },
@@ -35,11 +55,9 @@ export function ReportsPage() {
           <h1 className="text-2xl font-semibold text-slate-900">Reports</h1>
           <p className="text-sm text-slate-500">Purchasing, supplier, and inventory analytics.</p>
         </div>
-        <a href={`${API_BASE_URL}/reports/inventory-status.csv`} target="_blank" rel="noreferrer">
-          <Button variant="secondary">
-            <Download className="h-4 w-4" /> Export Inventory CSV
-          </Button>
-        </a>
+        <Button variant="secondary" onClick={exportInventoryCsv} disabled={isExporting}>
+          <Download className="h-4 w-4" /> {isExporting ? "Exporting…" : "Export Inventory CSV"}
+        </Button>
       </div>
 
       <Card className="p-5">

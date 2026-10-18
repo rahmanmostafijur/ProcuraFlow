@@ -33,6 +33,20 @@ export function useOnTimeDeliveryRate() {
   });
 }
 
-export function inventoryStatusCsvUrl(baseUrl: string): string {
-  return `${baseUrl}/reports/inventory-status.csv`;
+const INVENTORY_CSV_FILENAME = "inventory-status.csv";
+
+/**
+ * Download the inventory CSV through the authenticated client. A plain link cannot work: browsers
+ * navigate without the Authorization header, and the endpoint requires a signed-in user.
+ */
+export async function downloadInventoryStatusCsv(): Promise<void> {
+  const { data } = await apiClient.get<Blob>("/reports/inventory-status.csv", { responseType: "blob" });
+  const objectUrl = URL.createObjectURL(data);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = INVENTORY_CSV_FILENAME;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(objectUrl);
 }
