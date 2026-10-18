@@ -1,5 +1,6 @@
 import { Download } from "lucide-react";
 
+import { API_BASE_URL } from "@/api/client";
 import type { DelayedDelivery, SupplierPerformance } from "@/api/types";
 import { useDelayedDeliveries, useOnTimeDeliveryRate, useSupplierPerformance } from "@/api/reports";
 import { Button } from "@/components/ui/Button";
@@ -7,8 +8,6 @@ import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { formatCurrency, formatDate } from "@/lib/utils";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
 
 export function ReportsPage() {
   const { data: performance, isLoading: performanceLoading } = useSupplierPerformance();

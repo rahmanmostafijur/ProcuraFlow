@@ -1,6 +1,9 @@
 import axios, { type InternalAxiosRequestConfig } from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
+// Production builds talk to the same origin (the host proxies /api to the backend), so the
+// httpOnly-cookie and CORS story stays simple. Local dev falls back to the standalone API port.
+const DEFAULT_API_BASE_URL = import.meta.env.PROD ? "/api/v1" : "http://localhost:8000/api/v1";
+export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL;
 const REFRESH_TOKEN_KEY = "procuraflow_refresh_token";
 
 let accessToken: string | null = null;
