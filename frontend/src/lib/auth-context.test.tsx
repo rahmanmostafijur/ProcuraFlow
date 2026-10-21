@@ -5,7 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiClient, hasSessionHint, setSessionHint } from "@/api/client";
 import type { User } from "@/api/types";
 
-import { AuthProvider, useAuth } from "./auth-context";
+import { useAuth } from "./auth-context";
+import { AuthProvider } from "./AuthProvider";
 
 const adminUser = {
   id: 1,
@@ -93,7 +94,10 @@ describe("AuthProvider cookie session", () => {
     renderProvider();
     await waitFor(() => expect(screen.getByTestId("state")).toHaveTextContent("anonymous"));
 
-    await act(async () => screen.getByText("login").click());
+    await act(() => {
+      screen.getByText("login").click();
+      return Promise.resolve();
+    });
 
     await waitFor(() => expect(screen.getByTestId("state")).toHaveTextContent("admin@example.com"));
     expect(Object.fromEntries(Object.entries(localStorage))).toEqual({ procuraflow_has_session: "1" });
@@ -108,7 +112,10 @@ describe("AuthProvider cookie session", () => {
     renderProvider();
     await waitFor(() => expect(screen.getByTestId("state")).toHaveTextContent("admin@example.com"));
 
-    await act(async () => screen.getByText("logout").click());
+    await act(() => {
+      screen.getByText("logout").click();
+      return Promise.resolve();
+    });
 
     expect(screen.getByTestId("state")).toHaveTextContent("anonymous");
     expect(hasSessionHint()).toBe(false);

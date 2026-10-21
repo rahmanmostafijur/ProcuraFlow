@@ -4,8 +4,8 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
 import { App } from "./App";
-import { ToastProvider } from "@/components/ui/toast-context";
-import { AuthProvider } from "@/lib/auth-context";
+import { ToastProvider } from "@/components/ui/ToastProvider";
+import { AuthProvider } from "@/lib/AuthProvider";
 import "./index.css";
 
 const queryClient = new QueryClient({
