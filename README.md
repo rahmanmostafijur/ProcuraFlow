@@ -1,5 +1,8 @@
 # ProcuraFlow
 
+[![CI](https://github.com/rahmanmostafijur/ProcuraFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/rahmanmostafijur/ProcuraFlow/actions/workflows/ci.yml)
+[![Dependency audit](https://github.com/rahmanmostafijur/ProcuraFlow/actions/workflows/audit.yml/badge.svg)](https://github.com/rahmanmostafijur/ProcuraFlow/actions/workflows/audit.yml)
+
 A B2B procurement, inventory, and delivery management platform for small and
 medium sized businesses. ProcuraFlow tracks the full purchasing lifecycle —
 from supplier and product catalog management, through purchase order approval
