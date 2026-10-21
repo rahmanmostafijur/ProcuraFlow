@@ -25,7 +25,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2">
+      <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2" aria-live="polite">
         {toasts.map((toast) => (
           <div
             key={toast.id}
@@ -40,7 +40,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               <XCircle className="h-4 w-4 shrink-0" />
             )}
             <span>{toast.message}</span>
-            <button onClick={() => dismiss(toast.id)} className="ml-2 opacity-70 hover:opacity-100">
+            <button
+              type="button"
+              onClick={() => dismiss(toast.id)}
+              className="ml-2 opacity-70 hover:opacity-100"
+              aria-label="Dismiss notification"
+            >
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
