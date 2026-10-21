@@ -21,9 +21,10 @@ function fakeClock() {
     delays,
     elapsed: () => elapsed,
     now: () => elapsed,
-    sleep: async (ms: number) => {
+    sleep: (ms: number) => {
       delays.push(ms);
       elapsed += ms;
+      return Promise.resolve();
     },
   };
 }
@@ -105,9 +106,9 @@ describe("waitForBackend", () => {
   it("stops and reports aborted when the caller cancels", async () => {
     const clock = fakeClock();
     const controller = new AbortController();
-    const fetchImpl = vi.fn().mockImplementation(async () => {
+    const fetchImpl = vi.fn().mockImplementation(() => {
       controller.abort();
-      return htmlResponse(503);
+      return Promise.resolve(htmlResponse(503));
     });
 
     const result = await waitForBackend(READY_URL, { fetchImpl, signal: controller.signal, ...clock });

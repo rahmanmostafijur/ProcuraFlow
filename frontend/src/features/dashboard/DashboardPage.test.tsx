@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 
 import { apiClient } from "@/api/client";
 import type { DashboardSummary, RecentActivityItem } from "@/api/types";
@@ -58,13 +58,15 @@ function renderDashboard() {
   );
 }
 
+let getSpy: MockInstance<typeof apiClient.get>;
+
 function requestedUrls(): unknown[] {
-  return vi.mocked(apiClient.get).mock.calls.map(([url]) => url);
+  return getSpy.mock.calls.map(([url]) => url);
 }
 
 describe("DashboardPage activity feed", () => {
   beforeEach(() => {
-    vi.spyOn(apiClient, "get").mockImplementation(async (url: string) => ({ data: responses[url] }));
+    getSpy = vi.spyOn(apiClient, "get").mockImplementation((url: string) => Promise.resolve({ data: responses[url] }));
   });
 
   afterEach(() => {
