@@ -1,6 +1,7 @@
 import json
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from typing import Any
 
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -9,8 +10,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import verify_password
 from app.models.audit import AuditLog
 from app.models.enums import POStatus
+from app.models.product import Product
+from app.models.role import Role
+from app.models.supplier import Supplier
 from app.models.user import User
 from app.services.audit_service import field_changes
+from tests.fixture_types import AuthHeaders, MakeUser
 
 
 async def _audit_events(db_session: AsyncSession, action: str, entity_id: int) -> list[AuditLog]:
@@ -26,7 +31,9 @@ async def _single_event(db_session: AsyncSession, action: str, entity_id: int) -
     return events[0]
 
 
-async def _create_draft_po(client: AsyncClient, headers: dict, supplier, product) -> dict:
+async def _create_draft_po(
+    client: AsyncClient, headers: dict[str, str], supplier: Supplier, product: Product
+) -> dict[str, Any]:
     response = await client.post(
         "/api/v1/purchase-orders",
         json={
@@ -36,10 +43,13 @@ async def _create_draft_po(client: AsyncClient, headers: dict, supplier, product
         headers=headers,
     )
     assert response.status_code == 201
-    return response.json()
+    body: dict[str, Any] = response.json()
+    return body
 
 
-async def test_creating_a_category_records_an_audit_event(client: AsyncClient, auth_headers, db_session: AsyncSession):
+async def test_creating_a_category_records_an_audit_event(
+    client: AsyncClient, auth_headers: AuthHeaders, db_session: AsyncSession
+) -> None:
     headers = await auth_headers("admin")
     me = (await client.get("/api/v1/auth/me", headers=headers)).json()
 
@@ -53,7 +63,7 @@ async def test_creating_a_category_records_an_audit_event(client: AsyncClient, a
     assert events[0].user_id == me["id"]
 
 
-def test_field_changes_lists_only_changed_fields_as_json_safe_values():
+def test_field_changes_lists_only_changed_fields_as_json_safe_values() -> None:
     before = {
         "name": "Widget",
         "cost": Decimal("10.00"),
@@ -83,8 +93,8 @@ def test_field_changes_lists_only_changed_fields_as_json_safe_values():
 
 
 async def test_product_update_records_changed_fields(
-    client: AsyncClient, auth_headers, product, db_session: AsyncSession
-):
+    client: AsyncClient, auth_headers: AuthHeaders, product: Product, db_session: AsyncSession
+) -> None:
     headers = await auth_headers("admin")
 
     response = await client.patch(
@@ -104,8 +114,8 @@ async def test_product_update_records_changed_fields(
 
 
 async def test_no_op_update_records_an_event_with_no_changes(
-    client: AsyncClient, auth_headers, product, db_session: AsyncSession
-):
+    client: AsyncClient, auth_headers: AuthHeaders, product: Product, db_session: AsyncSession
+) -> None:
     headers = await auth_headers("admin")
 
     response = await client.patch(
@@ -118,8 +128,8 @@ async def test_no_op_update_records_an_event_with_no_changes(
 
 
 async def test_supplier_update_records_changed_fields(
-    client: AsyncClient, auth_headers, supplier, db_session: AsyncSession
-):
+    client: AsyncClient, auth_headers: AuthHeaders, supplier: Supplier, db_session: AsyncSession
+) -> None:
     headers = await auth_headers("admin")
 
     response = await client.patch(
@@ -139,8 +149,12 @@ async def test_supplier_update_records_changed_fields(
 
 
 async def test_user_update_records_changes_and_redacts_the_password(
-    client: AsyncClient, auth_headers, make_user, roles, db_session: AsyncSession
-):
+    client: AsyncClient,
+    auth_headers: AuthHeaders,
+    make_user: MakeUser,
+    roles: dict[str, Role],
+    db_session: AsyncSession,
+) -> None:
     headers = await auth_headers("admin")
     target = await make_user("target@example.com", "viewer")
     old_hash = target.hashed_password
@@ -164,6 +178,7 @@ async def test_user_update_records_changes_and_redacts_the_password(
     # Selecting the column reads the persisted row directly. (expire_all() here used to expire `target`
     # and `event`, and touching their attributes afterwards lazy-loaded outside the async context.)
     new_hash = await db_session.scalar(select(User.hashed_password).where(User.id == target.id))
+    assert new_hash is not None
     assert new_hash != old_hash
     assert verify_password(new_password, new_hash)
     serialized = json.dumps(event.extra_data)
@@ -173,8 +188,8 @@ async def test_user_update_records_changes_and_redacts_the_password(
 
 
 async def test_user_update_without_a_password_does_not_mention_it(
-    client: AsyncClient, auth_headers, make_user, db_session: AsyncSession
-):
+    client: AsyncClient, auth_headers: AuthHeaders, make_user: MakeUser, db_session: AsyncSession
+) -> None:
     headers = await auth_headers("admin")
     target = await make_user("target@example.com", "viewer")
 
@@ -186,8 +201,8 @@ async def test_user_update_without_a_password_does_not_mention_it(
 
 
 async def test_purchase_order_update_records_field_and_line_item_changes(
-    client: AsyncClient, auth_headers, supplier, product, db_session: AsyncSession
-):
+    client: AsyncClient, auth_headers: AuthHeaders, supplier: Supplier, product: Product, db_session: AsyncSession
+) -> None:
     headers = await auth_headers("procurement_manager")
     po = await _create_draft_po(client, headers, supplier, product)
 
@@ -216,8 +231,8 @@ async def test_purchase_order_update_records_field_and_line_item_changes(
 
 
 async def test_purchase_order_update_with_identical_items_records_no_item_change(
-    client: AsyncClient, auth_headers, supplier, product, db_session: AsyncSession
-):
+    client: AsyncClient, auth_headers: AuthHeaders, supplier: Supplier, product: Product, db_session: AsyncSession
+) -> None:
     headers = await auth_headers("procurement_manager")
     po = await _create_draft_po(client, headers, supplier, product)
 

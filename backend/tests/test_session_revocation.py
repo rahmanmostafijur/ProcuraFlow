@@ -1,11 +1,15 @@
+from typing import Any
+
 import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import ASGITransport, AsyncClient, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth_cookie import REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH
 from app.main import app
 from app.models.audit import AuditLog
+from app.models.user import User
+from tests.fixture_types import AuthHeaders, MakeUser
 
 LOGIN_URL = "/api/v1/auth/login"
 REFRESH_URL = "/api/v1/auth/refresh"
@@ -31,22 +35,26 @@ async def _refresh_status(token: str) -> int:
 
 
 @pytest.fixture
-async def target(make_user):
+async def target(make_user: MakeUser) -> User:
     return await make_user("target@example.com", "viewer", password=OLD_PASSWORD)
 
 
 @pytest.fixture
-async def admin_headers(auth_headers):
+async def admin_headers(auth_headers: AuthHeaders) -> dict[str, str]:
     return await auth_headers("admin")
 
 
-async def _admin_patch(client: AsyncClient, admin_headers, user_id: int, body: dict):
+async def _admin_patch(
+    client: AsyncClient, admin_headers: dict[str, str], user_id: int, body: dict[str, Any]
+) -> Response:
     response = await client.patch(f"/api/v1/users/{user_id}", json=body, headers=admin_headers)
     assert response.status_code == 200
     return response
 
 
-async def test_changing_a_password_revokes_every_session_of_that_user(client: AsyncClient, admin_headers, target):
+async def test_changing_a_password_revokes_every_session_of_that_user(
+    client: AsyncClient, admin_headers: dict[str, str], target: User
+) -> None:
     laptop = await _sign_in_on_a_new_device(target.email)
     phone = await _sign_in_on_a_new_device(target.email)
 
@@ -56,7 +64,9 @@ async def test_changing_a_password_revokes_every_session_of_that_user(client: As
     assert await _refresh_status(phone) == 401
 
 
-async def test_the_new_password_works_and_the_old_one_does_not(client: AsyncClient, admin_headers, target):
+async def test_the_new_password_works_and_the_old_one_does_not(
+    client: AsyncClient, admin_headers: dict[str, str], target: User
+) -> None:
     await _admin_patch(client, admin_headers, target.id, {"password": NEW_PASSWORD})
 
     async with _new_client() as device:
@@ -67,7 +77,9 @@ async def test_the_new_password_works_and_the_old_one_does_not(client: AsyncClie
     assert new.status_code == 200
 
 
-async def test_other_users_keep_their_sessions(client: AsyncClient, admin_headers, make_user, target):
+async def test_other_users_keep_their_sessions(
+    client: AsyncClient, admin_headers: dict[str, str], make_user: MakeUser, target: User
+) -> None:
     bystander = await make_user("bystander@example.com", "viewer", password=OLD_PASSWORD)
     bystander_session = await _sign_in_on_a_new_device(bystander.email)
 
@@ -76,7 +88,9 @@ async def test_other_users_keep_their_sessions(client: AsyncClient, admin_header
     assert await _refresh_status(bystander_session) == 200
 
 
-async def test_updates_that_touch_neither_password_nor_status_keep_sessions(client: AsyncClient, admin_headers, target):
+async def test_updates_that_touch_neither_password_nor_status_keep_sessions(
+    client: AsyncClient, admin_headers: dict[str, str], target: User
+) -> None:
     session = await _sign_in_on_a_new_device(target.email)
 
     await _admin_patch(client, admin_headers, target.id, {"full_name": "Renamed Person"})
@@ -85,8 +99,8 @@ async def test_updates_that_touch_neither_password_nor_status_keep_sessions(clie
 
 
 async def test_deactivating_a_user_revokes_sessions_for_good_even_after_reactivation(
-    client: AsyncClient, admin_headers, target
-):
+    client: AsyncClient, admin_headers: dict[str, str], target: User
+) -> None:
     session = await _sign_in_on_a_new_device(target.email)
 
     await _admin_patch(client, admin_headers, target.id, {"is_active": False})
@@ -98,8 +112,8 @@ async def test_deactivating_a_user_revokes_sessions_for_good_even_after_reactiva
 
 
 async def test_revocation_is_audited_separately_and_leaves_the_update_event_intact(
-    client: AsyncClient, admin_headers, target, db_session: AsyncSession
-):
+    client: AsyncClient, admin_headers: dict[str, str], target: User, db_session: AsyncSession
+) -> None:
     target_id = target.id
     await _sign_in_on_a_new_device(target.email)
 
@@ -119,8 +133,8 @@ async def test_revocation_is_audited_separately_and_leaves_the_update_event_inta
 
 
 async def test_no_revocation_event_when_nothing_credential_related_changed(
-    client: AsyncClient, admin_headers, target, db_session: AsyncSession
-):
+    client: AsyncClient, admin_headers: dict[str, str], target: User, db_session: AsyncSession
+) -> None:
     target_id = target.id
 
     await _admin_patch(client, admin_headers, target_id, {"full_name": "Renamed Person"})

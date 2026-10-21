@@ -1,5 +1,3 @@
-from collections.abc import Callable
-
 import pytest
 import pytest_asyncio
 from fastapi import HTTPException
@@ -12,6 +10,7 @@ from app.models.inventory import InventoryTransaction
 from app.models.product import Product
 from app.models.supplier import Supplier
 from app.services.inventory_service import record_opening_balance
+from tests.fixture_types import AuthHeaders, MakeUser, StockMatchesLedger
 
 OPENING_BALANCE_URL = "/api/v1/inventory/opening-balance"
 ALREADY_HAS_MOVEMENTS_DETAIL = (
@@ -38,17 +37,22 @@ async def _ledger_rows(db_session: AsyncSession, product_id: int) -> list[Invent
     return list(result.scalars())
 
 
-async def _post_opening_balance(client: AsyncClient, headers: dict, product_id: int, quantity: int) -> Response:
+async def _post_opening_balance(
+    client: AsyncClient, headers: dict[str, str], product_id: int, quantity: int
+) -> Response:
     payload = {"product_id": product_id, "quantity": quantity}
     return await client.post(OPENING_BALANCE_URL, json=payload, headers=headers)
 
 
-async def _product_stock(client: AsyncClient, headers: dict, product_id: int) -> int:
+async def _product_stock(client: AsyncClient, headers: dict[str, str], product_id: int) -> int:
     response = await client.get(f"/api/v1/products/{product_id}", headers=headers)
-    return response.json()["current_stock"]
+    stock: int = response.json()["current_stock"]
+    return stock
 
 
-async def test_create_product_rejects_current_stock(client: AsyncClient, auth_headers, db_session: AsyncSession):
+async def test_create_product_rejects_current_stock(
+    client: AsyncClient, auth_headers: AuthHeaders, db_session: AsyncSession
+) -> None:
     headers = await auth_headers("procurement_manager")
 
     response = await client.post(
@@ -63,7 +67,9 @@ async def test_create_product_rejects_current_stock(client: AsyncClient, auth_he
     assert await db_session.scalar(select(func.count()).select_from(Product)) == 0
 
 
-async def test_created_product_starts_with_zero_stock(client: AsyncClient, auth_headers, assert_stock_matches_ledger):
+async def test_created_product_starts_with_zero_stock(
+    client: AsyncClient, auth_headers: AuthHeaders, assert_stock_matches_ledger: StockMatchesLedger
+) -> None:
     headers = await auth_headers("procurement_manager")
 
     response = await client.post(
@@ -76,8 +82,12 @@ async def test_created_product_starts_with_zero_stock(client: AsyncClient, auth_
 
 
 async def test_warehouse_manager_records_opening_balance(
-    client: AsyncClient, auth_headers, db_session: AsyncSession, new_product, assert_stock_matches_ledger
-):
+    client: AsyncClient,
+    auth_headers: AuthHeaders,
+    db_session: AsyncSession,
+    new_product: Product,
+    assert_stock_matches_ledger: StockMatchesLedger,
+) -> None:
     headers = await auth_headers("warehouse_manager")
 
     response = await client.post(
@@ -105,7 +115,9 @@ async def test_warehouse_manager_records_opening_balance(
     assert audit_event.extra_data == {"quantity": 40, "reason": "Stock take at go-live"}
 
 
-async def test_opening_balance_reason_is_optional(client: AsyncClient, auth_headers, new_product):
+async def test_opening_balance_reason_is_optional(
+    client: AsyncClient, auth_headers: AuthHeaders, new_product: Product
+) -> None:
     headers = await auth_headers("warehouse_manager")
 
     response = await _post_opening_balance(client, headers, new_product.id, 5)
@@ -116,8 +128,8 @@ async def test_opening_balance_reason_is_optional(client: AsyncClient, auth_head
 
 @pytest.mark.parametrize("role_name", ["procurement_manager", "viewer"])
 async def test_opening_balance_requires_inventory_write(
-    client: AsyncClient, auth_headers, db_session: AsyncSession, new_product, role_name: str
-):
+    client: AsyncClient, auth_headers: AuthHeaders, db_session: AsyncSession, new_product: Product, role_name: str
+) -> None:
     headers = await auth_headers(role_name)
 
     response = await _post_opening_balance(client, headers, new_product.id, 40)
@@ -128,8 +140,12 @@ async def test_opening_balance_requires_inventory_write(
 
 
 async def test_second_opening_balance_is_rejected(
-    client: AsyncClient, auth_headers, db_session: AsyncSession, new_product, assert_stock_matches_ledger
-):
+    client: AsyncClient,
+    auth_headers: AuthHeaders,
+    db_session: AsyncSession,
+    new_product: Product,
+    assert_stock_matches_ledger: StockMatchesLedger,
+) -> None:
     headers = await auth_headers("warehouse_manager")
     first = await _post_opening_balance(client, headers, new_product.id, 40)
     assert first.status_code == 201
@@ -144,8 +160,11 @@ async def test_second_opening_balance_is_rejected(
 
 
 async def test_opening_balance_is_rejected_after_any_other_movement(
-    client: AsyncClient, auth_headers, new_product, assert_stock_matches_ledger
-):
+    client: AsyncClient,
+    auth_headers: AuthHeaders,
+    new_product: Product,
+    assert_stock_matches_ledger: StockMatchesLedger,
+) -> None:
     headers = await auth_headers("warehouse_manager")
     adjustment = await client.post(
         "/api/v1/inventory/adjustments",
@@ -164,8 +183,8 @@ async def test_opening_balance_is_rejected_after_any_other_movement(
 
 @pytest.mark.parametrize("quantity", [0, -5])
 async def test_opening_balance_quantity_must_be_positive(
-    client: AsyncClient, auth_headers, db_session: AsyncSession, new_product, quantity: int
-):
+    client: AsyncClient, auth_headers: AuthHeaders, db_session: AsyncSession, new_product: Product, quantity: int
+) -> None:
     headers = await auth_headers("warehouse_manager")
 
     response = await _post_opening_balance(client, headers, new_product.id, quantity)
@@ -175,7 +194,7 @@ async def test_opening_balance_quantity_must_be_positive(
     assert await _ledger_rows(db_session, new_product.id) == []
 
 
-async def test_opening_balance_for_unknown_product_is_not_found(client: AsyncClient, auth_headers):
+async def test_opening_balance_for_unknown_product_is_not_found(client: AsyncClient, auth_headers: AuthHeaders) -> None:
     headers = await auth_headers("warehouse_manager")
 
     response = await _post_opening_balance(client, headers, 999999, 5)
@@ -186,8 +205,8 @@ async def test_opening_balance_for_unknown_product_is_not_found(client: AsyncCli
 
 @pytest.mark.parametrize("quantity", [0, -5])
 async def test_service_rejects_non_positive_opening_balance(
-    db_session: AsyncSession, make_user: Callable, new_product, quantity: int
-):
+    db_session: AsyncSession, make_user: MakeUser, new_product: Product, quantity: int
+) -> None:
     user = await make_user("stock@example.com", "warehouse_manager")
 
     with pytest.raises(HTTPException) as rejected:
@@ -198,8 +217,8 @@ async def test_service_rejects_non_positive_opening_balance(
 
 
 async def test_product_fixture_satisfies_the_ledger_invariant(
-    db_session: AsyncSession, product, assert_stock_matches_ledger
-):
+    db_session: AsyncSession, product: Product, assert_stock_matches_ledger: StockMatchesLedger
+) -> None:
     rows = await _ledger_rows(db_session, product.id)
 
     assert product.current_stock == 50

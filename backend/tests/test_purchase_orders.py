@@ -1,16 +1,20 @@
 import re
 from datetime import timedelta
+from typing import Any
 
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
 from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.clock import utc_today
 from app.models.audit import AuditLog
+from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
 from app.models.purchase_order_item import PurchaseOrderItem
+from app.models.supplier import Supplier
+from tests.fixture_types import AuthHeaders
 
 PO_NUMBER_PATTERN = re.compile(r"PO-\d{4}-\d{5}")
 SELF_APPROVAL_DETAIL = "You cannot approve a purchase order you created."
@@ -23,11 +27,13 @@ def _duplicate_product_detail(product_id: int) -> str:
     )
 
 
-def _validation_messages(response) -> list[str]:
+def _validation_messages(response: Response) -> list[str]:
     return [error["msg"] for error in response.json()["detail"]]
 
 
-async def _create_draft_po(client: AsyncClient, headers: dict, supplier, product, **overrides) -> dict:
+async def _create_draft_po(
+    client: AsyncClient, headers: dict[str, str], supplier: Supplier, product: Product, **overrides: Any
+) -> dict[str, Any]:
     payload = {
         "supplier_id": supplier.id,
         "items": [{"product_id": product.id, "quantity": 10, "unit_price": "10.00"}],
@@ -35,23 +41,30 @@ async def _create_draft_po(client: AsyncClient, headers: dict, supplier, product
     payload.update(overrides)
     response = await client.post("/api/v1/purchase-orders", json=payload, headers=headers)
     assert response.status_code == 201
-    return response.json()
+    body: dict[str, Any] = response.json()
+    return body
 
 
-async def _create_submitted_po(client: AsyncClient, headers: dict, supplier, product) -> dict:
+async def _create_submitted_po(
+    client: AsyncClient, headers: dict[str, str], supplier: Supplier, product: Product
+) -> dict[str, Any]:
     po = await _create_draft_po(client, headers, supplier, product)
     response = await client.post(f"/api/v1/purchase-orders/{po['id']}/submit", headers=headers)
     assert response.status_code == 200
-    return response.json()
+    body: dict[str, Any] = response.json()
+    return body
 
 
 async def _approval_event_count(db_session: AsyncSession, po_id: int) -> int:
-    return await db_session.scalar(
+    count_stmt = (
         select(func.count()).select_from(AuditLog).where(AuditLog.action == "po_approved", AuditLog.entity_id == po_id)
     )
+    return (await db_session.execute(count_stmt)).scalar_one()
 
 
-async def test_create_purchase_order_starts_in_draft(client: AsyncClient, auth_headers, supplier, product):
+async def test_create_purchase_order_starts_in_draft(
+    client: AsyncClient, auth_headers: AuthHeaders, supplier: Supplier, product: Product
+) -> None:
     headers = await auth_headers("procurement_manager")
 
     po = await _create_draft_po(client, headers, supplier, product)
@@ -62,8 +75,8 @@ async def test_create_purchase_order_starts_in_draft(client: AsyncClient, auth_h
 
 
 async def test_po_numbers_stay_unique_after_a_purchase_order_is_deleted(
-    client: AsyncClient, auth_headers, db_session: AsyncSession, supplier, product
-):
+    client: AsyncClient, auth_headers: AuthHeaders, db_session: AsyncSession, supplier: Supplier, product: Product
+) -> None:
     headers = await auth_headers("procurement_manager")
     first = await _create_draft_po(client, headers, supplier, product)
     second = await _create_draft_po(client, headers, supplier, product)
@@ -76,7 +89,9 @@ async def test_po_numbers_stay_unique_after_a_purchase_order_is_deleted(
     assert PO_NUMBER_PATTERN.fullmatch(third["po_number"])
 
 
-async def test_full_lifecycle_draft_to_received_updates_inventory(client: AsyncClient, auth_headers, supplier, product):
+async def test_full_lifecycle_draft_to_received_updates_inventory(
+    client: AsyncClient, auth_headers: AuthHeaders, supplier: Supplier, product: Product
+) -> None:
     headers = await auth_headers("admin")
     approver_headers = await auth_headers("procurement_manager")
 
@@ -101,7 +116,9 @@ async def test_full_lifecycle_draft_to_received_updates_inventory(client: AsyncC
     assert product_response.json()["current_stock"] == 60  # 50 initial + 10 received
 
 
-async def test_cannot_submit_an_already_submitted_purchase_order(client: AsyncClient, auth_headers, supplier, product):
+async def test_cannot_submit_an_already_submitted_purchase_order(
+    client: AsyncClient, auth_headers: AuthHeaders, supplier: Supplier, product: Product
+) -> None:
     headers = await auth_headers("admin")
     po = await _create_draft_po(client, headers, supplier, product)
     po_id = po["id"]
@@ -112,7 +129,9 @@ async def test_cannot_submit_an_already_submitted_purchase_order(client: AsyncCl
     assert response.status_code == 409
 
 
-async def test_cannot_receive_a_draft_purchase_order(client: AsyncClient, auth_headers, supplier, product):
+async def test_cannot_receive_a_draft_purchase_order(
+    client: AsyncClient, auth_headers: AuthHeaders, supplier: Supplier, product: Product
+) -> None:
     headers = await auth_headers("admin")
     po = await _create_draft_po(client, headers, supplier, product)
 
@@ -125,7 +144,9 @@ async def test_cannot_receive_a_draft_purchase_order(client: AsyncClient, auth_h
     assert response.status_code == 409
 
 
-async def test_cannot_receive_more_than_ordered_quantity(client: AsyncClient, auth_headers, supplier, product):
+async def test_cannot_receive_more_than_ordered_quantity(
+    client: AsyncClient, auth_headers: AuthHeaders, supplier: Supplier, product: Product
+) -> None:
     headers = await auth_headers("admin")
     approver_headers = await auth_headers("procurement_manager")
     po = await _create_draft_po(client, headers, supplier, product)
@@ -143,7 +164,9 @@ async def test_cannot_receive_more_than_ordered_quantity(client: AsyncClient, au
     assert response.status_code == 400
 
 
-async def test_partial_receive_leaves_po_partially_received(client: AsyncClient, auth_headers, supplier, product):
+async def test_partial_receive_leaves_po_partially_received(
+    client: AsyncClient, auth_headers: AuthHeaders, supplier: Supplier, product: Product
+) -> None:
     headers = await auth_headers("admin")
     approver_headers = await auth_headers("procurement_manager")
     po = await _create_draft_po(client, headers, supplier, product)
@@ -162,7 +185,9 @@ async def test_partial_receive_leaves_po_partially_received(client: AsyncClient,
     assert response.json()["status"] == "partially_received"
 
 
-async def test_cancel_is_allowed_from_draft_but_not_from_received(client: AsyncClient, auth_headers, supplier, product):
+async def test_cancel_is_allowed_from_draft_but_not_from_received(
+    client: AsyncClient, auth_headers: AuthHeaders, supplier: Supplier, product: Product
+) -> None:
     headers = await auth_headers("admin")
     po = await _create_draft_po(client, headers, supplier, product)
 
@@ -175,8 +200,8 @@ async def test_cancel_is_allowed_from_draft_but_not_from_received(client: AsyncC
 
 
 async def test_on_time_delivery_marked_when_received_by_expected_date(
-    client: AsyncClient, auth_headers, supplier, product
-):
+    client: AsyncClient, auth_headers: AuthHeaders, supplier: Supplier, product: Product
+) -> None:
     headers = await auth_headers("admin")
     approver_headers = await auth_headers("procurement_manager")
     future_date = (utc_today() + timedelta(days=7)).isoformat()
@@ -198,8 +223,8 @@ async def test_on_time_delivery_marked_when_received_by_expected_date(
 
 
 async def test_procurement_manager_cannot_approve_a_purchase_order_they_created(
-    client: AsyncClient, auth_headers, db_session: AsyncSession, supplier, product
-):
+    client: AsyncClient, auth_headers: AuthHeaders, db_session: AsyncSession, supplier: Supplier, product: Product
+) -> None:
     headers = await auth_headers("procurement_manager")
     po = await _create_submitted_po(client, headers, supplier, product)
 
@@ -215,8 +240,8 @@ async def test_procurement_manager_cannot_approve_a_purchase_order_they_created(
 
 
 async def test_admin_cannot_approve_a_purchase_order_they_created(
-    client: AsyncClient, auth_headers, db_session: AsyncSession, supplier, product
-):
+    client: AsyncClient, auth_headers: AuthHeaders, db_session: AsyncSession, supplier: Supplier, product: Product
+) -> None:
     headers = await auth_headers("admin")
     po = await _create_submitted_po(client, headers, supplier, product)
 
@@ -230,8 +255,8 @@ async def test_admin_cannot_approve_a_purchase_order_they_created(
 
 
 async def test_another_procurement_manager_can_approve_a_purchase_order(
-    client: AsyncClient, auth_headers, db_session: AsyncSession, supplier, product
-):
+    client: AsyncClient, auth_headers: AuthHeaders, db_session: AsyncSession, supplier: Supplier, product: Product
+) -> None:
     creator_headers = await auth_headers("procurement_manager", email="creator@example.com")
     approver_headers = await auth_headers("procurement_manager", email="approver@example.com")
     po = await _create_submitted_po(client, creator_headers, supplier, product)
@@ -247,8 +272,8 @@ async def test_another_procurement_manager_can_approve_a_purchase_order(
 
 
 async def test_create_rejects_the_same_product_on_two_lines(
-    client: AsyncClient, auth_headers, db_session: AsyncSession, supplier, product
-):
+    client: AsyncClient, auth_headers: AuthHeaders, db_session: AsyncSession, supplier: Supplier, product: Product
+) -> None:
     headers = await auth_headers("procurement_manager")
     line = {"product_id": product.id, "quantity": 5, "unit_price": "10.00"}
 
@@ -261,7 +286,9 @@ async def test_create_rejects_the_same_product_on_two_lines(
     assert await db_session.scalar(select(func.count()).select_from(PurchaseOrder)) == 0
 
 
-async def test_update_rejects_the_same_product_on_two_lines(client: AsyncClient, auth_headers, supplier, product):
+async def test_update_rejects_the_same_product_on_two_lines(
+    client: AsyncClient, auth_headers: AuthHeaders, supplier: Supplier, product: Product
+) -> None:
     headers = await auth_headers("procurement_manager")
     po = await _create_draft_po(client, headers, supplier, product)
     lines = [
@@ -277,7 +304,9 @@ async def test_update_rejects_the_same_product_on_two_lines(client: AsyncClient,
     assert [(item["product_id"], item["quantity"]) for item in current["items"]] == [(product.id, 10)]
 
 
-async def test_update_can_replace_a_line_for_the_same_product(client: AsyncClient, auth_headers, supplier, product):
+async def test_update_can_replace_a_line_for_the_same_product(
+    client: AsyncClient, auth_headers: AuthHeaders, supplier: Supplier, product: Product
+) -> None:
     headers = await auth_headers("procurement_manager")
     po = await _create_draft_po(client, headers, supplier, product)
     lines = [{"product_id": product.id, "quantity": 7, "unit_price": "11.00"}]
@@ -290,8 +319,8 @@ async def test_update_can_replace_a_line_for_the_same_product(client: AsyncClien
 
 
 async def test_database_rejects_a_second_line_for_the_same_product(
-    client: AsyncClient, auth_headers, db_session: AsyncSession, supplier, product
-):
+    client: AsyncClient, auth_headers: AuthHeaders, db_session: AsyncSession, supplier: Supplier, product: Product
+) -> None:
     headers = await auth_headers("procurement_manager")
     po = await _create_draft_po(client, headers, supplier, product)
 

@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from decimal import Decimal
 
 from httpx import AsyncClient
@@ -10,6 +9,7 @@ from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
 from app.models.purchase_order_item import PurchaseOrderItem
 from app.models.supplier import Supplier
+from tests.fixture_types import AuthHeaders, MakeUser
 
 # A distinct power-of-two total per status, so any wrongly included status changes the sum visibly.
 LINE_TOTAL_BY_STATUS = {
@@ -49,8 +49,8 @@ def test_committed_statuses_are_the_approved_rule() -> None:
 async def test_supplier_performance_counts_only_committed_orders(
     client: AsyncClient,
     db_session: AsyncSession,
-    auth_headers: Callable,
-    make_user: Callable,
+    auth_headers: AuthHeaders,
+    make_user: MakeUser,
     product: Product,
 ) -> None:
     headers = await auth_headers("viewer")
@@ -68,8 +68,8 @@ async def test_supplier_performance_counts_only_committed_orders(
 async def test_supplier_performance_keeps_suppliers_without_committed_orders(
     client: AsyncClient,
     db_session: AsyncSession,
-    auth_headers: Callable,
-    make_user: Callable,
+    auth_headers: AuthHeaders,
+    make_user: MakeUser,
     product: Product,
 ) -> None:
     headers = await auth_headers("viewer")
@@ -99,8 +99,8 @@ async def test_supplier_performance_keeps_suppliers_without_committed_orders(
 async def test_monthly_trend_counts_only_committed_orders(
     client: AsyncClient,
     db_session: AsyncSession,
-    auth_headers: Callable,
-    make_user: Callable,
+    auth_headers: AuthHeaders,
+    make_user: MakeUser,
     product: Product,
 ) -> None:
     headers = await auth_headers("viewer")
@@ -119,8 +119,8 @@ async def test_monthly_trend_counts_only_committed_orders(
 async def test_monthly_trend_omits_months_without_committed_orders(
     client: AsyncClient,
     db_session: AsyncSession,
-    auth_headers: Callable,
-    make_user: Callable,
+    auth_headers: AuthHeaders,
+    make_user: MakeUser,
     product: Product,
 ) -> None:
     headers = await auth_headers("viewer")

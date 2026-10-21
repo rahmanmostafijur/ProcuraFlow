@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import uuid
+from collections.abc import AsyncIterator
 from pathlib import Path
 
 import pytest
@@ -51,7 +52,7 @@ async def _schema(database_url: str) -> tuple[set[str], list[str]]:
 
 
 @pytest.fixture
-async def scratch_database_url():
+async def scratch_database_url() -> AsyncIterator[str]:
     name = f"pf_migrations_{uuid.uuid4().hex[:12]}"
     await _admin(f'CREATE DATABASE "{name}"')
     url = make_url(get_settings().test_database_url).set(database=name)
@@ -61,13 +62,13 @@ async def scratch_database_url():
         await _admin(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
 
 
-def test_migration_history_has_a_single_head():
+def test_migration_history_has_a_single_head() -> None:
     output = _alembic(get_settings().test_database_url, "heads")
 
     assert output.count("(head)") == 1
 
 
-async def test_migrations_round_trip_on_a_fresh_database(scratch_database_url: str):
+async def test_migrations_round_trip_on_a_fresh_database(scratch_database_url: str) -> None:
     _alembic(scratch_database_url, "upgrade", "head")
     upgraded_tables, _ = await _schema(scratch_database_url)
     assert {"users", "purchase_orders", "refresh_tokens", "login_failures"} <= upgraded_tables
@@ -82,7 +83,7 @@ async def test_migrations_round_trip_on_a_fresh_database(scratch_database_url: s
     assert reupgraded_tables == upgraded_tables
 
 
-def _start_alembic(database_url: str, *args: str) -> subprocess.Popen:
+def _start_alembic(database_url: str, *args: str) -> subprocess.Popen[str]:
     return subprocess.Popen(
         [sys.executable, "-m", "alembic", *args],
         cwd=BACKEND_DIR,
@@ -93,7 +94,7 @@ def _start_alembic(database_url: str, *args: str) -> subprocess.Popen:
     )
 
 
-async def test_several_instances_upgrading_at_once_all_succeed(scratch_database_url: str):
+async def test_several_instances_upgrading_at_once_all_succeed(scratch_database_url: str) -> None:
     """Instances that boot together each run `alembic upgrade head`; they must serialise, not collide."""
     processes = [_start_alembic(scratch_database_url, "upgrade", "head") for _ in range(3)]
 

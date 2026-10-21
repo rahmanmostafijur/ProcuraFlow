@@ -1,27 +1,35 @@
 import importlib.util
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 
 import pytest
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.orm import Session
 
 from app.models.enums import InventoryTransactionType
 from app.models.inventory import InventoryTransaction
 from app.models.product import Product
 from app.models.supplier import Supplier
 from app.models.user import User
+from tests.fixture_types import MakeUser, StockMatchesLedger
 
 VERSIONS_DIR = Path(__file__).resolve().parents[1] / "alembic" / "versions"
 MIGRATION_PATH = VERSIONS_DIR / "1224b37f7c19_backfill_opening_balance_ledger_rows.py"
 BACKFILL_REASON = "Backfilled opening balance (migration 1224b37f7c19)"
 
+# Creates the legacy products and returns them (and the clerk who booked their movements) by name.
+LegacyStock = Callable[[], Awaitable[dict[str, Any]]]
+
 
 def _load_migration() -> ModuleType:
     spec = importlib.util.spec_from_file_location("backfill_opening_balance_migration", MIGRATION_PATH)
+    assert spec is not None
+    assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -30,7 +38,7 @@ def _load_migration() -> ModuleType:
 async def _run_migration(factory: async_sessionmaker[AsyncSession], step: str) -> None:
     migration = _load_migration()
 
-    def _apply(sync_session) -> None:
+    def _apply(sync_session: Session) -> None:
         with Operations.context(MigrationContext.configure(sync_session.connection())):
             getattr(migration, step)()
 
@@ -47,13 +55,15 @@ async def _add_product(db: AsyncSession, supplier: Supplier, sku: str, stock: in
     return product
 
 
-def _movement(product: Product, kind: InventoryTransactionType, delta: int, stock: int, user: User):
+def _movement(
+    product: Product, kind: InventoryTransactionType, delta: int, stock: int, user: User
+) -> InventoryTransaction:
     return InventoryTransaction(
         product_id=product.id, type=kind, quantity_delta=delta, resulting_stock=stock, created_by=user.id
     )
 
 
-async def _ledger(factory: async_sessionmaker[AsyncSession]) -> list[tuple]:
+async def _ledger(factory: async_sessionmaker[AsyncSession]) -> list[tuple[Any, ...]]:
     async with factory() as session:
         rows = await session.execute(
             select(
@@ -69,10 +79,10 @@ async def _ledger(factory: async_sessionmaker[AsyncSession]) -> list[tuple]:
 
 
 @pytest.fixture
-def legacy_stock(db_session: AsyncSession, supplier: Supplier, make_user: Callable):
+def legacy_stock(db_session: AsyncSession, supplier: Supplier, make_user: MakeUser) -> LegacyStock:
     """Products whose stock was set directly, with no, partial, excess or matching ledger history."""
 
-    async def _create() -> dict:
+    async def _create() -> dict[str, Any]:
         clerk = await make_user("clerk@example.com", "warehouse_manager")
         no_history = await _add_product(db_session, supplier, "LEG-NONE", 30)
         partial = await _add_product(db_session, supplier, "LEG-PARTIAL", 50)
@@ -100,8 +110,12 @@ def legacy_stock(db_session: AsyncSession, supplier: Supplier, make_user: Callab
 
 
 async def test_backfill_reconciles_stock_with_the_ledger(
-    session_factory, db_session: AsyncSession, make_user: Callable, legacy_stock, assert_stock_matches_ledger
-):
+    session_factory: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+    make_user: MakeUser,
+    legacy_stock: LegacyStock,
+    assert_stock_matches_ledger: StockMatchesLedger,
+) -> None:
     data = await legacy_stock()
     retired_admin = await make_user("retired-admin@example.com", "admin")
     retired_admin.is_active = False
@@ -129,7 +143,9 @@ async def test_backfill_reconciles_stock_with_the_ledger(
     assert await _ledger(session_factory) == ledger_after
 
 
-async def test_backfill_downgrade_removes_only_the_backfilled_rows(session_factory, make_user: Callable, legacy_stock):
+async def test_backfill_downgrade_removes_only_the_backfilled_rows(
+    session_factory: async_sessionmaker[AsyncSession], make_user: MakeUser, legacy_stock: LegacyStock
+) -> None:
     await legacy_stock()
     await make_user("first-admin@example.com", "admin")
     ledger_before = await _ledger(session_factory)
@@ -140,7 +156,9 @@ async def test_backfill_downgrade_removes_only_the_backfilled_rows(session_facto
     assert await _ledger(session_factory) == ledger_before
 
 
-async def test_backfill_fails_clearly_without_an_active_admin(session_factory, legacy_stock):
+async def test_backfill_fails_clearly_without_an_active_admin(
+    session_factory: async_sessionmaker[AsyncSession], legacy_stock: LegacyStock
+) -> None:
     await legacy_stock()
     ledger_before = await _ledger(session_factory)
 
@@ -150,7 +168,9 @@ async def test_backfill_fails_clearly_without_an_active_admin(session_factory, l
     assert await _ledger(session_factory) == ledger_before
 
 
-async def test_backfill_without_mismatches_needs_no_admin(session_factory, product):
+async def test_backfill_without_mismatches_needs_no_admin(
+    session_factory: async_sessionmaker[AsyncSession], product: Product
+) -> None:
     ledger_before = await _ledger(session_factory)
 
     await _run_migration(session_factory, "upgrade")
