@@ -16,7 +16,7 @@ PLACEHOLDER_JWT_SECRETS = frozenset(
         "change-this-to-a-random-secret-in-production",
     }
 )
-SECRET_HINT = 'generate one with: python -c "import secrets; print(secrets.token_urlsafe(48))"'
+SECRET_HINT = 'generate one with: python -c "import secrets; print(secrets.token_urlsafe(48))"'  # noqa: S105 - help text
 
 
 class Settings(BaseSettings):
@@ -55,7 +55,8 @@ class Settings(BaseSettings):
     cors_origins: str | None = None
 
     default_admin_email: str = "admin@procuraflow.com"
-    default_admin_password: str = "change-this-admin-password"
+    # Placeholder only: the seed refuses it outside development/test (app/seeds/seed.py).
+    default_admin_password: str = "change-this-admin-password"  # noqa: S105
 
     # Demo suppliers and products: seeded by default only in local environments. A deployment that
     # wants them (a public demo) must say so; a real one never gets them by accident.

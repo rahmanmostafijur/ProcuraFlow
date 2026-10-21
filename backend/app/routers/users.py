@@ -75,7 +75,7 @@ async def update_user(user_id: int, payload: UserUpdate, db: DbSession, current_
     if password:
         user.hashed_password = hash_password(password)
         # Only the fact of the change is auditable; the password and its hash never leave the users table.
-        changes["password"] = "changed"
+        changes["password"] = "changed"  # noqa: S105 - audit marker, not a password
     for field, value in update_data.items():
         setattr(user, field, value)
 

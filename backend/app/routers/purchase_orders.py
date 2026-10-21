@@ -56,7 +56,7 @@ async def list_purchase_orders(
     _: CurrentUser,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    status_filter: POStatus | None = Query(default=None, alias="status"),
+    status_filter: Annotated[POStatus | None, Query(alias="status")] = None,
     supplier_id: int | None = None,
 ) -> PaginatedResponse[PurchaseOrderRead]:
     stmt = select(PurchaseOrder).options(*po_service.PO_LOAD_OPTIONS).order_by(PurchaseOrder.created_at.desc())
