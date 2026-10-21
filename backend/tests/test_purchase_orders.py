@@ -1,5 +1,5 @@
 import re
-from datetime import date, timedelta
+from datetime import timedelta
 
 import pytest
 from httpx import AsyncClient
@@ -7,6 +7,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.clock import utc_today
 from app.models.audit import AuditLog
 from app.models.purchase_order import PurchaseOrder
 from app.models.purchase_order_item import PurchaseOrderItem
@@ -178,7 +179,7 @@ async def test_on_time_delivery_marked_when_received_by_expected_date(
 ):
     headers = await auth_headers("admin")
     approver_headers = await auth_headers("procurement_manager")
-    future_date = (date.today() + timedelta(days=7)).isoformat()
+    future_date = (utc_today() + timedelta(days=7)).isoformat()
     po = await _create_draft_po(client, headers, supplier, product, expected_delivery_date=future_date)
     po_id = po["id"]
     for action in ("submit", "approve", "order"):

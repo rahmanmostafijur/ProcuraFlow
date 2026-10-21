@@ -1,10 +1,10 @@
 from collections.abc import Callable
-from datetime import date
 from decimal import Decimal
 
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.clock import utc_today
 from app.models.enums import COMMITTED_PO_STATUSES, POStatus
 from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
@@ -110,7 +110,7 @@ async def test_monthly_trend_counts_only_committed_orders(
     response = await client.get("/api/v1/dashboard/monthly-trends", headers=headers)
 
     assert response.status_code == 200
-    current_month = date.today().strftime("%Y-%m")
+    current_month = utc_today().strftime("%Y-%m")
     [point] = [p for p in response.json() if p["month"] == current_month]
     assert Decimal(str(point["total_spend"])) == COMMITTED_SPEND
     assert point["order_count"] == len(COMMITTED_PO_STATUSES)

@@ -1,10 +1,11 @@
-from datetime import date, timedelta
+from datetime import timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
+from app.core.clock import utc_today
 from app.core.deps import CurrentUser, DbSession, require_permission
 from app.models.audit import AuditLog
 from app.models.delivery import Delivery
@@ -61,7 +62,7 @@ async def get_dashboard_summary(db: DbSession, _: CurrentUser) -> DashboardSumma
         await db.execute(
             select(func.count())
             .select_from(Delivery)
-            .where(Delivery.status == DeliveryStatus.PENDING, Delivery.expected_date >= date.today())
+            .where(Delivery.status == DeliveryStatus.PENDING, Delivery.expected_date >= utc_today())
         )
     ).scalar_one()
 
@@ -80,7 +81,7 @@ async def get_dashboard_summary(db: DbSession, _: CurrentUser) -> DashboardSumma
 async def get_monthly_trends(
     db: DbSession, _: CurrentUser, months: int = Query(6, ge=1, le=24)
 ) -> list[MonthlyTrendPoint]:
-    cutoff = date.today().replace(day=1) - timedelta(days=months * 31)
+    cutoff = utc_today().replace(day=1) - timedelta(days=months * 31)
     month_expr = func.to_char(PurchaseOrder.created_at, "YYYY-MM")
     line_total = PurchaseOrderItem.quantity * PurchaseOrderItem.unit_price
 

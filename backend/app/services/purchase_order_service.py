@@ -1,10 +1,11 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.clock import utc_today
 from app.models.delivery import Delivery
 from app.models.enums import DeliveryStatus, InventoryTransactionType, POStatus
 from app.models.purchase_order import PO_NUMBER_SEQUENCE, PurchaseOrder
@@ -145,7 +146,7 @@ async def receive_purchase_order_items(
 
     if po.delivery is not None:
         po.delivery.received_quantity = total_received
-        po.delivery.actual_date = date.today()
+        po.delivery.actual_date = utc_today()
         if total_received >= total_ordered:
             is_on_time = po.delivery.expected_date is None or po.delivery.actual_date <= po.delivery.expected_date
             po.delivery.status = DeliveryStatus.ON_TIME if is_on_time else DeliveryStatus.DELAYED
