@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
 import jwt
@@ -18,8 +18,13 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def _create_token(subject: str, expires_delta: timedelta, token_type: Literal["access", "refresh"], extra_claims: dict[str, Any] | None = None) -> str:
-    now = datetime.now(timezone.utc)
+def _create_token(
+    subject: str,
+    expires_delta: timedelta,
+    token_type: Literal["access", "refresh"],
+    extra_claims: dict[str, Any] | None = None,
+) -> str:
+    now = datetime.now(UTC)
     payload: dict[str, Any] = {
         "sub": subject,
         "type": token_type,
@@ -35,7 +40,7 @@ def create_access_token(user_id: str, role: str) -> str:
     return _create_token(
         subject=user_id,
         expires_delta=timedelta(minutes=settings.access_token_expire_minutes),
-        token_type="access",
+        token_type="access",  # noqa: S106 - a token kind, not a secret
         extra_claims={"role": role},
     )
 
@@ -44,7 +49,7 @@ def create_refresh_token(user_id: str, jti: str, family_id: str) -> str:
     return _create_token(
         subject=user_id,
         expires_delta=timedelta(days=settings.refresh_token_expire_days),
-        token_type="refresh",
+        token_type="refresh",  # noqa: S106 - a token kind, not a secret
         extra_claims={"jti": jti, "fam": family_id},
     )
 

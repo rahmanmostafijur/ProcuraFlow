@@ -56,7 +56,7 @@ async def list_purchase_orders(
     _: CurrentUser,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    status_filter: POStatus | None = Query(default=None, alias="status"),
+    status_filter: Annotated[POStatus | None, Query(alias="status")] = None,
     supplier_id: int | None = None,
 ) -> PaginatedResponse[PurchaseOrderRead]:
     stmt = select(PurchaseOrder).options(*po_service.PO_LOAD_OPTIONS).order_by(PurchaseOrder.created_at.desc())
@@ -65,8 +65,7 @@ async def list_purchase_orders(
     if supplier_id is not None:
         stmt = stmt.where(PurchaseOrder.supplier_id == supplier_id)
 
-    items, total, total_pages = await paginate(db, stmt, page, page_size)
-    return PaginatedResponse(items=items, total=total, page=page, page_size=page_size, total_pages=total_pages)
+    return await paginate(db, stmt, page, page_size, PurchaseOrderRead)
 
 
 @router.get("/{po_id}", response_model=PurchaseOrderRead)
@@ -87,9 +86,7 @@ async def create_purchase_order(
     found_ids = set(result.scalars().all())
     missing = product_ids - found_ids
     if missing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown product ids: {sorted(missing)}"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown product ids: {sorted(missing)}")
 
     po = PurchaseOrder(
         po_number=await po_service.generate_po_number(db),
@@ -144,9 +141,7 @@ async def update_purchase_order(
         # removing the orphans and trip the one-line-per-product constraint.
         await db.flush()
         po.items = [
-            PurchaseOrderItem(
-                product_id=item["product_id"], quantity=item["quantity"], unit_price=item["unit_price"]
-            )
+            PurchaseOrderItem(product_id=item["product_id"], quantity=item["quantity"], unit_price=item["unit_price"])
             for item in items_data
         ]
 
@@ -185,9 +180,7 @@ async def approve_purchase_order(po_id: int, db: DbSession, current_user: Requir
 
 
 @router.post("/{po_id}/order", response_model=PurchaseOrderRead)
-async def mark_purchase_order_ordered(
-    po_id: int, db: DbSession, current_user: RequirePOTransition
-) -> PurchaseOrder:
+async def mark_purchase_order_ordered(po_id: int, db: DbSession, current_user: RequirePOTransition) -> PurchaseOrder:
     po = await po_service.get_purchase_order_for_update(db, po_id)
     po_service.mark_purchase_order_ordered(db, po)
     await record_audit_event(

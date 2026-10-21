@@ -11,11 +11,12 @@ from app.models.enums import InventoryTransactionType, POStatus
 from app.models.inventory import InventoryTransaction
 from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
-from app.models.supplier import Supplier
 from app.models.purchase_order_item import PurchaseOrderItem
+from app.models.supplier import Supplier
 from app.models.user import User
 from app.services import purchase_order_service as po_service
 from app.services.inventory_service import apply_inventory_transaction, lock_products, record_opening_balance
+from tests.fixture_types import AuthHeaders, MakeUser, StockMatchesLedger
 
 # How long the second writer must stay blocked while the first one holds its row locks.
 BLOCKED_WINDOW_SECONDS = 0.5
@@ -77,6 +78,8 @@ async def _stock_and_ledger_total(factory: async_sessionmaker[AsyncSession], pro
                 InventoryTransaction.product_id == product_id
             )
         )
+        assert stock is not None
+        assert ledger_total is not None
         return stock, ledger_total
 
 
@@ -122,8 +125,8 @@ def _transition(po_id: int, action: str, user: User) -> SessionWork:
 
 
 async def test_concurrent_receipts_of_the_full_quantity_only_book_stock_once(
-    session_factory, db_session, make_user, product
-):
+    session_factory: async_sessionmaker[AsyncSession], db_session: AsyncSession, make_user: MakeUser, product: Product
+) -> None:
     user = await make_user("receiver@example.com", "warehouse_manager")
     po = await _create_po(db_session, user, product, POStatus.ORDERED)
     receive_all = _receive(po.id, product.id, ORDERED_QUANTITY, user.id)
@@ -139,8 +142,8 @@ async def test_concurrent_receipts_of_the_full_quantity_only_book_stock_once(
 
 
 async def test_concurrent_receipt_sees_the_quantity_already_received(
-    session_factory, db_session, make_user, product
-):
+    session_factory: async_sessionmaker[AsyncSession], db_session: AsyncSession, make_user: MakeUser, product: Product
+) -> None:
     user = await make_user("receiver@example.com", "warehouse_manager")
     po = await _create_po(db_session, user, product, POStatus.ORDERED)
 
@@ -158,7 +161,9 @@ async def test_concurrent_receipt_sees_the_quantity_already_received(
     assert ledger_total == 50 + 6
 
 
-async def test_concurrent_adjustments_cannot_drive_stock_negative(session_factory, make_user, product):
+async def test_concurrent_adjustments_cannot_drive_stock_negative(
+    session_factory: async_sessionmaker[AsyncSession], make_user: MakeUser, product: Product
+) -> None:
     user = await make_user("counter@example.com", "warehouse_manager")
     take_thirty = _adjust(product.id, -30, user.id)
 
@@ -172,8 +177,12 @@ async def test_concurrent_adjustments_cannot_drive_stock_negative(session_factor
 
 
 async def test_concurrent_opening_balances_record_only_one(
-    session_factory, db_session, make_user, supplier: Supplier, assert_stock_matches_ledger
-):
+    session_factory: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+    make_user: MakeUser,
+    supplier: Supplier,
+    assert_stock_matches_ledger: StockMatchesLedger,
+) -> None:
     user = await make_user("stock-taker@example.com", "warehouse_manager")
     fresh = Product(sku="RACE-OB", name="Unstocked Widget", cost=1, supplier_id=supplier.id)
     db_session.add(fresh)
@@ -197,8 +206,14 @@ async def test_concurrent_opening_balances_record_only_one(
     ],
 )
 async def test_concurrent_transitions_see_the_committed_status(
-    session_factory, db_session, make_user, product, first_action, second_action, expected_status
-):
+    session_factory: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+    make_user: MakeUser,
+    product: Product,
+    first_action: str,
+    second_action: str,
+    expected_status: POStatus,
+) -> None:
     creator = await make_user("buyer@example.com", "procurement_manager")
     approver = await make_user("approver@example.com", "admin")
     po = await _create_po(db_session, creator, product, POStatus.SUBMITTED)
@@ -213,23 +228,26 @@ async def test_concurrent_transitions_see_the_committed_status(
     assert rejected.value.status_code == 409
     async with session_factory() as session:
         final = await session.get(PurchaseOrder, po.id)
+        assert final is not None
         assert final.status == expected_status
 
 
 async def test_parallel_receive_requests_accept_exactly_one(
-    client: AsyncClient, auth_headers, session_factory, db_session, product
-):
+    client: AsyncClient,
+    auth_headers: AuthHeaders,
+    session_factory: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+    product: Product,
+) -> None:
     headers = await auth_headers("warehouse_manager")
     creator = await db_session.scalar(select(User).where(User.email == "warehouse_manager@example.com"))
+    assert creator is not None
     po = await _create_po(db_session, creator, product, POStatus.ORDERED)
     payload = {"items": [{"product_id": product.id, "quantity": ORDERED_QUANTITY}]}
 
     responses = await asyncio.wait_for(
         asyncio.gather(
-            *(
-                client.post(f"/api/v1/purchase-orders/{po.id}/receive", json=payload, headers=headers)
-                for _ in range(2)
-            )
+            *(client.post(f"/api/v1/purchase-orders/{po.id}/receive", json=payload, headers=headers) for _ in range(2))
         ),
         timeout=OPERATION_TIMEOUT_SECONDS,
     )
@@ -241,8 +259,8 @@ async def test_parallel_receive_requests_accept_exactly_one(
 
 
 async def test_parallel_purchase_order_creations_get_unique_numbers(
-    client: AsyncClient, auth_headers, product
-):
+    client: AsyncClient, auth_headers: AuthHeaders, product: Product
+) -> None:
     headers = await auth_headers("procurement_manager")
     payload = {
         "supplier_id": product.supplier_id,
@@ -251,10 +269,7 @@ async def test_parallel_purchase_order_creations_get_unique_numbers(
 
     responses = await asyncio.wait_for(
         asyncio.gather(
-            *(
-                client.post("/api/v1/purchase-orders", json=payload, headers=headers)
-                for _ in range(PARALLEL_CREATIONS)
-            )
+            *(client.post("/api/v1/purchase-orders", json=payload, headers=headers) for _ in range(PARALLEL_CREATIONS))
         ),
         timeout=OPERATION_TIMEOUT_SECONDS,
     )

@@ -1,14 +1,19 @@
 from datetime import date, datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, DateTime, ForeignKey, Sequence, String, Text
+from sqlalchemy import Date, DateTime, ForeignKey, Sequence, String, Text, func
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.models.enums import POStatus
 
+if TYPE_CHECKING:
+    from app.models.delivery import Delivery
+    from app.models.purchase_order_item import PurchaseOrderItem
+    from app.models.supplier import Supplier
+    from app.models.user import User
 
 # Shared by all years and never reset, so numbers stay unique even though they embed the creation year.
 PO_NUMBER_SEQUENCE = Sequence("purchase_order_number_seq", metadata=Base.metadata)

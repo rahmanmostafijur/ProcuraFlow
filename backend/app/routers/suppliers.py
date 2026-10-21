@@ -36,8 +36,7 @@ async def list_suppliers(
     sort_column = getattr(Supplier, sort_by)
     stmt = stmt.order_by(sort_column.desc() if sort_dir == "desc" else sort_column.asc())
 
-    items, total, total_pages = await paginate(db, stmt, page, page_size)
-    return PaginatedResponse(items=items, total=total, page=page, page_size=page_size, total_pages=total_pages)
+    return await paginate(db, stmt, page, page_size, SupplierRead)
 
 
 @router.get("/{supplier_id}", response_model=SupplierRead)
@@ -49,9 +48,7 @@ async def get_supplier(supplier_id: int, db: DbSession, _: CurrentUser) -> Suppl
 
 
 @router.post("", response_model=SupplierRead, status_code=status.HTTP_201_CREATED)
-async def create_supplier(
-    payload: SupplierCreate, db: DbSession, current_user: RequireSupplierWrite
-) -> Supplier:
+async def create_supplier(payload: SupplierCreate, db: DbSession, current_user: RequireSupplierWrite) -> Supplier:
     supplier = Supplier(**payload.model_dump())
     db.add(supplier)
     await db.flush()

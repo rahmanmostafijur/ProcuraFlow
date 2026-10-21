@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
@@ -11,5 +12,5 @@ class AuditLogRead(BaseModel):
     action: str
     entity_type: str
     entity_id: int | None
-    extra_data: dict | None
+    extra_data: dict[str, Any] | None
     created_at: datetime

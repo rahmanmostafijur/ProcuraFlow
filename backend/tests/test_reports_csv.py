@@ -2,22 +2,23 @@ import csv
 import io
 
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.csv_safety import neutralize_formula
 from app.models.product import Product
 from app.models.supplier import Supplier
+from tests.fixture_types import AuthHeaders
 
 CSV_URL = "/api/v1/reports/inventory-status.csv"
 
 
-def _rows(response) -> list[list[str]]:
+def _rows(response: Response) -> list[list[str]]:
     return list(csv.reader(io.StringIO(response.text)))
 
 
 @pytest.mark.parametrize(
-    "value, expected",
+    ("value", "expected"),
     [
         ("Plain name", "Plain name"),
         ("A4 Paper - 80gsm", "A4 Paper - 80gsm"),
@@ -25,7 +26,7 @@ def _rows(response) -> list[list[str]]:
         ("+SUM(A1:A2)", "'+SUM(A1:A2)"),
         ("-2+3", "'-2+3"),
         ("@cmd", "'@cmd"),
-        ('=HYPERLINK("http://evil.example","x")', "'=HYPERLINK(\"http://evil.example\",\"x\")"),
+        ('=HYPERLINK("http://evil.example","x")', '\'=HYPERLINK("http://evil.example","x")'),
         ("\tTabbed", "'\tTabbed"),
         ("\rReturn", "'\rReturn"),
         ("", ""),
@@ -35,15 +36,15 @@ def test_neutralize_formula_defuses_spreadsheet_formulas(value: str, expected: s
     assert neutralize_formula(value) == expected
 
 
-async def test_inventory_csv_requires_authentication(client: AsyncClient):
+async def test_inventory_csv_requires_authentication(client: AsyncClient) -> None:
     response = await client.get(CSV_URL)
 
     assert response.status_code == 401
 
 
 async def test_inventory_csv_lists_products_for_a_signed_in_user(
-    client: AsyncClient, auth_headers, product: Product
-):
+    client: AsyncClient, auth_headers: AuthHeaders, product: Product
+) -> None:
     headers = await auth_headers("viewer")
 
     response = await client.get(CSV_URL, headers=headers)
@@ -57,8 +58,8 @@ async def test_inventory_csv_lists_products_for_a_signed_in_user(
 
 
 async def test_inventory_csv_does_not_emit_live_formulas_from_product_names(
-    client: AsyncClient, auth_headers, db_session: AsyncSession, supplier: Supplier
-):
+    client: AsyncClient, auth_headers: AuthHeaders, db_session: AsyncSession, supplier: Supplier
+) -> None:
     db_session.add(
         Product(
             sku="=CMD|' /C calc'!A0",

@@ -53,7 +53,7 @@ export function ProductFormDrawer({ isOpen, onClose, product, onSubmit, isSubmit
 
   return (
     <Drawer isOpen={isOpen} onClose={onClose} title={product ? "Edit Product" : "New Product"}>
-      <form onSubmit={submit} className="space-y-4">
+      <form onSubmit={(event) => void submit(event)} className="space-y-4">
         <div>
           <Label htmlFor="sku" required>
             SKU

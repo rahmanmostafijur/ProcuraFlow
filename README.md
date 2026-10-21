@@ -449,6 +449,24 @@ cd frontend
 npm test
 ```
 
+### Static checks
+
+CI runs these on every push and pull request
+([`.github/workflows/ci.yml`](.github/workflows/ci.yml)), and they can be run
+locally:
+
+```bash
+cd backend
+ruff check . && ruff format --check . && mypy   # lint, formatting, strict typing (pyproject.toml)
+```
+
+```bash
+cd frontend
+npm run lint && npm run format:check && npm run typecheck   # ESLint, Prettier, tsc
+```
+
+`ruff format .` and `npm run format` apply the formatting.
+
 ## Screenshots
 
 _Add screenshots of the dashboard, purchase order detail view, and reports

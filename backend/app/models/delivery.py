@@ -1,12 +1,15 @@
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, func
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.models.enums import DeliveryStatus
+
+if TYPE_CHECKING:
+    from app.models.purchase_order import PurchaseOrder
 
 
 class Delivery(Base):

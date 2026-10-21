@@ -29,7 +29,7 @@ Status values: `todo`, `in progress`, `done`, `blocked (owner action)`.
 | # | Task group | Status | Change record |
 |---|---|---|---|
 | 1 | CI on GitHub Actions: backend (Postgres 16, migrations, pytest), frontend (typecheck, lint, unit tests, build), e2e, dependency audit; README badges | done (01-ci, awaiting merge) | [01-ci](changes/01-ci.md) |
-| 2 | Static checks: ruff (lint + format), mypy (strict where reachable), ESLint (typescript-eslint, react-hooks, jsx-a11y), Prettier; findings fixed; wired into CI | todo | |
+| 2 | Static checks: ruff (lint + format), mypy (strict where reachable), ESLint (typescript-eslint, react-hooks, jsx-a11y), Prettier; findings fixed; wired into CI | done (02-static-checks, awaiting merge) | [02-static-checks](changes/02-static-checks.md) |
 | 3 | Password hashing: passlib replaced by pwdlib (Argon2id), bcrypt hashes verified and rehashed on login; tests | todo | |
 | 4 | Repo hygiene: build artifacts removed and ignored, outdated docs fixed, local paths removed, pytest 9 with matching pytest-asyncio | todo | |
 | 5 | Low-stock notifications wired to the `notifications` table (same transaction as the ledger row, de-duplicated, unread count, mark as read); tests | todo | |

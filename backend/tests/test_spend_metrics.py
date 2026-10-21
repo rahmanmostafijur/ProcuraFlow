@@ -1,15 +1,15 @@
-from collections.abc import Callable
-from datetime import date
 from decimal import Decimal
 
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.clock import utc_today
 from app.models.enums import COMMITTED_PO_STATUSES, POStatus
 from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
 from app.models.purchase_order_item import PurchaseOrderItem
 from app.models.supplier import Supplier
+from tests.fixture_types import AuthHeaders, MakeUser
 
 # A distinct power-of-two total per status, so any wrongly included status changes the sum visibly.
 LINE_TOTAL_BY_STATUS = {
@@ -49,8 +49,8 @@ def test_committed_statuses_are_the_approved_rule() -> None:
 async def test_supplier_performance_counts_only_committed_orders(
     client: AsyncClient,
     db_session: AsyncSession,
-    auth_headers: Callable,
-    make_user: Callable,
+    auth_headers: AuthHeaders,
+    make_user: MakeUser,
     product: Product,
 ) -> None:
     headers = await auth_headers("viewer")
@@ -68,8 +68,8 @@ async def test_supplier_performance_counts_only_committed_orders(
 async def test_supplier_performance_keeps_suppliers_without_committed_orders(
     client: AsyncClient,
     db_session: AsyncSession,
-    auth_headers: Callable,
-    make_user: Callable,
+    auth_headers: AuthHeaders,
+    make_user: MakeUser,
     product: Product,
 ) -> None:
     headers = await auth_headers("viewer")
@@ -99,8 +99,8 @@ async def test_supplier_performance_keeps_suppliers_without_committed_orders(
 async def test_monthly_trend_counts_only_committed_orders(
     client: AsyncClient,
     db_session: AsyncSession,
-    auth_headers: Callable,
-    make_user: Callable,
+    auth_headers: AuthHeaders,
+    make_user: MakeUser,
     product: Product,
 ) -> None:
     headers = await auth_headers("viewer")
@@ -110,7 +110,7 @@ async def test_monthly_trend_counts_only_committed_orders(
     response = await client.get("/api/v1/dashboard/monthly-trends", headers=headers)
 
     assert response.status_code == 200
-    current_month = date.today().strftime("%Y-%m")
+    current_month = utc_today().strftime("%Y-%m")
     [point] = [p for p in response.json() if p["month"] == current_month]
     assert Decimal(str(point["total_spend"])) == COMMITTED_SPEND
     assert point["order_count"] == len(COMMITTED_PO_STATUSES)
@@ -119,8 +119,8 @@ async def test_monthly_trend_counts_only_committed_orders(
 async def test_monthly_trend_omits_months_without_committed_orders(
     client: AsyncClient,
     db_session: AsyncSession,
-    auth_headers: Callable,
-    make_user: Callable,
+    auth_headers: AuthHeaders,
+    make_user: MakeUser,
     product: Product,
 ) -> None:
     headers = await auth_headers("viewer")

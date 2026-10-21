@@ -1,10 +1,11 @@
-from datetime import date, timedelta
+from datetime import timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
+from app.core.clock import utc_today
 from app.core.deps import CurrentUser, DbSession, require_permission
 from app.models.audit import AuditLog
 from app.models.delivery import Delivery
@@ -48,7 +49,7 @@ async def get_dashboard_summary(db: DbSession, _: CurrentUser) -> DashboardSumma
         await db.execute(select(func.count()).select_from(Supplier).where(Supplier.is_active.is_(True)))
     ).scalar_one()
     inventory_value = (
-        await db.execute(select(func.coalesce(func.sum(Product.current_stock * Product.cost), 0)))
+        await db.execute(select(func.coalesce(func.sum(Product.cost * Product.current_stock), 0)))
     ).scalar_one()
     low_stock = (
         await db.execute(
@@ -61,7 +62,7 @@ async def get_dashboard_summary(db: DbSession, _: CurrentUser) -> DashboardSumma
         await db.execute(
             select(func.count())
             .select_from(Delivery)
-            .where(Delivery.status == DeliveryStatus.PENDING, Delivery.expected_date >= date.today())
+            .where(Delivery.status == DeliveryStatus.PENDING, Delivery.expected_date >= utc_today())
         )
     ).scalar_one()
 
@@ -80,7 +81,7 @@ async def get_dashboard_summary(db: DbSession, _: CurrentUser) -> DashboardSumma
 async def get_monthly_trends(
     db: DbSession, _: CurrentUser, months: int = Query(6, ge=1, le=24)
 ) -> list[MonthlyTrendPoint]:
-    cutoff = date.today().replace(day=1) - timedelta(days=months * 31)
+    cutoff = utc_today().replace(day=1) - timedelta(days=months * 31)
     month_expr = func.to_char(PurchaseOrder.created_at, "YYYY-MM")
     line_total = PurchaseOrderItem.quantity * PurchaseOrderItem.unit_price
 
@@ -97,8 +98,7 @@ async def get_monthly_trends(
     )
     result = await db.execute(stmt)
     return [
-        MonthlyTrendPoint(month=row.month, total_spend=row.total_spend, order_count=row.order_count)
-        for row in result
+        MonthlyTrendPoint(month=row.month, total_spend=row.total_spend, order_count=row.order_count) for row in result
     ]
 
 
@@ -106,9 +106,7 @@ async def get_monthly_trends(
 async def get_recent_activity(
     db: DbSession, _: RequireAuditRead, limit: int = Query(10, ge=1, le=50)
 ) -> list[RecentActivityItem]:
-    stmt = (
-        select(AuditLog).options(selectinload(AuditLog.user)).order_by(AuditLog.created_at.desc()).limit(limit)
-    )
+    stmt = select(AuditLog).options(selectinload(AuditLog.user)).order_by(AuditLog.created_at.desc()).limit(limit)
     result = await db.execute(stmt)
     logs = result.scalars().all()
     return [

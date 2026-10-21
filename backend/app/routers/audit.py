@@ -27,5 +27,4 @@ async def list_audit_logs(
     if entity_type:
         stmt = stmt.where(AuditLog.entity_type == entity_type)
 
-    items, total, total_pages = await paginate(db, stmt, page, page_size)
-    return PaginatedResponse(items=items, total=total, page=page, page_size=page_size, total_pages=total_pages)
+    return await paginate(db, stmt, page, page_size, AuditLogRead)

@@ -43,7 +43,7 @@ async def record_audit_event(
     action: str,
     entity_type: str,
     entity_id: int | None = None,
-    extra_data: dict | None = None,
+    extra_data: dict[str, Any] | None = None,
 ) -> None:
     db.add(
         AuditLog(

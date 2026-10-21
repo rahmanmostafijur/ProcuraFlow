@@ -1,10 +1,11 @@
 import asyncio
-from datetime import datetime, timedelta, timezone
+from collections.abc import Sequence
+from datetime import UTC, datetime, timedelta
 
 import jwt
 import pytest
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select, update
+from httpx import ASGITransport, AsyncClient, Response
+from sqlalchemy import Row, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth_cookie import REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH
@@ -13,6 +14,8 @@ from app.core.security import _create_token, decode_token
 from app.main import app
 from app.models.audit import AuditLog
 from app.models.refresh_token import RefreshToken
+from app.models.user import User
+from tests.fixture_types import MakeUser
 
 LOGIN_URL = "/api/v1/auth/login"
 REFRESH_URL = "/api/v1/auth/refresh"
@@ -21,7 +24,7 @@ PASSWORD = "CorrectPass1!"
 EMAIL = "user@example.com"
 
 
-def _cookie_value(response) -> str:
+def _cookie_value(response: Response) -> str:
     return response.headers["set-cookie"].split(";")[0].split("=", 1)[1]
 
 
@@ -31,25 +34,25 @@ async def _login(client: AsyncClient) -> str:
     return _cookie_value(response)
 
 
-async def _present(client: AsyncClient, token: str):
+async def _present(client: AsyncClient, token: str) -> Response:
     """Send `token` as the refresh cookie, as a browser holding exactly that token would."""
     client.cookies.clear()
     client.cookies.set(REFRESH_COOKIE_NAME, token, path=REFRESH_COOKIE_PATH)
     return await client.post(REFRESH_URL)
 
 
-async def _rows(db_session: AsyncSession):
+async def _rows(db_session: AsyncSession) -> Sequence[Row[tuple[str, str, datetime | None, datetime | None]]]:
     db_session.expire_all()
     result = await db_session.execute(
-        select(
-            RefreshToken.jti, RefreshToken.family_id, RefreshToken.used_at, RefreshToken.revoked_at
-        ).order_by(RefreshToken.id)
+        select(RefreshToken.jti, RefreshToken.family_id, RefreshToken.used_at, RefreshToken.revoked_at).order_by(
+            RefreshToken.id
+        )
     )
     return result.all()
 
 
 @pytest.fixture
-async def user(make_user):
+async def user(make_user: MakeUser) -> User:
     return await make_user(EMAIL, "viewer", password=PASSWORD)
 
 
@@ -59,20 +62,21 @@ def no_grace(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 async def test_login_records_an_unused_token_row_matching_the_issued_token(
-    client: AsyncClient, db_session: AsyncSession, user
-):
+    client: AsyncClient, db_session: AsyncSession, user: User
+) -> None:
     token = await _login(client)
 
     (row,) = await _rows(db_session)
     claims = decode_token(token, expected_type="refresh")
     assert claims["jti"] == row.jti
     assert claims["fam"] == row.family_id
-    assert row.used_at is None and row.revoked_at is None
+    assert row.used_at is None
+    assert row.revoked_at is None
 
 
 async def test_refresh_rotates_the_token_within_the_same_family(
-    client: AsyncClient, db_session: AsyncSession, user
-):
+    client: AsyncClient, db_session: AsyncSession, user: User
+) -> None:
     first = await _login(client)
 
     response = await _present(client, first)
@@ -91,7 +95,7 @@ def _new_client() -> AsyncClient:
     return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
 
 
-async def _refresh_with(token: str):
+async def _refresh_with(token: str) -> Response:
     """Refresh as a separate browser (its own cookie jar) holding exactly `token`."""
     async with _new_client() as other:
         return await _present(other, token)
@@ -109,14 +113,15 @@ def long_grace(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 async def test_a_grace_window_replay_gets_an_access_token_but_no_refresh_token(
-    client: AsyncClient, db_session: AsyncSession, user, long_grace
-):
+    client: AsyncClient, db_session: AsyncSession, user: User, long_grace: None
+) -> None:
     first = await _login(client)
     rotated = await _present(client, first)
 
     replay = await _refresh_with(first)
 
-    assert rotated.status_code == 200 and "set-cookie" in rotated.headers
+    assert rotated.status_code == 200
+    assert "set-cookie" in rotated.headers
     assert replay.status_code == 200
     assert "access_token" in replay.json()
     assert "set-cookie" not in replay.headers
@@ -125,8 +130,8 @@ async def test_a_grace_window_replay_gets_an_access_token_but_no_refresh_token(
 
 
 async def test_a_grace_window_replay_cannot_fork_the_chain(
-    client: AsyncClient, db_session: AsyncSession, user, long_grace
-):
+    client: AsyncClient, db_session: AsyncSession, user: User, long_grace: None
+) -> None:
     first = await _login(client)
     legit = _cookie_value(await _present(client, first))
     await _refresh_with(first)  # the replay
@@ -137,8 +142,8 @@ async def test_a_grace_window_replay_cannot_fork_the_chain(
 
 
 async def test_concurrent_refreshes_with_one_token_rotate_it_exactly_once(
-    client: AsyncClient, db_session: AsyncSession, user, long_grace
-):
+    client: AsyncClient, db_session: AsyncSession, user: User, long_grace: None
+) -> None:
     token = await _login(client)
 
     responses = await asyncio.gather(*[_refresh_with(token) for _ in range(5)])
@@ -150,8 +155,8 @@ async def test_concurrent_refreshes_with_one_token_rotate_it_exactly_once(
 
 
 async def test_a_browser_refreshing_twice_at_once_keeps_the_canonical_cookie(
-    client: AsyncClient, db_session: AsyncSession, user, long_grace
-):
+    client: AsyncClient, db_session: AsyncSession, user: User, long_grace: None
+) -> None:
     """Two tabs, or React StrictMode, send the same cookie together; the jar must end up on the successor."""
     await _login(client)
 
@@ -161,14 +166,15 @@ async def test_a_browser_refreshing_twice_at_once_keeps_the_canonical_cookie(
     assert ("set-cookie" in first.headers) != ("set-cookie" in second.headers)
     # A Set-Cookie on the next refresh proves the jar held the unused successor, not the rotated-away token.
     follow_up = await client.post(REFRESH_URL)
-    assert follow_up.status_code == 200 and "set-cookie" in follow_up.headers
+    assert follow_up.status_code == 200
+    assert "set-cookie" in follow_up.headers
     assert len(await _rows(db_session)) == 3
     assert await _live_count(db_session) == 1
 
 
 async def test_a_replay_after_the_grace_window_revokes_the_whole_family(
-    client: AsyncClient, db_session: AsyncSession, user, no_grace
-):
+    client: AsyncClient, db_session: AsyncSession, user: User, no_grace: None
+) -> None:
     first = await _login(client)
     second = _cookie_value(await _present(client, first))
 
@@ -181,8 +187,8 @@ async def test_a_replay_after_the_grace_window_revokes_the_whole_family(
 
 
 async def test_reuse_is_audited_even_though_the_request_is_rejected(
-    client: AsyncClient, db_session: AsyncSession, user, no_grace
-):
+    client: AsyncClient, db_session: AsyncSession, user: User, no_grace: None
+) -> None:
     user_id = user.id  # read before the helpers expire the session's objects
     first = await _login(client)
     await _present(client, first)
@@ -195,8 +201,8 @@ async def test_reuse_is_audited_even_though_the_request_is_rejected(
 
 
 async def test_logout_revokes_the_session_so_the_old_token_stops_working(
-    client: AsyncClient, db_session: AsyncSession, user
-):
+    client: AsyncClient, db_session: AsyncSession, user: User
+) -> None:
     token = await _login(client)
 
     assert (await client.post(LOGOUT_URL)).status_code == 204
@@ -205,7 +211,7 @@ async def test_logout_revokes_the_session_so_the_old_token_stops_working(
     assert all(row.revoked_at is not None for row in await _rows(db_session))
 
 
-async def test_logging_out_one_device_leaves_other_sessions_alone(client: AsyncClient, user):
+async def test_logging_out_one_device_leaves_other_sessions_alone(client: AsyncClient, user: User) -> None:
     await _login(client)
     async with _new_client() as other:
         second_device = await _login(other)
@@ -215,7 +221,9 @@ async def test_logging_out_one_device_leaves_other_sessions_alone(client: AsyncC
         assert (await _present(other, second_device)).status_code == 200
 
 
-async def test_logging_out_with_an_older_token_still_ends_the_whole_session(client: AsyncClient, user, long_grace):
+async def test_logging_out_with_an_older_token_still_ends_the_whole_session(
+    client: AsyncClient, user: User, long_grace: None
+) -> None:
     first = await _login(client)
     successor = _cookie_value(await _present(client, first))
 
@@ -227,8 +235,8 @@ async def test_logging_out_with_an_older_token_still_ends_the_whole_session(clie
 
 
 async def test_reuse_in_one_login_leaves_the_users_other_devices_signed_in(
-    client: AsyncClient, user, no_grace
-):
+    client: AsyncClient, user: User, no_grace: None
+) -> None:
     device_a = await _login(client)
     async with _new_client() as other:
         device_b = await _login(other)
@@ -241,13 +249,13 @@ async def test_reuse_in_one_login_leaves_the_users_other_devices_signed_in(
     assert (await _refresh_with(device_b)).status_code == 200
 
 
-async def test_a_token_without_an_id_is_rejected(client: AsyncClient, user):
+async def test_a_token_without_an_id_is_rejected(client: AsyncClient, user: User) -> None:
     legacy = _create_token(str(user.id), timedelta(days=1), "refresh")
 
     assert (await _present(client, legacy)).status_code == 401
 
 
-async def test_a_validly_signed_token_with_no_stored_row_is_rejected(client: AsyncClient, user):
+async def test_a_validly_signed_token_with_no_stored_row_is_rejected(client: AsyncClient, user: User) -> None:
     forged = _create_token(
         str(user.id), timedelta(days=1), "refresh", extra_claims={"jti": "never-issued", "fam": "none"}
     )
@@ -255,14 +263,14 @@ async def test_a_validly_signed_token_with_no_stored_row_is_rejected(client: Asy
     assert (await _present(client, forged)).status_code == 401
 
 
-async def test_a_token_signed_with_another_key_is_rejected(client: AsyncClient, user):
+async def test_a_token_signed_with_another_key_is_rejected(client: AsyncClient, user: User) -> None:
     forged = jwt.encode(
         {
             "sub": str(user.id),
             "type": "refresh",
             "jti": "x",
             "fam": "y",
-            "exp": datetime.now(timezone.utc) + timedelta(days=1),
+            "exp": datetime.now(UTC) + timedelta(days=1),
         },
         "a-completely-different-signing-key-0123456789",
         algorithm="HS256",
@@ -271,7 +279,7 @@ async def test_a_token_signed_with_another_key_is_rejected(client: AsyncClient, 
     assert (await _present(client, forged)).status_code == 401
 
 
-async def test_a_deactivated_user_cannot_refresh(client: AsyncClient, db_session: AsyncSession, user):
+async def test_a_deactivated_user_cannot_refresh(client: AsyncClient, db_session: AsyncSession, user: User) -> None:
     token = await _login(client)
     user.is_active = False
     await db_session.commit()
@@ -279,13 +287,15 @@ async def test_a_deactivated_user_cannot_refresh(client: AsyncClient, db_session
     assert (await _present(client, token)).status_code == 401
 
 
-async def test_expired_token_rows_are_purged_at_login(client: AsyncClient, db_session: AsyncSession, user):
+async def test_expired_token_rows_are_purged_at_login(
+    client: AsyncClient, db_session: AsyncSession, user: User
+) -> None:
     db_session.add(
         RefreshToken(
             jti="long-expired",
             family_id="old-family",
             user_id=user.id,
-            expires_at=datetime.now(timezone.utc) - timedelta(days=2),
+            expires_at=datetime.now(UTC) - timedelta(days=2),
         )
     )
     await db_session.commit()
@@ -299,9 +309,7 @@ async def test_expired_token_rows_are_purged_at_login(client: AsyncClient, db_se
 
 async def _age_session(db_session: AsyncSession, days: float) -> None:
     """Pretend the login happened `days` ago, as a real session would have by the time it is refreshed."""
-    await db_session.execute(
-        update(RefreshToken).values(family_started_at=datetime.now(timezone.utc) - timedelta(days=days))
-    )
+    await db_session.execute(update(RefreshToken).values(family_started_at=datetime.now(UTC) - timedelta(days=days)))
     await db_session.commit()
 
 
@@ -311,16 +319,18 @@ async def _session_starts(db_session: AsyncSession) -> list[datetime]:
     return list(result.scalars().all())
 
 
-async def test_login_stamps_when_the_session_started(client: AsyncClient, db_session: AsyncSession, user):
-    before = datetime.now(timezone.utc)
+async def test_login_stamps_when_the_session_started(client: AsyncClient, db_session: AsyncSession, user: User) -> None:
+    before = datetime.now(UTC)
     await _login(client)
 
     (started,) = await _session_starts(db_session)
 
-    assert before - timedelta(seconds=5) <= started <= datetime.now(timezone.utc) + timedelta(seconds=5)
+    assert before - timedelta(seconds=5) <= started <= datetime.now(UTC) + timedelta(seconds=5)
 
 
-async def test_rotation_keeps_the_original_session_start(client: AsyncClient, db_session: AsyncSession, user):
+async def test_rotation_keeps_the_original_session_start(
+    client: AsyncClient, db_session: AsyncSession, user: User
+) -> None:
     first = await _login(client)
     await _age_session(db_session, days=3)
     (original,) = await _session_starts(db_session)
@@ -331,8 +341,8 @@ async def test_rotation_keeps_the_original_session_start(client: AsyncClient, db
 
 
 async def test_a_session_past_the_absolute_limit_is_rejected_and_revoked(
-    client: AsyncClient, db_session: AsyncSession, user
-):
+    client: AsyncClient, db_session: AsyncSession, user: User
+) -> None:
     token = await _login(client)
     await _age_session(db_session, days=get_settings().session_absolute_days + 1)
 
@@ -342,7 +352,9 @@ async def test_a_session_past_the_absolute_limit_is_rejected_and_revoked(
     assert all(row.revoked_at is not None for row in await _rows(db_session))
 
 
-async def test_a_session_within_the_absolute_limit_keeps_refreshing(client: AsyncClient, db_session: AsyncSession, user):
+async def test_a_session_within_the_absolute_limit_keeps_refreshing(
+    client: AsyncClient, db_session: AsyncSession, user: User
+) -> None:
     token = await _login(client)
     await _age_session(db_session, days=get_settings().session_absolute_days - 1)
 
@@ -350,8 +362,8 @@ async def test_a_session_within_the_absolute_limit_keeps_refreshing(client: Asyn
 
 
 async def test_the_absolute_limit_is_configurable(
-    client: AsyncClient, db_session: AsyncSession, user, monkeypatch: pytest.MonkeyPatch
-):
+    client: AsyncClient, db_session: AsyncSession, user: User, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(get_settings(), "session_absolute_days", 1)
     token = await _login(client)
     await _age_session(db_session, days=2)
@@ -360,8 +372,8 @@ async def test_the_absolute_limit_is_configurable(
 
 
 async def test_the_absolute_limit_also_ends_a_session_whose_token_is_replayed_in_the_grace_window(
-    client: AsyncClient, db_session: AsyncSession, user, long_grace
-):
+    client: AsyncClient, db_session: AsyncSession, user: User, long_grace: None
+) -> None:
     token = await _login(client)
     await _present(client, token)  # rotates; `token` is now used but still inside the grace window
     await _age_session(db_session, days=get_settings().session_absolute_days + 1)

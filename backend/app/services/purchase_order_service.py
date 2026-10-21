@@ -1,10 +1,11 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.clock import utc_today
 from app.models.delivery import Delivery
 from app.models.enums import DeliveryStatus, InventoryTransactionType, POStatus
 from app.models.purchase_order import PO_NUMBER_SEQUENCE, PurchaseOrder
@@ -56,7 +57,7 @@ async def get_purchase_order_for_update(db: AsyncSession, po_id: int) -> Purchas
 
 
 async def generate_po_number(db: AsyncSession) -> str:
-    year = datetime.now(timezone.utc).year
+    year = datetime.now(UTC).year
     number = await db.scalar(select(PO_NUMBER_SEQUENCE.next_value()))
     return f"PO-{year}-{number:05d}"
 
@@ -76,7 +77,7 @@ def approve_purchase_order(po: PurchaseOrder, approver: User) -> None:
     _ensure_transition_allowed(po.status, POStatus.APPROVED)
     po.status = POStatus.APPROVED
     po.approved_by = approver.id
-    po.approved_at = datetime.now(timezone.utc)
+    po.approved_at = datetime.now(UTC)
 
 
 def mark_purchase_order_ordered(db: AsyncSession, po: PurchaseOrder) -> None:
@@ -145,11 +146,9 @@ async def receive_purchase_order_items(
 
     if po.delivery is not None:
         po.delivery.received_quantity = total_received
-        po.delivery.actual_date = date.today()
+        po.delivery.actual_date = utc_today()
         if total_received >= total_ordered:
-            is_on_time = (
-                po.delivery.expected_date is None or po.delivery.actual_date <= po.delivery.expected_date
-            )
+            is_on_time = po.delivery.expected_date is None or po.delivery.actual_date <= po.delivery.expected_date
             po.delivery.status = DeliveryStatus.ON_TIME if is_on_time else DeliveryStatus.DELAYED
         else:
             po.delivery.status = DeliveryStatus.PARTIAL

@@ -28,10 +28,11 @@ export function useCreateInventoryAdjustment() {
       const { data } = await apiClient.post<InventoryTransaction>("/inventory/adjustments", input);
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["inventory-transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-    },
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["inventory-transactions"] }),
+        queryClient.invalidateQueries({ queryKey: ["products"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+      ]),
   });
 }

@@ -1,10 +1,16 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.category import Category
+    from app.models.inventory import InventoryTransaction
+    from app.models.supplier import Supplier
 
 
 class Product(Base):

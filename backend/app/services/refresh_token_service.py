@@ -1,7 +1,7 @@
 import secrets
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,7 +30,7 @@ class RotationResult:
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 async def issue_refresh_token(
@@ -108,9 +108,7 @@ async def rotate_refresh_token(db: AsyncSession, token: str) -> RotationResult:
     token is treated as stolen and its whole family is revoked.
     """
     jti, _ = _claims(token)
-    row = (
-        await db.execute(select(RefreshToken).where(RefreshToken.jti == jti).with_for_update())
-    ).scalar_one_or_none()
+    row = (await db.execute(select(RefreshToken).where(RefreshToken.jti == jti).with_for_update())).scalar_one_or_none()
     if row is None or row.revoked_at is not None:
         raise RefreshTokenError(SESSION_ENDED)
 
@@ -147,9 +145,7 @@ async def rotate_refresh_token(db: AsyncSession, token: str) -> RotationResult:
         return RotationResult(user=user, refresh_token=None)
 
     row.used_at = now
-    successor = await issue_refresh_token(
-        db, user.id, family_id=row.family_id, family_started_at=row.family_started_at
-    )
+    successor = await issue_refresh_token(db, user.id, family_id=row.family_id, family_started_at=row.family_started_at)
     await db.commit()
     return RotationResult(user=user, refresh_token=successor)
 

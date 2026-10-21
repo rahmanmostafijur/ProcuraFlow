@@ -5,16 +5,16 @@ Revises: 44dc99d2e7fe
 Create Date: 2026-10-05 03:23:17.030032
 
 """
-from typing import Sequence, Union
 
-from alembic import op
+from collections.abc import Sequence
+
 import sqlalchemy as sa
+from alembic import op
 
-
-revision: str = '1224b37f7c19'
-down_revision: Union[str, None] = '44dc99d2e7fe'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision: str = "1224b37f7c19"
+down_revision: str | None = "44dc99d2e7fe"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 BACKFILL_REASON = f"Backfilled opening balance (migration {revision})"
 
@@ -41,7 +41,7 @@ EARLIEST_ACTIVE_ADMIN = sa.text(
 
 
 def _earliest_active_admin_id(bind: sa.engine.Connection) -> int:
-    admin_id = bind.execute(EARLIEST_ACTIVE_ADMIN).scalar()
+    admin_id: int | None = bind.execute(EARLIEST_ACTIVE_ADMIN).scalar()
     if admin_id is None:
         raise RuntimeError(
             "Cannot backfill opening balances: some products have stock that is not in the inventory ledger, "

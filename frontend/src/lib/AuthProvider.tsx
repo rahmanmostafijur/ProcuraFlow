@@ -1,22 +1,15 @@
 import axios from "axios";
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 
 import { apiClient, hasSessionHint, setAccessToken, setSessionHint } from "@/api/client";
-import type { User } from "@/api/types";
+import type { AccessTokenResponse, User } from "@/api/types";
 
-interface AuthContextValue {
-  user: User | null;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  hasPermission: (code: string) => boolean;
-}
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+import { AuthContext } from "./auth-context";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Without a session hint there is nothing to restore, so the app is ready from the first render.
+  const [isLoading, setIsLoading] = useState(hasSessionHint);
 
   const fetchCurrentUser = useCallback(async () => {
     const { data } = await apiClient.get<User>("/auth/me");
@@ -24,14 +17,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!hasSessionHint()) {
-      setIsLoading(false);
-      return;
-    }
+    if (!hasSessionHint()) return;
 
     // The refresh token rides in an httpOnly cookie, so a bare POST is enough to restore the session.
     apiClient
-      .post("/auth/refresh")
+      .post<AccessTokenResponse>("/auth/refresh")
       .then(async ({ data }) => {
         setAccessToken(data.access_token);
         await fetchCurrentUser();
@@ -47,12 +37,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      const { data } = await apiClient.post("/auth/login", { email, password });
+      const { data } = await apiClient.post<AccessTokenResponse>("/auth/login", { email, password });
       setAccessToken(data.access_token);
       setSessionHint(true);
       await fetchCurrentUser();
     },
-    [fetchCurrentUser]
+    [fetchCurrentUser],
   );
 
   const logout = useCallback(() => {
@@ -65,20 +55,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasPermission = useCallback(
     (code: string) => user?.role.permissions.some((permission) => permission.code === code) ?? false,
-    [user]
+    [user],
   );
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, hasPermission }}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, hasPermission }}>{children}</AuthContext.Provider>
   );
-}
-
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return ctx;
 }

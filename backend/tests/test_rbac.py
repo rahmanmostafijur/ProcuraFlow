@@ -1,27 +1,27 @@
 from httpx import AsyncClient
 
+from app.models.product import Product
+from app.models.supplier import Supplier
+from tests.fixture_types import AuthHeaders
 
-async def test_viewer_cannot_create_supplier(client: AsyncClient, auth_headers):
+
+async def test_viewer_cannot_create_supplier(client: AsyncClient, auth_headers: AuthHeaders) -> None:
     headers = await auth_headers("viewer")
 
-    response = await client.post(
-        "/api/v1/suppliers", json={"name": "New Supplier"}, headers=headers
-    )
+    response = await client.post("/api/v1/suppliers", json={"name": "New Supplier"}, headers=headers)
 
     assert response.status_code == 403
 
 
-async def test_procurement_manager_can_create_supplier(client: AsyncClient, auth_headers):
+async def test_procurement_manager_can_create_supplier(client: AsyncClient, auth_headers: AuthHeaders) -> None:
     headers = await auth_headers("procurement_manager")
 
-    response = await client.post(
-        "/api/v1/suppliers", json={"name": "New Supplier"}, headers=headers
-    )
+    response = await client.post("/api/v1/suppliers", json={"name": "New Supplier"}, headers=headers)
 
     assert response.status_code == 201
 
 
-async def test_all_authenticated_roles_can_read_suppliers(client: AsyncClient, auth_headers):
+async def test_all_authenticated_roles_can_read_suppliers(client: AsyncClient, auth_headers: AuthHeaders) -> None:
     headers = await auth_headers("viewer")
 
     response = await client.get("/api/v1/suppliers", headers=headers)
@@ -30,8 +30,8 @@ async def test_all_authenticated_roles_can_read_suppliers(client: AsyncClient, a
 
 
 async def test_purchasing_officer_cannot_approve_purchase_order(
-    client: AsyncClient, auth_headers, supplier, product
-):
+    client: AsyncClient, auth_headers: AuthHeaders, supplier: Supplier, product: Product
+) -> None:
     officer_headers = await auth_headers("purchasing_officer")
 
     create_response = await client.post(
@@ -50,7 +50,9 @@ async def test_purchasing_officer_cannot_approve_purchase_order(
     assert response.status_code == 403
 
 
-async def test_warehouse_manager_cannot_create_purchase_order(client: AsyncClient, auth_headers, supplier):
+async def test_warehouse_manager_cannot_create_purchase_order(
+    client: AsyncClient, auth_headers: AuthHeaders, supplier: Supplier
+) -> None:
     headers = await auth_headers("warehouse_manager")
 
     response = await client.post(
@@ -60,7 +62,7 @@ async def test_warehouse_manager_cannot_create_purchase_order(client: AsyncClien
     assert response.status_code == 403
 
 
-async def test_only_admin_can_manage_users(client: AsyncClient, auth_headers):
+async def test_only_admin_can_manage_users(client: AsyncClient, auth_headers: AuthHeaders) -> None:
     procurement_headers = await auth_headers("procurement_manager")
 
     response = await client.get("/api/v1/users", headers=procurement_headers)
@@ -68,7 +70,7 @@ async def test_only_admin_can_manage_users(client: AsyncClient, auth_headers):
     assert response.status_code == 403
 
 
-async def test_unauthenticated_request_is_rejected(client: AsyncClient):
+async def test_unauthenticated_request_is_rejected(client: AsyncClient) -> None:
     response = await client.get("/api/v1/suppliers")
 
     assert response.status_code == 401

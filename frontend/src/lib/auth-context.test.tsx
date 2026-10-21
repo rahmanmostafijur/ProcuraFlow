@@ -5,7 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiClient, hasSessionHint, setSessionHint } from "@/api/client";
 import type { User } from "@/api/types";
 
-import { AuthProvider, useAuth } from "./auth-context";
+import { useAuth } from "./auth-context";
+import { AuthProvider } from "./AuthProvider";
 
 const adminUser = {
   id: 1,
@@ -29,14 +30,14 @@ function renderProvider() {
   render(
     <AuthProvider>
       <Probe />
-    </AuthProvider>
+    </AuthProvider>,
   );
 }
 
 const ok = <T,>(data: T) => Promise.resolve({ data } as AxiosResponse<T>);
 const failWith = (status?: number) =>
   Promise.reject(
-    new AxiosError("failed", undefined, undefined, undefined, status ? ({ status } as AxiosResponse) : undefined)
+    new AxiosError("failed", undefined, undefined, undefined, status ? ({ status } as AxiosResponse) : undefined),
   );
 
 describe("AuthProvider cookie session", () => {
@@ -93,7 +94,10 @@ describe("AuthProvider cookie session", () => {
     renderProvider();
     await waitFor(() => expect(screen.getByTestId("state")).toHaveTextContent("anonymous"));
 
-    await act(async () => screen.getByText("login").click());
+    await act(() => {
+      screen.getByText("login").click();
+      return Promise.resolve();
+    });
 
     await waitFor(() => expect(screen.getByTestId("state")).toHaveTextContent("admin@example.com"));
     expect(Object.fromEntries(Object.entries(localStorage))).toEqual({ procuraflow_has_session: "1" });
@@ -101,14 +105,17 @@ describe("AuthProvider cookie session", () => {
 
   it("clears the hint and asks the server to drop the cookie on logout", async () => {
     setSessionHint(true);
-    const post = vi.spyOn(apiClient, "post").mockImplementation((url: string) =>
-      url === "/auth/refresh" ? ok({ access_token: "a" }) : ok(undefined)
-    );
+    const post = vi
+      .spyOn(apiClient, "post")
+      .mockImplementation((url: string) => (url === "/auth/refresh" ? ok({ access_token: "a" }) : ok(undefined)));
     vi.spyOn(apiClient, "get").mockReturnValue(ok(adminUser));
     renderProvider();
     await waitFor(() => expect(screen.getByTestId("state")).toHaveTextContent("admin@example.com"));
 
-    await act(async () => screen.getByText("logout").click());
+    await act(() => {
+      screen.getByText("logout").click();
+      return Promise.resolve();
+    });
 
     expect(screen.getByTestId("state")).toHaveTextContent("anonymous");
     expect(hasSessionHint()).toBe(false);

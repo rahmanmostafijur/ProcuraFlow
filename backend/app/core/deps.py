@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -33,9 +33,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Db
         raise credentials_exception
 
     result = await db.execute(
-        select(User)
-        .options(selectinload(User.role).selectinload(Role.permissions))
-        .where(User.id == int(user_id))
+        select(User).options(selectinload(User.role).selectinload(Role.permissions)).where(User.id == int(user_id))
     )
     user = result.scalar_one_or_none()
     if user is None or not user.is_active:
@@ -46,7 +44,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Db
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-def require_permission(permission_code: str) -> Callable[[CurrentUser], User]:
+def require_permission(permission_code: str) -> Callable[[CurrentUser], Awaitable[User]]:
     async def _checker(current_user: CurrentUser) -> User:
         permission_codes = {p.code for p in current_user.role.permissions}
         if permission_code not in permission_codes:

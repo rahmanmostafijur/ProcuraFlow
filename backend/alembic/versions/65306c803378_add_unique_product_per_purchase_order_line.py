@@ -5,16 +5,16 @@ Revises: ebae2c6ec180
 Create Date: 2026-10-05 03:00:55.697936
 
 """
-from typing import Sequence, Union
 
-from alembic import op
+from collections.abc import Sequence
+
 import sqlalchemy as sa
+from alembic import op
 
-
-revision: str = '65306c803378'
-down_revision: Union[str, None] = 'ebae2c6ec180'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision: str = "65306c803378"
+down_revision: str | None = "ebae2c6ec180"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 CONSTRAINT_NAME = "uq_purchase_order_items_po_id_product_id"
 

@@ -17,7 +17,7 @@ function renderLogin(status: BackendStatus, elapsedMs = 0) {
   render(
     <MemoryRouter>
       <LoginPage />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 }
 

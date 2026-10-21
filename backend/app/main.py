@@ -48,7 +48,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 # Bare path for the hosting platform's health probe; /api/health and /api/ready are the
 # same-origin routes the frontend reaches through its /api proxy.
 @app.get("/health")
-async def health_check() -> dict:
+async def health_check() -> dict[str, str]:
     return {"status": "ok"}
 
 

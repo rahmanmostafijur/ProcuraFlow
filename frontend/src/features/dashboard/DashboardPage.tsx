@@ -7,15 +7,7 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { useAuth } from "@/lib/auth-context";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof Boxes;
-  label: string;
-  value: string | number;
-}) {
+function StatCard({ icon: Icon, label, value }: { icon: typeof Boxes; label: string; value: string | number }) {
   return (
     <Card className="flex items-center gap-4 p-5">
       <div className="flex h-10 w-10 items-center justify-center rounded-md bg-brand-50 text-brand-600">
@@ -45,8 +37,7 @@ function RecentActivityCard() {
           {activity.map((item) => (
             <li key={item.id} className="text-sm">
               <p className="text-slate-800">
-                <span className="font-medium">{item.user_name ?? "System"}</span>{" "}
-                {item.action.replace(/_/g, " ")}
+                <span className="font-medium">{item.user_name ?? "System"}</span> {item.action.replace(/_/g, " ")}
               </p>
               <p className="text-xs text-slate-400">{formatDateTime(item.created_at)}</p>
             </li>

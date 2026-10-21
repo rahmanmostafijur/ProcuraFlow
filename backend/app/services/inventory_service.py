@@ -63,7 +63,7 @@ async def record_opening_balance(
 ) -> InventoryTransaction:
     if quantity <= 0:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Opening balance quantity must be greater than zero.",
         )
 

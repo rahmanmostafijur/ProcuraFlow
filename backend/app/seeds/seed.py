@@ -51,8 +51,7 @@ async def seed_permissions_and_roles(db: AsyncSession) -> dict[str, Role]:
     await db.flush()
 
     existing_roles = {
-        r.name: r
-        for r in (await db.execute(select(Role).options(selectinload(Role.permissions)))).scalars().all()
+        r.name: r for r in (await db.execute(select(Role).options(selectinload(Role.permissions)))).scalars().all()
     }
     for role_name, permission_codes in ROLE_PERMISSIONS.items():
         role = existing_roles.get(role_name)
@@ -66,9 +65,7 @@ async def seed_permissions_and_roles(db: AsyncSession) -> dict[str, Role]:
 
 
 async def seed_admin_user(db: AsyncSession, roles: dict[str, Role], settings: Settings) -> User:
-    existing = (
-        await db.execute(select(User).where(User.email == settings.default_admin_email))
-    ).scalar_one_or_none()
+    existing = (await db.execute(select(User).where(User.email == settings.default_admin_email))).scalar_one_or_none()
     # An existing admin keeps its password; the env value only bootstraps the first account.
     if existing is not None:
         return existing

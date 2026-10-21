@@ -30,13 +30,7 @@ interface SupplierFormDrawerProps {
   isSubmitting: boolean;
 }
 
-export function SupplierFormDrawer({
-  isOpen,
-  onClose,
-  supplier,
-  onSubmit,
-  isSubmitting,
-}: SupplierFormDrawerProps) {
+export function SupplierFormDrawer({ isOpen, onClose, supplier, onSubmit, isSubmitting }: SupplierFormDrawerProps) {
   const {
     register,
     handleSubmit,
@@ -70,7 +64,7 @@ export function SupplierFormDrawer({
 
   return (
     <Drawer isOpen={isOpen} onClose={onClose} title={supplier ? "Edit Supplier" : "New Supplier"}>
-      <form onSubmit={submit} className="space-y-4">
+      <form onSubmit={(event) => void submit(event)} className="space-y-4">
         <div>
           <Label htmlFor="name" required>
             Name

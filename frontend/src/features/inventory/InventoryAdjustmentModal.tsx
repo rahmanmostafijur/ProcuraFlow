@@ -11,7 +11,10 @@ import { Select } from "@/components/ui/Select";
 
 const schema = z.object({
   product_id: z.string().min(1, "Select a product"),
-  quantity_delta: z.coerce.number().int().refine((val) => val !== 0, "Enter a non-zero quantity"),
+  quantity_delta: z.coerce
+    .number()
+    .int()
+    .refine((val) => val !== 0, "Enter a non-zero quantity"),
   reason: z.string().min(1, "Reason is required").max(255),
 });
 
@@ -24,12 +27,7 @@ interface InventoryAdjustmentModalProps {
   isSubmitting: boolean;
 }
 
-export function InventoryAdjustmentModal({
-  isOpen,
-  onClose,
-  onSubmit,
-  isSubmitting,
-}: InventoryAdjustmentModalProps) {
+export function InventoryAdjustmentModal({ isOpen, onClose, onSubmit, isSubmitting }: InventoryAdjustmentModalProps) {
   const { data: products } = useProducts({ page: 1, page_size: 100, is_active: true });
 
   const {
@@ -50,7 +48,7 @@ export function InventoryAdjustmentModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Adjust Stock" size="sm">
-      <form onSubmit={submit} className="space-y-4">
+      <form onSubmit={(event) => void submit(event)} className="space-y-4">
         <div>
           <Label htmlFor="product_id" required>
             Product

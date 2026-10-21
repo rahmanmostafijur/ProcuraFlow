@@ -33,8 +33,7 @@ async def list_users(
     if search:
         stmt = stmt.where(User.full_name.ilike(f"%{search}%") | User.email.ilike(f"%{search}%"))
 
-    items, total, total_pages = await paginate(db, stmt, page, page_size)
-    return PaginatedResponse(items=items, total=total, page=page, page_size=page_size, total_pages=total_pages)
+    return await paginate(db, stmt, page, page_size, UserRead)
 
 
 @router.post("", response_model=UserRead, status_code=status.HTTP_201_CREATED)
@@ -55,9 +54,7 @@ async def create_user(payload: UserCreate, db: DbSession, current_user: RequireU
     )
     db.add(user)
     await db.flush()
-    await record_audit_event(
-        db, user_id=current_user.id, action="user_created", entity_type="user", entity_id=user.id
-    )
+    await record_audit_event(db, user_id=current_user.id, action="user_created", entity_type="user", entity_id=user.id)
     await db.commit()
 
     result = await db.execute(select(User).options(*_LOAD_OPTIONS).where(User.id == user.id))
@@ -65,9 +62,7 @@ async def create_user(payload: UserCreate, db: DbSession, current_user: RequireU
 
 
 @router.patch("/{user_id}", response_model=UserRead)
-async def update_user(
-    user_id: int, payload: UserUpdate, db: DbSession, current_user: RequireUserManage
-) -> User:
+async def update_user(user_id: int, payload: UserUpdate, db: DbSession, current_user: RequireUserManage) -> User:
     result = await db.execute(select(User).options(*_LOAD_OPTIONS).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if user is None:
@@ -79,7 +74,7 @@ async def update_user(
     if password:
         user.hashed_password = hash_password(password)
         # Only the fact of the change is auditable; the password and its hash never leave the users table.
-        changes["password"] = "changed"
+        changes["password"] = "changed"  # noqa: S105 - audit marker, not a password
     for field, value in update_data.items():
         setattr(user, field, value)
 

@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import math
 from collections.abc import Callable
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,7 +15,7 @@ IP_SCOPE = "ip"
 
 
 def _utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class LoginThrottle:
@@ -57,17 +57,21 @@ class LoginThrottle:
         limit = self._max_failures[scope]
         now = self._clock()
         recent = (
-            await db.execute(
-                select(LoginFailure.failed_at)
-                .where(
-                    LoginFailure.scope == scope,
-                    LoginFailure.key_hash == self._key(scope, value),
-                    LoginFailure.failed_at > now - self._window,
+            (
+                await db.execute(
+                    select(LoginFailure.failed_at)
+                    .where(
+                        LoginFailure.scope == scope,
+                        LoginFailure.key_hash == self._key(scope, value),
+                        LoginFailure.failed_at > now - self._window,
+                    )
+                    .order_by(LoginFailure.failed_at.desc())
+                    .limit(limit)
                 )
-                .order_by(LoginFailure.failed_at.desc())
-                .limit(limit)
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         if len(recent) < limit:
             return 0
         # Blocked until the failure that tipped it over the limit leaves the window.

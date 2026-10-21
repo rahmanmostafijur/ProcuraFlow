@@ -1,7 +1,13 @@
+from typing import TYPE_CHECKING
+
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.permission import Permission
+    from app.models.user import User
 
 
 class Role(Base):
@@ -12,6 +18,4 @@ class Role(Base):
     description: Mapped[str | None] = mapped_column(String(255))
 
     users: Mapped[list["User"]] = relationship(back_populates="role")
-    permissions: Mapped[list["Permission"]] = relationship(
-        secondary="role_permissions", back_populates="roles"
-    )
+    permissions: Mapped[list["Permission"]] = relationship(secondary="role_permissions", back_populates="roles")

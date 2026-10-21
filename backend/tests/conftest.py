@@ -1,5 +1,5 @@
 import os
-from collections.abc import AsyncGenerator, Awaitable, Callable
+from collections.abc import AsyncGenerator, AsyncIterator
 
 import pytest
 import pytest_asyncio
@@ -25,6 +25,7 @@ from app.models.role import Role
 from app.models.supplier import Supplier
 from app.models.user import User
 from app.services.inventory_service import record_opening_balance
+from tests.fixture_types import AuthHeaders, MakeUser, StockMatchesLedger
 
 settings = get_settings()
 
@@ -33,7 +34,7 @@ TestSessionLocal = async_sessionmaker(bind=test_engine, expire_on_commit=False, 
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
-async def setup_database():
+async def setup_database() -> AsyncIterator[None]:
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
@@ -42,7 +43,7 @@ async def setup_database():
 
 
 @pytest_asyncio.fixture(autouse=True)
-async def clean_tables():
+async def clean_tables() -> AsyncIterator[None]:
     yield
     async with test_engine.begin() as conn:
         for table in reversed(Base.metadata.sorted_tables):
@@ -69,7 +70,7 @@ def session_factory() -> async_sessionmaker[AsyncSession]:
 
 
 @pytest.fixture
-def assert_stock_matches_ledger() -> Callable[[int], Awaitable[None]]:
+def assert_stock_matches_ledger() -> StockMatchesLedger:
     """Check the ledger invariant: a product's stock equals the sum of its inventory movements."""
 
     async def _assert(product_id: int) -> None:
@@ -111,7 +112,7 @@ async def roles(db_session: AsyncSession) -> dict[str, Role]:
 
 
 @pytest_asyncio.fixture
-async def make_user(db_session: AsyncSession, roles: dict[str, Role]) -> Callable:
+async def make_user(db_session: AsyncSession, roles: dict[str, Role]) -> MakeUser:
     async def _make_user(email: str, role_name: str, password: str = "TestPass123!") -> User:
         user = User(
             email=email,
@@ -128,13 +129,11 @@ async def make_user(db_session: AsyncSession, roles: dict[str, Role]) -> Callabl
 
 
 @pytest_asyncio.fixture
-async def auth_headers(client: AsyncClient, make_user: Callable) -> Callable:
+async def auth_headers(client: AsyncClient, make_user: MakeUser) -> AuthHeaders:
     async def _auth_headers(role_name: str, email: str | None = None) -> dict[str, str]:
         email = email or f"{role_name}@example.com"
         await make_user(email, role_name)
-        response = await client.post(
-            "/api/v1/auth/login", json={"email": email, "password": "TestPass123!"}
-        )
+        response = await client.post("/api/v1/auth/login", json={"email": email, "password": "TestPass123!"})
         token = response.json()["access_token"]
         return {"Authorization": f"Bearer {token}"}
 
@@ -151,7 +150,7 @@ async def supplier(db_session: AsyncSession) -> Supplier:
 
 
 @pytest_asyncio.fixture
-async def product(db_session: AsyncSession, supplier: Supplier, make_user: Callable) -> Product:
+async def product(db_session: AsyncSession, supplier: Supplier, make_user: MakeUser) -> Product:
     # Stock is booked through the ledger like in production, so the fixture satisfies the stock invariant.
     stock_keeper = await make_user("stock-keeper@example.com", "warehouse_manager")
     product_obj = Product(sku="TEST-001", name="Test Widget", cost=10, minimum_stock=10, supplier_id=supplier.id)

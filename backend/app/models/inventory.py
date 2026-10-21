@@ -1,12 +1,15 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String
+from sqlalchemy import DateTime, ForeignKey, Integer, String, func
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.models.enums import InventoryTransactionType
+
+if TYPE_CHECKING:
+    from app.models.product import Product
 
 
 class InventoryTransaction(Base):

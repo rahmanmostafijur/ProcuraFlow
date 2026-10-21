@@ -1,3 +1,6 @@
+from collections.abc import AsyncIterator
+from typing import NoReturn
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.exc import OperationalError
@@ -11,7 +14,7 @@ STRONG_SECRET = "x" * 48
 
 
 @pytest.mark.parametrize(
-    "raw, expected",
+    ("raw", "expected"),
     [
         ("postgresql://u:p@host/db", "postgresql+asyncpg://u:p@host/db"),
         ("postgres://u:p@host/db", "postgresql+asyncpg://u:p@host/db"),
@@ -37,7 +40,7 @@ def test_normalize_database_url_keeps_an_explicit_ssl_parameter() -> None:
 
 
 @pytest.mark.parametrize(
-    "url, expected",
+    ("url", "expected"),
     [
         ("postgresql+asyncpg://u:p@ep-cool-123-pooler.us-east-2.aws.neon.tech/db", True),
         ("postgresql+asyncpg://u:p@ep-cool-123.us-east-2.aws.neon.tech/db", False),
@@ -100,10 +103,10 @@ async def test_ready_reports_ready_when_the_database_answers(client: AsyncClient
 
 async def test_ready_reports_503_when_the_database_is_unreachable(client: AsyncClient) -> None:
     class BrokenSession:
-        async def execute(self, *args, **kwargs):
+        async def execute(self, *args: object, **kwargs: object) -> NoReturn:
             raise OperationalError("SELECT 1", {}, ConnectionRefusedError("db down"))
 
-    async def broken_db():
+    async def broken_db() -> AsyncIterator[BrokenSession]:
         yield BrokenSession()
 
     previous = app.dependency_overrides[get_db]
@@ -117,14 +120,19 @@ async def test_ready_reports_503_when_the_database_is_unreachable(client: AsyncC
     assert response.json() == {"status": "unavailable"}
 
 
-def test_migrations_use_the_database_url_unless_a_direct_migration_url_is_given(monkeypatch: pytest.MonkeyPatch):
+def test_migrations_use_the_database_url_unless_a_direct_migration_url_is_given(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("MIGRATION_DATABASE_URL", raising=False)
     monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@ep-x-pooler.neon.tech/db?sslmode=require")
 
-    assert Settings(_env_file=None).migrations_database_url == "postgresql+asyncpg://u:p@ep-x-pooler.neon.tech/db?ssl=require"
+    assert (
+        Settings(_env_file=None).migrations_database_url
+        == "postgresql+asyncpg://u:p@ep-x-pooler.neon.tech/db?ssl=require"
+    )
 
 
-def test_a_direct_migration_url_is_normalised_and_preferred(monkeypatch: pytest.MonkeyPatch):
+def test_a_direct_migration_url_is_normalised_and_preferred(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@ep-x-pooler.neon.tech/db?sslmode=require")
     monkeypatch.setenv("MIGRATION_DATABASE_URL", "postgresql://u:p@ep-x.neon.tech/db?sslmode=require")
 

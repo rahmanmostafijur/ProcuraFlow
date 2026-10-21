@@ -17,14 +17,7 @@ describe("DataTable", () => {
   });
 
   it("shows an empty state when there are no rows", () => {
-    render(
-      <DataTable
-        columns={columns}
-        rows={[]}
-        keyExtractor={(row) => row.id}
-        emptyTitle="Nothing here"
-      />
-    );
+    render(<DataTable columns={columns} rows={[]} keyExtractor={(row) => row.id} emptyTitle="Nothing here" />);
     expect(screen.getByText("Nothing here")).toBeInTheDocument();
   });
 
@@ -36,7 +29,7 @@ describe("DataTable", () => {
         rows={[{ id: 1, name: "Widget" }]}
         keyExtractor={(row) => row.id}
         onRowClick={onRowClick}
-      />
+      />,
     );
     screen.getByText("Widget").closest("tr")?.click();
     expect(onRowClick).toHaveBeenCalledWith({ id: 1, name: "Widget" });

@@ -1,9 +1,12 @@
 from httpx import AsyncClient
 
+from app.models.product import Product
+from tests.fixture_types import AuthHeaders
+
 
 async def test_inventory_adjustment_increases_stock_and_records_transaction(
-    client: AsyncClient, auth_headers, product
-):
+    client: AsyncClient, auth_headers: AuthHeaders, product: Product
+) -> None:
     headers = await auth_headers("warehouse_manager")
 
     response = await client.post(
@@ -22,8 +25,8 @@ async def test_inventory_adjustment_increases_stock_and_records_transaction(
 
 
 async def test_inventory_adjustment_rejects_negative_resulting_stock(
-    client: AsyncClient, auth_headers, product
-):
+    client: AsyncClient, auth_headers: AuthHeaders, product: Product
+) -> None:
     headers = await auth_headers("warehouse_manager")
 
     response = await client.post(
@@ -38,7 +41,7 @@ async def test_inventory_adjustment_rejects_negative_resulting_stock(
     assert product_response.json()["current_stock"] == 50  # unchanged
 
 
-async def test_viewer_cannot_adjust_inventory(client: AsyncClient, auth_headers, product):
+async def test_viewer_cannot_adjust_inventory(client: AsyncClient, auth_headers: AuthHeaders, product: Product) -> None:
     headers = await auth_headers("viewer")
 
     response = await client.post(
@@ -50,7 +53,9 @@ async def test_viewer_cannot_adjust_inventory(client: AsyncClient, auth_headers,
     assert response.status_code == 403
 
 
-async def test_adjustment_creates_auditable_transaction_history(client: AsyncClient, auth_headers, product):
+async def test_adjustment_creates_auditable_transaction_history(
+    client: AsyncClient, auth_headers: AuthHeaders, product: Product
+) -> None:
     headers = await auth_headers("admin")
     await client.post(
         "/api/v1/inventory/adjustments",
@@ -58,9 +63,7 @@ async def test_adjustment_creates_auditable_transaction_history(client: AsyncCli
         headers=headers,
     )
 
-    response = await client.get(
-        f"/api/v1/inventory/transactions?product_id={product.id}", headers=headers
-    )
+    response = await client.get(f"/api/v1/inventory/transactions?product_id={product.id}", headers=headers)
 
     assert response.status_code == 200
     items = response.json()["items"]

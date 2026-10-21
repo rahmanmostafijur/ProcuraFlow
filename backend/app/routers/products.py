@@ -48,8 +48,7 @@ async def list_products(
     sort_column = getattr(Product, sort_by)
     stmt = stmt.order_by(sort_column.desc() if sort_dir == "desc" else sort_column.asc())
 
-    items, total, total_pages = await paginate(db, stmt, page, page_size)
-    return PaginatedResponse(items=items, total=total, page=page, page_size=page_size, total_pages=total_pages)
+    return await paginate(db, stmt, page, page_size, ProductRead)
 
 
 @router.get("/{product_id}", response_model=ProductRead)

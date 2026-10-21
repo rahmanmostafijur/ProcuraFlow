@@ -11,6 +11,11 @@ export interface Role {
   permissions: Permission[];
 }
 
+export interface AccessTokenResponse {
+  access_token: string;
+  token_type: string;
+}
+
 export interface User {
   id: number;
   email: string;
@@ -54,14 +59,7 @@ export interface Product {
   updated_at: string;
 }
 
-export type POStatus =
-  | "draft"
-  | "submitted"
-  | "approved"
-  | "ordered"
-  | "partially_received"
-  | "received"
-  | "cancelled";
+export type POStatus = "draft" | "submitted" | "approved" | "ordered" | "partially_received" | "received" | "cancelled";
 
 export interface POItem {
   id: number;

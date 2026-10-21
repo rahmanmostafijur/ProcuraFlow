@@ -5,15 +5,15 @@ Revises: 65306c803378
 Create Date: 2026-10-05 03:17:57.138603
 
 """
-from typing import Sequence, Union
+
+from collections.abc import Sequence
 
 from alembic import op
 
-
-revision: str = '44dc99d2e7fe'
-down_revision: Union[str, None] = '65306c803378'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision: str = "44dc99d2e7fe"
+down_revision: str | None = "65306c803378"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
