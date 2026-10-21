@@ -69,7 +69,7 @@ export function UserFormModal({ isOpen, onClose, user, onSubmit, isSubmitting }:
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={user ? "Edit User" : "New User"} size="sm">
-      <form onSubmit={submit} className="space-y-4">
+      <form onSubmit={(event) => void submit(event)} className="space-y-4">
         <div>
           <Label htmlFor="email" required>
             Email

@@ -64,10 +64,11 @@ export function usePurchaseOrderTransition(transition: Transition) {
       const { data } = await apiClient.post<PurchaseOrder>(`/purchase-orders/${id}/${transition}`);
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-    },
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["purchase-orders"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+      ]),
   });
 }
 
@@ -78,11 +79,12 @@ export function useReceivePurchaseOrder() {
       const { data } = await apiClient.post<PurchaseOrder>(`/purchase-orders/${id}/receive`, { items });
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      queryClient.invalidateQueries({ queryKey: ["deliveries"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-    },
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["purchase-orders"] }),
+        queryClient.invalidateQueries({ queryKey: ["products"] }),
+        queryClient.invalidateQueries({ queryKey: ["deliveries"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+      ]),
   });
 }

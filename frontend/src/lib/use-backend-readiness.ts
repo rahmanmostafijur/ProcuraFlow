@@ -23,8 +23,6 @@ export function useBackendReadiness(): BackendReadiness {
   useEffect(() => {
     const controller = new AbortController();
     const startedAt = Date.now();
-    setStatus("checking");
-    setElapsedMs(0);
 
     const ticker = setInterval(() => {
       const elapsed = Date.now() - startedAt;
@@ -46,7 +44,12 @@ export function useBackendReadiness(): BackendReadiness {
     };
   }, [run]);
 
-  const retry = useCallback(() => setRun((current) => current + 1), []);
+  // Reset here, not in the effect: setting state synchronously inside an effect costs an extra render.
+  const retry = useCallback(() => {
+    setStatus("checking");
+    setElapsedMs(0);
+    setRun((current) => current + 1);
+  }, []);
 
   return { status, elapsedMs, retry };
 }

@@ -57,7 +57,7 @@ export function PurchaseOrdersPage() {
       const po = await createPO.mutateAsync(values);
       showToast("Purchase order created");
       setModalOpen(false);
-      navigate(`/purchase-orders/${po.id}`);
+      void navigate(`/purchase-orders/${po.id}`);
     } catch (error) {
       showToast(extractErrorMessage(error), "error");
     }
@@ -103,7 +103,7 @@ export function PurchaseOrdersPage() {
           isLoading={isLoading}
           emptyTitle="No purchase orders found"
           emptyDescription="Create a purchase order to get started."
-          onRowClick={(row) => navigate(`/purchase-orders/${row.id}`)}
+          onRowClick={(row) => void navigate(`/purchase-orders/${row.id}`)}
         />
         {data && (
           <Pagination

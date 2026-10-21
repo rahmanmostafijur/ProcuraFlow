@@ -101,7 +101,7 @@ export function PurchaseOrderDetailPage() {
   return (
     <div className="space-y-6">
       <button
-        onClick={() => navigate("/purchase-orders")}
+        onClick={() => void navigate("/purchase-orders")}
         className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
       >
         <ArrowLeft className="h-4 w-4" /> Back to purchase orders
@@ -215,7 +215,9 @@ export function PurchaseOrderDetailPage() {
         confirmLabel={pendingAction === "cancel" ? "Cancel Order" : "Confirm"}
         variant={pendingAction === "cancel" ? "danger" : "primary"}
         isLoading={pendingAction !== null && mutationForAction[pendingAction].isPending}
-        onConfirm={() => pendingAction && runTransition(pendingAction)}
+        onConfirm={() => {
+          if (pendingAction) void runTransition(pendingAction);
+        }}
         onCancel={() => setPendingAction(null)}
       />
 

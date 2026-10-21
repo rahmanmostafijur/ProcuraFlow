@@ -55,7 +55,7 @@ export function ReportsPage() {
           <h1 className="text-2xl font-semibold text-slate-900">Reports</h1>
           <p className="text-sm text-slate-500">Purchasing, supplier, and inventory analytics.</p>
         </div>
-        <Button variant="secondary" onClick={exportInventoryCsv} disabled={isExporting}>
+        <Button variant="secondary" onClick={() => void exportInventoryCsv()} disabled={isExporting}>
           <Download className="h-4 w-4" /> {isExporting ? "Exporting…" : "Export Inventory CSV"}
         </Button>
       </div>

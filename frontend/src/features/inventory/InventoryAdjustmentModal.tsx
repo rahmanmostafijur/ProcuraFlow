@@ -48,7 +48,7 @@ export function InventoryAdjustmentModal({ isOpen, onClose, onSubmit, isSubmitti
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Adjust Stock" size="sm">
-      <form onSubmit={submit} className="space-y-4">
+      <form onSubmit={(event) => void submit(event)} className="space-y-4">
         <div>
           <Label htmlFor="product_id" required>
             Product

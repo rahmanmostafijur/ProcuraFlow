@@ -47,7 +47,7 @@ export function LoginPage() {
     setFormError(null);
     try {
       await login(values.email, values.password);
-      navigate("/");
+      void navigate("/");
     } catch (error) {
       setFormError(extractErrorMessage(error));
     }
@@ -69,7 +69,7 @@ export function LoginPage() {
         <BackendStatusNotice status={backend.status} elapsedMs={backend.elapsedMs} onRetry={backend.retry} />
 
         <form
-          onSubmit={handleSubmit(onSubmit)}
+          onSubmit={(event) => void handleSubmit(onSubmit)(event)}
           className="space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
         >
           {formError && (
