@@ -1,9 +1,14 @@
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, ForeignKey, Integer, Numeric, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.product import Product
+    from app.models.purchase_order import PurchaseOrder
 
 
 class PurchaseOrderItem(Base):
