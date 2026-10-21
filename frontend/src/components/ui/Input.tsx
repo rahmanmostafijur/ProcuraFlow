@@ -13,7 +13,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({ className, erro
       className={cn(
         "w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500",
         error ? "border-red-400" : "border-slate-300",
-        className
+        className,
       )}
       // Most inputs here hold business records, which browsers must not autofill with personal data.
       // A caller that wants autofill (the login form) passes its own value.

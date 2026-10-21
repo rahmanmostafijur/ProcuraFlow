@@ -30,13 +30,7 @@ interface SupplierFormDrawerProps {
   isSubmitting: boolean;
 }
 
-export function SupplierFormDrawer({
-  isOpen,
-  onClose,
-  supplier,
-  onSubmit,
-  isSubmitting,
-}: SupplierFormDrawerProps) {
+export function SupplierFormDrawer({ isOpen, onClose, supplier, onSubmit, isSubmitting }: SupplierFormDrawerProps) {
   const {
     register,
     handleSubmit,

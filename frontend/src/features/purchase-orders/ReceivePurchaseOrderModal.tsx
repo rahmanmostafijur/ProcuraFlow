@@ -85,11 +85,7 @@ export function ReceivePurchaseOrderModal({
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isSubmitting || pendingItems.length === 0}
-          >
+          <Button type="button" onClick={handleSubmit} disabled={isSubmitting || pendingItems.length === 0}>
             {isSubmitting ? "Receiving…" : "Confirm Receipt"}
           </Button>
         </div>

@@ -54,14 +54,7 @@ export interface Product {
   updated_at: string;
 }
 
-export type POStatus =
-  | "draft"
-  | "submitted"
-  | "approved"
-  | "ordered"
-  | "partially_received"
-  | "received"
-  | "cancelled";
+export type POStatus = "draft" | "submitted" | "approved" | "ordered" | "partially_received" | "received" | "cancelled";
 
 export interface POItem {
   id: number;

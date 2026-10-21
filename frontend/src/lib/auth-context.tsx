@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSessionHint(true);
       await fetchCurrentUser();
     },
-    [fetchCurrentUser]
+    [fetchCurrentUser],
   );
 
   const logout = useCallback(() => {
@@ -65,13 +65,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasPermission = useCallback(
     (code: string) => user?.role.permissions.some((permission) => permission.code === code) ?? false,
-    [user]
+    [user],
   );
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, hasPermission }}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, hasPermission }}>{children}</AuthContext.Provider>
   );
 }
 

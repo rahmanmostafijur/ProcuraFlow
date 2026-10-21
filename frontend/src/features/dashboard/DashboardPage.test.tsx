@@ -54,7 +54,7 @@ function renderDashboard() {
   render(
     <QueryClientProvider client={queryClient}>
       <DashboardPage />
-    </QueryClientProvider>
+    </QueryClientProvider>,
   );
 }
 

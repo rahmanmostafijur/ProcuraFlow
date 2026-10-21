@@ -6,7 +6,10 @@ const creator = { id: 1 };
 const otherApprover = { id: 2 };
 const submittedPo = { status: "submitted" as const, creator };
 
-const grants = (...codes: string[]) => (code: string) => codes.includes(code);
+const grants =
+  (...codes: string[]) =>
+  (code: string) =>
+    codes.includes(code);
 
 describe("canApprovePurchaseOrder", () => {
   it("hides approval from the user who created the purchase order", () => {

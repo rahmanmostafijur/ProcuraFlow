@@ -3,11 +3,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { extractErrorMessage } from "@/api/client";
-import {
-  usePurchaseOrder,
-  usePurchaseOrderTransition,
-  useReceivePurchaseOrder,
-} from "@/api/purchaseOrders";
+import { usePurchaseOrder, usePurchaseOrderTransition, useReceivePurchaseOrder } from "@/api/purchaseOrders";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -83,7 +79,12 @@ export function PurchaseOrderDetailPage() {
   const canTransition = hasPermission("po:transition");
   const canReceive = hasPermission("inventory:write");
 
-  const actions: { label: string; action: Exclude<PendingAction, null>; visible: boolean; variant?: "primary" | "danger" }[] = [
+  const actions: {
+    label: string;
+    action: Exclude<PendingAction, null>;
+    visible: boolean;
+    variant?: "primary" | "danger";
+  }[] = [
     { label: "Submit for Approval", action: "submit", visible: po.status === "draft" && canCreate },
     { label: "Approve", action: "approve", visible: canApprove },
     { label: "Mark as Ordered", action: "order", visible: po.status === "approved" && canTransition },
@@ -151,9 +152,7 @@ export function PurchaseOrderDetailPage() {
                   <td className="py-2">{item.quantity}</td>
                   <td className="py-2">{item.received_quantity}</td>
                   <td className="py-2">{formatCurrency(item.unit_price)}</td>
-                  <td className="py-2 text-right">
-                    {formatCurrency(Number(item.unit_price) * item.quantity)}
-                  </td>
+                  <td className="py-2 text-right">{formatCurrency(Number(item.unit_price) * item.quantity)}</td>
                 </tr>
               ))}
             </tbody>
@@ -162,9 +161,7 @@ export function PurchaseOrderDetailPage() {
                 <td colSpan={4} className="pt-3 text-right text-sm font-medium text-slate-600">
                   Total
                 </td>
-                <td className="pt-3 text-right text-sm font-semibold text-slate-900">
-                  {formatCurrency(po.total)}
-                </td>
+                <td className="pt-3 text-right text-sm font-semibold text-slate-900">{formatCurrency(po.total)}</td>
               </tr>
             </tfoot>
           </table>

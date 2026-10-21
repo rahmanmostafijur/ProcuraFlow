@@ -40,7 +40,7 @@ describe("purchaseOrderFormSchema", () => {
 
   it("uses the same wording as the API", () => {
     expect(duplicateProductMessage("12")).toBe(
-      "Each product can appear only once per purchase order (product 12 is repeated). Combine the quantities into one line."
+      "Each product can appear only once per purchase order (product 12 is repeated). Combine the quantities into one line.",
     );
   });
 });

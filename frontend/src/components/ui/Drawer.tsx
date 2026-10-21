@@ -19,7 +19,10 @@ export function Drawer({ isOpen, onClose, title, children }: DrawerProps) {
   }, [isOpen, onClose]);
 
   return (
-    <div className={isOpen ? "pointer-events-auto fixed inset-0 z-50" : "pointer-events-none fixed inset-0 z-50"} aria-hidden={!isOpen}>
+    <div
+      className={isOpen ? "pointer-events-auto fixed inset-0 z-50" : "pointer-events-none fixed inset-0 z-50"}
+      aria-hidden={!isOpen}
+    >
       <div
         className={`absolute inset-0 bg-slate-900/40 transition-opacity ${isOpen ? "opacity-100" : "opacity-0"}`}
         onClick={onClose}

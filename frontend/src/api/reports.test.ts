@@ -29,9 +29,7 @@ describe("downloadInventoryStatusCsv", () => {
 
   it("saves the response as inventory-status.csv and releases the object URL", async () => {
     vi.spyOn(apiClient, "get").mockResolvedValue({ data: new Blob(["sku\n"]) });
-    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
-      this: HTMLAnchorElement
-    ) {
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
       expect(this.download).toBe("inventory-status.csv");
       expect(this.href).toContain("blob:csv-url");
     });

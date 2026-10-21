@@ -35,7 +35,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={toast.id}
             className={cn(
               "flex items-center gap-2 rounded-md px-4 py-3 text-sm shadow-lg",
-              toast.type === "success" ? "bg-slate-900 text-white" : "bg-red-600 text-white"
+              toast.type === "success" ? "bg-slate-900 text-white" : "bg-red-600 text-white",
             )}
           >
             {toast.type === "success" ? (

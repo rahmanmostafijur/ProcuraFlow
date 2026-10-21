@@ -61,7 +61,10 @@ apiClient.interceptors.response.use(
     // Auth endpoints answer 401 for their own reasons (wrong password, no session); refreshing
     // and bouncing to the login page there would hide the real error.
     const canRetry =
-      error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint(originalRequest.url);
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !isAuthEndpoint(originalRequest.url);
     if (canRetry) {
       originalRequest._retry = true;
       try {
@@ -81,7 +84,7 @@ apiClient.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export function extractErrorMessage(error: unknown): string {
