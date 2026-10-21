@@ -1,0 +1,8 @@
+dist
+coverage
+node_modules
+package-lock.json
+*.tsbuildinfo
+# Emitted by `tsc -b` from vite.config.ts.
+vite.config.js
+vite.config.d.ts
