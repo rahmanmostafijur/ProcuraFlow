@@ -63,9 +63,7 @@ async def test_create_product_rejects_current_stock(client: AsyncClient, auth_he
     assert await db_session.scalar(select(func.count()).select_from(Product)) == 0
 
 
-async def test_created_product_starts_with_zero_stock(
-    client: AsyncClient, auth_headers, assert_stock_matches_ledger
-):
+async def test_created_product_starts_with_zero_stock(client: AsyncClient, auth_headers, assert_stock_matches_ledger):
     headers = await auth_headers("procurement_manager")
 
     response = await client.post(

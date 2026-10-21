@@ -41,9 +41,9 @@ async def _present(client: AsyncClient, token: str):
 async def _rows(db_session: AsyncSession):
     db_session.expire_all()
     result = await db_session.execute(
-        select(
-            RefreshToken.jti, RefreshToken.family_id, RefreshToken.used_at, RefreshToken.revoked_at
-        ).order_by(RefreshToken.id)
+        select(RefreshToken.jti, RefreshToken.family_id, RefreshToken.used_at, RefreshToken.revoked_at).order_by(
+            RefreshToken.id
+        )
     )
     return result.all()
 
@@ -70,9 +70,7 @@ async def test_login_records_an_unused_token_row_matching_the_issued_token(
     assert row.used_at is None and row.revoked_at is None
 
 
-async def test_refresh_rotates_the_token_within_the_same_family(
-    client: AsyncClient, db_session: AsyncSession, user
-):
+async def test_refresh_rotates_the_token_within_the_same_family(client: AsyncClient, db_session: AsyncSession, user):
     first = await _login(client)
 
     response = await _present(client, first)
@@ -226,9 +224,7 @@ async def test_logging_out_with_an_older_token_still_ends_the_whole_session(clie
     assert (await _refresh_with(successor)).status_code == 401
 
 
-async def test_reuse_in_one_login_leaves_the_users_other_devices_signed_in(
-    client: AsyncClient, user, no_grace
-):
+async def test_reuse_in_one_login_leaves_the_users_other_devices_signed_in(client: AsyncClient, user, no_grace):
     device_a = await _login(client)
     async with _new_client() as other:
         device_b = await _login(other)
@@ -342,7 +338,9 @@ async def test_a_session_past_the_absolute_limit_is_rejected_and_revoked(
     assert all(row.revoked_at is not None for row in await _rows(db_session))
 
 
-async def test_a_session_within_the_absolute_limit_keeps_refreshing(client: AsyncClient, db_session: AsyncSession, user):
+async def test_a_session_within_the_absolute_limit_keeps_refreshing(
+    client: AsyncClient, db_session: AsyncSession, user
+):
     token = await _login(client)
     await _age_session(db_session, days=get_settings().session_absolute_days - 1)
 

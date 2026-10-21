@@ -1,9 +1,7 @@
 from httpx import AsyncClient
 
 
-async def test_inventory_adjustment_increases_stock_and_records_transaction(
-    client: AsyncClient, auth_headers, product
-):
+async def test_inventory_adjustment_increases_stock_and_records_transaction(client: AsyncClient, auth_headers, product):
     headers = await auth_headers("warehouse_manager")
 
     response = await client.post(
@@ -21,9 +19,7 @@ async def test_inventory_adjustment_increases_stock_and_records_transaction(
     assert product_response.json()["current_stock"] == 75
 
 
-async def test_inventory_adjustment_rejects_negative_resulting_stock(
-    client: AsyncClient, auth_headers, product
-):
+async def test_inventory_adjustment_rejects_negative_resulting_stock(client: AsyncClient, auth_headers, product):
     headers = await auth_headers("warehouse_manager")
 
     response = await client.post(
@@ -58,9 +54,7 @@ async def test_adjustment_creates_auditable_transaction_history(client: AsyncCli
         headers=headers,
     )
 
-    response = await client.get(
-        f"/api/v1/inventory/transactions?product_id={product.id}", headers=headers
-    )
+    response = await client.get(f"/api/v1/inventory/transactions?product_id={product.id}", headers=headers)
 
     assert response.status_code == 200
     items = response.json()["items"]

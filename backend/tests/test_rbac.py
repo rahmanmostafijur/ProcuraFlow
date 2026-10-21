@@ -4,9 +4,7 @@ from httpx import AsyncClient
 async def test_viewer_cannot_create_supplier(client: AsyncClient, auth_headers):
     headers = await auth_headers("viewer")
 
-    response = await client.post(
-        "/api/v1/suppliers", json={"name": "New Supplier"}, headers=headers
-    )
+    response = await client.post("/api/v1/suppliers", json={"name": "New Supplier"}, headers=headers)
 
     assert response.status_code == 403
 
@@ -14,9 +12,7 @@ async def test_viewer_cannot_create_supplier(client: AsyncClient, auth_headers):
 async def test_procurement_manager_can_create_supplier(client: AsyncClient, auth_headers):
     headers = await auth_headers("procurement_manager")
 
-    response = await client.post(
-        "/api/v1/suppliers", json={"name": "New Supplier"}, headers=headers
-    )
+    response = await client.post("/api/v1/suppliers", json={"name": "New Supplier"}, headers=headers)
 
     assert response.status_code == 201
 
@@ -29,9 +25,7 @@ async def test_all_authenticated_roles_can_read_suppliers(client: AsyncClient, a
     assert response.status_code == 200
 
 
-async def test_purchasing_officer_cannot_approve_purchase_order(
-    client: AsyncClient, auth_headers, supplier, product
-):
+async def test_purchasing_officer_cannot_approve_purchase_order(client: AsyncClient, auth_headers, supplier, product):
     officer_headers = await auth_headers("purchasing_officer")
 
     create_response = await client.post(

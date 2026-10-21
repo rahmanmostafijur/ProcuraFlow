@@ -33,9 +33,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Db
         raise credentials_exception
 
     result = await db.execute(
-        select(User)
-        .options(selectinload(User.role).selectinload(Role.permissions))
-        .where(User.id == int(user_id))
+        select(User).options(selectinload(User.role).selectinload(Role.permissions)).where(User.id == int(user_id))
     )
     user = result.scalar_one_or_none()
     if user is None or not user.is_active:

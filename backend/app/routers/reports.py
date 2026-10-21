@@ -65,9 +65,7 @@ async def delayed_deliveries(db: DbSession, _: CurrentUser) -> list[dict]:
             "supplier_name": d.purchase_order.supplier.name,
             "expected_date": d.expected_date,
             "actual_date": d.actual_date,
-            "variance_days": (
-                (d.actual_date - d.expected_date).days if d.expected_date and d.actual_date else None
-            ),
+            "variance_days": ((d.actual_date - d.expected_date).days if d.expected_date and d.actual_date else None),
         }
         for d in deliveries
     ]
@@ -88,8 +86,15 @@ async def inventory_status_csv(db: DbSession, _: CurrentUser) -> Response:
     writer.writerow(["SKU", "Name", "Current Stock", "Minimum Stock", "Cost", "Stock Value", "Low Stock"])
     for p in products:
         writer.writerow(
-            [neutralize_formula(p.sku), neutralize_formula(p.name), p.current_stock, p.minimum_stock, p.cost,
-             p.current_stock * p.cost, p.current_stock <= p.minimum_stock]
+            [
+                neutralize_formula(p.sku),
+                neutralize_formula(p.name),
+                p.current_stock,
+                p.minimum_stock,
+                p.cost,
+                p.current_stock * p.cost,
+                p.current_stock <= p.minimum_stock,
+            ]
         )
 
     return Response(

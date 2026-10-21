@@ -129,9 +129,7 @@ async def test_backfill_reconciles_stock_with_the_ledger(
     assert await _ledger(session_factory) == ledger_after
 
 
-async def test_backfill_downgrade_removes_only_the_backfilled_rows(
-    session_factory, make_user: Callable, legacy_stock
-):
+async def test_backfill_downgrade_removes_only_the_backfilled_rows(session_factory, make_user: Callable, legacy_stock):
     await legacy_stock()
     await make_user("first-admin@example.com", "admin")
     ledger_before = await _ledger(session_factory)

@@ -55,9 +55,7 @@ async def test_recent_activity_accepts_the_maximum_limit(
     client: AsyncClient, db_session: AsyncSession, auth_headers: Callable
 ) -> None:
     headers = await auth_headers("procurement_manager")
-    db_session.add_all(
-        AuditLog(action="supplier_created", entity_type="supplier", entity_id=n) for n in range(51)
-    )
+    db_session.add_all(AuditLog(action="supplier_created", entity_type="supplier", entity_id=n) for n in range(51))
     await db_session.commit()
 
     response = await client.get(RECENT_ACTIVITY_URL, headers=headers, params={"limit": 50})

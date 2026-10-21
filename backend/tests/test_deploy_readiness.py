@@ -121,7 +121,10 @@ def test_migrations_use_the_database_url_unless_a_direct_migration_url_is_given(
     monkeypatch.delenv("MIGRATION_DATABASE_URL", raising=False)
     monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@ep-x-pooler.neon.tech/db?sslmode=require")
 
-    assert Settings(_env_file=None).migrations_database_url == "postgresql+asyncpg://u:p@ep-x-pooler.neon.tech/db?ssl=require"
+    assert (
+        Settings(_env_file=None).migrations_database_url
+        == "postgresql+asyncpg://u:p@ep-x-pooler.neon.tech/db?ssl=require"
+    )
 
 
 def test_a_direct_migration_url_is_normalised_and_preferred(monkeypatch: pytest.MonkeyPatch):

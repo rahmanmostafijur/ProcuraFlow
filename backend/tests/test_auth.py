@@ -19,9 +19,7 @@ async def test_login_succeeds_with_correct_credentials(client: AsyncClient, make
     assert "access_token" in response.json()
 
 
-async def test_login_sets_the_refresh_token_as_an_httponly_cookie_not_in_the_body(
-    client: AsyncClient, make_user
-):
+async def test_login_sets_the_refresh_token_as_an_httponly_cookie_not_in_the_body(client: AsyncClient, make_user):
     response = await _login(client, make_user)
 
     assert "refresh_token" not in response.json()
@@ -44,9 +42,7 @@ async def test_login_rejects_wrong_password(client: AsyncClient, make_user):
 
 
 async def test_login_rejects_unknown_email(client: AsyncClient, roles):
-    response = await client.post(
-        "/api/v1/auth/login", json={"email": "nobody@example.com", "password": "whatever"}
-    )
+    response = await client.post("/api/v1/auth/login", json={"email": "nobody@example.com", "password": "whatever"})
 
     assert response.status_code == 401
 

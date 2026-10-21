@@ -25,7 +25,7 @@ def _rows(response) -> list[list[str]]:
         ("+SUM(A1:A2)", "'+SUM(A1:A2)"),
         ("-2+3", "'-2+3"),
         ("@cmd", "'@cmd"),
-        ('=HYPERLINK("http://evil.example","x")', "'=HYPERLINK(\"http://evil.example\",\"x\")"),
+        ('=HYPERLINK("http://evil.example","x")', '\'=HYPERLINK("http://evil.example","x")'),
         ("\tTabbed", "'\tTabbed"),
         ("\rReturn", "'\rReturn"),
         ("", ""),
@@ -41,9 +41,7 @@ async def test_inventory_csv_requires_authentication(client: AsyncClient):
     assert response.status_code == 401
 
 
-async def test_inventory_csv_lists_products_for_a_signed_in_user(
-    client: AsyncClient, auth_headers, product: Product
-):
+async def test_inventory_csv_lists_products_for_a_signed_in_user(client: AsyncClient, auth_headers, product: Product):
     headers = await auth_headers("viewer")
 
     response = await client.get(CSV_URL, headers=headers)

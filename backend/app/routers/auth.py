@@ -56,9 +56,7 @@ async def login(
         raise _too_many_attempts(retry_after)
 
     result = await db.execute(
-        select(User)
-        .options(selectinload(User.role).selectinload(Role.permissions))
-        .where(User.email == payload.email)
+        select(User).options(selectinload(User.role).selectinload(Role.permissions)).where(User.email == payload.email)
     )
     user = result.scalar_one_or_none()
 
@@ -84,7 +82,9 @@ async def login(
 
 
 @router.post("/refresh", response_model=AccessTokenResponse)
-async def refresh_access_token(response: Response, db: DbSession, refresh_token: RefreshCookie = None) -> AccessTokenResponse:
+async def refresh_access_token(
+    response: Response, db: DbSession, refresh_token: RefreshCookie = None
+) -> AccessTokenResponse:
     if refresh_token is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not signed in")
     try:

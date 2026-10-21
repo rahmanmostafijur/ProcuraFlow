@@ -55,9 +55,7 @@ async def create_user(payload: UserCreate, db: DbSession, current_user: RequireU
     )
     db.add(user)
     await db.flush()
-    await record_audit_event(
-        db, user_id=current_user.id, action="user_created", entity_type="user", entity_id=user.id
-    )
+    await record_audit_event(db, user_id=current_user.id, action="user_created", entity_type="user", entity_id=user.id)
     await db.commit()
 
     result = await db.execute(select(User).options(*_LOAD_OPTIONS).where(User.id == user.id))
@@ -65,9 +63,7 @@ async def create_user(payload: UserCreate, db: DbSession, current_user: RequireU
 
 
 @router.patch("/{user_id}", response_model=UserRead)
-async def update_user(
-    user_id: int, payload: UserUpdate, db: DbSession, current_user: RequireUserManage
-) -> User:
+async def update_user(user_id: int, payload: UserUpdate, db: DbSession, current_user: RequireUserManage) -> User:
     result = await db.execute(select(User).options(*_LOAD_OPTIONS).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if user is None:

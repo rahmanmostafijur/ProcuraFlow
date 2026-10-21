@@ -97,8 +97,7 @@ async def get_monthly_trends(
     )
     result = await db.execute(stmt)
     return [
-        MonthlyTrendPoint(month=row.month, total_spend=row.total_spend, order_count=row.order_count)
-        for row in result
+        MonthlyTrendPoint(month=row.month, total_spend=row.total_spend, order_count=row.order_count) for row in result
     ]
 
 
@@ -106,9 +105,7 @@ async def get_monthly_trends(
 async def get_recent_activity(
     db: DbSession, _: RequireAuditRead, limit: int = Query(10, ge=1, le=50)
 ) -> list[RecentActivityItem]:
-    stmt = (
-        select(AuditLog).options(selectinload(AuditLog.user)).order_by(AuditLog.created_at.desc()).limit(limit)
-    )
+    stmt = select(AuditLog).options(selectinload(AuditLog.user)).order_by(AuditLog.created_at.desc()).limit(limit)
     result = await db.execute(stmt)
     logs = result.scalars().all()
     return [

@@ -12,6 +12,4 @@ class Role(Base):
     description: Mapped[str | None] = mapped_column(String(255))
 
     users: Mapped[list["User"]] = relationship(back_populates="role")
-    permissions: Mapped[list["Permission"]] = relationship(
-        secondary="role_permissions", back_populates="roles"
-    )
+    permissions: Mapped[list["Permission"]] = relationship(secondary="role_permissions", back_populates="roles")

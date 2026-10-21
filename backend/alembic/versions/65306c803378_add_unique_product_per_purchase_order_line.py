@@ -5,14 +5,15 @@ Revises: ebae2c6ec180
 Create Date: 2026-10-05 03:00:55.697936
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
 
 
-revision: str = '65306c803378'
-down_revision: Union[str, None] = 'ebae2c6ec180'
+revision: str = "65306c803378"
+down_revision: Union[str, None] = "ebae2c6ec180"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

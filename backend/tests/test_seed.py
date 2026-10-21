@@ -70,9 +70,7 @@ async def test_seed_refuses_to_create_admin_with_default_password_in_production(
     assert await find_admin(db_session) is None
 
 
-async def test_seed_creates_admin_with_strong_password_in_production(
-    db_session: AsyncSession, roles: dict[str, Role]
-):
+async def test_seed_creates_admin_with_strong_password_in_production(db_session: AsyncSession, roles: dict[str, Role]):
     await seed_admin_user(db_session, roles, make_settings("production", STRONG_PASSWORD))
     await db_session.flush()
 

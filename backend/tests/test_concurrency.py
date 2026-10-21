@@ -138,9 +138,7 @@ async def test_concurrent_receipts_of_the_full_quantity_only_book_stock_once(
     assert ledger_total == 50 + ORDERED_QUANTITY
 
 
-async def test_concurrent_receipt_sees_the_quantity_already_received(
-    session_factory, db_session, make_user, product
-):
+async def test_concurrent_receipt_sees_the_quantity_already_received(session_factory, db_session, make_user, product):
     user = await make_user("receiver@example.com", "warehouse_manager")
     po = await _create_po(db_session, user, product, POStatus.ORDERED)
 
@@ -226,10 +224,7 @@ async def test_parallel_receive_requests_accept_exactly_one(
 
     responses = await asyncio.wait_for(
         asyncio.gather(
-            *(
-                client.post(f"/api/v1/purchase-orders/{po.id}/receive", json=payload, headers=headers)
-                for _ in range(2)
-            )
+            *(client.post(f"/api/v1/purchase-orders/{po.id}/receive", json=payload, headers=headers) for _ in range(2))
         ),
         timeout=OPERATION_TIMEOUT_SECONDS,
     )
@@ -240,9 +235,7 @@ async def test_parallel_receive_requests_accept_exactly_one(
     assert ledger_total == 50 + ORDERED_QUANTITY
 
 
-async def test_parallel_purchase_order_creations_get_unique_numbers(
-    client: AsyncClient, auth_headers, product
-):
+async def test_parallel_purchase_order_creations_get_unique_numbers(client: AsyncClient, auth_headers, product):
     headers = await auth_headers("procurement_manager")
     payload = {
         "supplier_id": product.supplier_id,
@@ -251,10 +244,7 @@ async def test_parallel_purchase_order_creations_get_unique_numbers(
 
     responses = await asyncio.wait_for(
         asyncio.gather(
-            *(
-                client.post("/api/v1/purchase-orders", json=payload, headers=headers)
-                for _ in range(PARALLEL_CREATIONS)
-            )
+            *(client.post("/api/v1/purchase-orders", json=payload, headers=headers) for _ in range(PARALLEL_CREATIONS))
         ),
         timeout=OPERATION_TIMEOUT_SECONDS,
     )

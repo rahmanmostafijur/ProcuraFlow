@@ -39,9 +39,7 @@ async def _create_draft_po(client: AsyncClient, headers: dict, supplier, product
     return response.json()
 
 
-async def test_creating_a_category_records_an_audit_event(
-    client: AsyncClient, auth_headers, db_session: AsyncSession
-):
+async def test_creating_a_category_records_an_audit_event(client: AsyncClient, auth_headers, db_session: AsyncSession):
     headers = await auth_headers("admin")
     me = (await client.get("/api/v1/auth/me", headers=headers)).json()
 

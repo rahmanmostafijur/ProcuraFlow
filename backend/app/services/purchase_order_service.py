@@ -147,9 +147,7 @@ async def receive_purchase_order_items(
         po.delivery.received_quantity = total_received
         po.delivery.actual_date = date.today()
         if total_received >= total_ordered:
-            is_on_time = (
-                po.delivery.expected_date is None or po.delivery.actual_date <= po.delivery.expected_date
-            )
+            is_on_time = po.delivery.expected_date is None or po.delivery.actual_date <= po.delivery.expected_date
             po.delivery.status = DeliveryStatus.ON_TIME if is_on_time else DeliveryStatus.DELAYED
         else:
             po.delivery.status = DeliveryStatus.PARTIAL

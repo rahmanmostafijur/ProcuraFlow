@@ -46,9 +46,7 @@ async def _admin_patch(client: AsyncClient, admin_headers, user_id: int, body: d
     return response
 
 
-async def test_changing_a_password_revokes_every_session_of_that_user(
-    client: AsyncClient, admin_headers, target
-):
+async def test_changing_a_password_revokes_every_session_of_that_user(client: AsyncClient, admin_headers, target):
     laptop = await _sign_in_on_a_new_device(target.email)
     phone = await _sign_in_on_a_new_device(target.email)
 
@@ -78,9 +76,7 @@ async def test_other_users_keep_their_sessions(client: AsyncClient, admin_header
     assert await _refresh_status(bystander_session) == 200
 
 
-async def test_updates_that_touch_neither_password_nor_status_keep_sessions(
-    client: AsyncClient, admin_headers, target
-):
+async def test_updates_that_touch_neither_password_nor_status_keep_sessions(client: AsyncClient, admin_headers, target):
     session = await _sign_in_on_a_new_device(target.email)
 
     await _admin_patch(client, admin_headers, target.id, {"full_name": "Renamed Person"})
@@ -112,7 +108,9 @@ async def test_revocation_is_audited_separately_and_leaves_the_update_event_inta
     db_session.expire_all()
     events = (
         await db_session.execute(
-            select(AuditLog.action, AuditLog.extra_data).where(AuditLog.entity_id == target_id, AuditLog.entity_type == "user")
+            select(AuditLog.action, AuditLog.extra_data).where(
+                AuditLog.entity_id == target_id, AuditLog.entity_type == "user"
+            )
         )
     ).all()
     by_action = {event.action: event.extra_data for event in events}

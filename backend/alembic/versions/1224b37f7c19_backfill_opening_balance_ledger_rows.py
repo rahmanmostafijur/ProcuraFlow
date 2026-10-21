@@ -5,14 +5,15 @@ Revises: 44dc99d2e7fe
 Create Date: 2026-10-05 03:23:17.030032
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
 
 
-revision: str = '1224b37f7c19'
-down_revision: Union[str, None] = '44dc99d2e7fe'
+revision: str = "1224b37f7c19"
+down_revision: Union[str, None] = "44dc99d2e7fe"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -127,9 +127,7 @@ async def test_a_spoofed_chain_never_creates_an_address_key_or_an_address_block(
     assert ip_rows == 0
 
 
-async def test_forwarded_headers_cannot_dodge_the_address_limit_when_no_proxy_is_trusted(
-    client: AsyncClient, roles
-):
+async def test_forwarded_headers_cannot_dodge_the_address_limit_when_no_proxy_is_trusted(client: AsyncClient, roles):
     for index in range(20):
         assert (await _wrong_login(client, f"ghost{index}@example.com", f"7.7.7.{index}")).status_code == 401
 

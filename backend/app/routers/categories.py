@@ -21,9 +21,7 @@ async def list_categories(db: DbSession, _: CurrentUser) -> list[Category]:
 
 
 @router.post("", response_model=CategoryRead, status_code=status.HTTP_201_CREATED)
-async def create_category(
-    payload: CategoryCreate, db: DbSession, current_user: RequireProductWrite
-) -> Category:
+async def create_category(payload: CategoryCreate, db: DbSession, current_user: RequireProductWrite) -> Category:
     category = Category(name=payload.name)
     db.add(category)
     await db.flush()

@@ -7,9 +7,7 @@ from sqlalchemy.sql import Select
 T = TypeVar("T")
 
 
-async def paginate(
-    db: AsyncSession, stmt: Select, page: int, page_size: int
-) -> tuple[list, int, int]:
+async def paginate(db: AsyncSession, stmt: Select, page: int, page_size: int) -> tuple[list, int, int]:
     count_stmt = select(func.count()).select_from(stmt.order_by(None).subquery())
     total = (await db.execute(count_stmt)).scalar_one()
 

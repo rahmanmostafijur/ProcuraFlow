@@ -132,9 +132,7 @@ async def auth_headers(client: AsyncClient, make_user: Callable) -> Callable:
     async def _auth_headers(role_name: str, email: str | None = None) -> dict[str, str]:
         email = email or f"{role_name}@example.com"
         await make_user(email, role_name)
-        response = await client.post(
-            "/api/v1/auth/login", json={"email": email, "password": "TestPass123!"}
-        )
+        response = await client.post("/api/v1/auth/login", json={"email": email, "password": "TestPass123!"})
         token = response.json()["access_token"]
         return {"Authorization": f"Bearer {token}"}
 

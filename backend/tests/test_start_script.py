@@ -19,7 +19,11 @@ def _run_start(tmp_path: Path, **env: str) -> list[str]:
         stub.write_text(f'#!/bin/sh\necho "{name} $*" >> "$STUB_LOG"\n', newline="\n")
         stub.chmod(0o755)
 
-    base = {key: value for key, value in os.environ.items() if key not in {"PORT", "SEED_ON_START", "RUN_MIGRATIONS_ON_START"}}
+    base = {
+        key: value
+        for key, value in os.environ.items()
+        if key not in {"PORT", "SEED_ON_START", "RUN_MIGRATIONS_ON_START"}
+    }
     result = subprocess.run(
         ["sh", "start.sh"],
         cwd=BACKEND_DIR,
