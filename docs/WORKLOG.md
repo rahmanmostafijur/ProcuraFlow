@@ -28,7 +28,7 @@ Status values: `todo`, `in progress`, `done`, `blocked (owner action)`.
 
 | # | Task group | Status | Change record |
 |---|---|---|---|
-| 1 | CI on GitHub Actions: backend (Postgres 16, migrations, pytest), frontend (typecheck, lint, unit tests, build), e2e, dependency audit; README badges | todo | |
+| 1 | CI on GitHub Actions: backend (Postgres 16, migrations, pytest), frontend (typecheck, lint, unit tests, build), e2e, dependency audit; README badges | done (01-ci, awaiting merge) | [01-ci](changes/01-ci.md) |
 | 2 | Static checks: ruff (lint + format), mypy (strict where reachable), ESLint (typescript-eslint, react-hooks, jsx-a11y), Prettier; findings fixed; wired into CI | todo | |
 | 3 | Password hashing: passlib replaced by pwdlib (Argon2id), bcrypt hashes verified and rehashed on login; tests | todo | |
 | 4 | Repo hygiene: build artifacts removed and ignored, outdated docs fixed, local paths removed, pytest 9 with matching pytest-asyncio | todo | |
