@@ -1,7 +1,7 @@
 import enum
 
 
-class POStatus(str, enum.Enum):
+class POStatus(enum.StrEnum):
     DRAFT = "draft"
     SUBMITTED = "submitted"
     APPROVED = "approved"
@@ -20,14 +20,14 @@ COMMITTED_PO_STATUSES = (
 )
 
 
-class DeliveryStatus(str, enum.Enum):
+class DeliveryStatus(enum.StrEnum):
     PENDING = "pending"
     ON_TIME = "on_time"
     DELAYED = "delayed"
     PARTIAL = "partial"
 
 
-class InventoryTransactionType(str, enum.Enum):
+class InventoryTransactionType(enum.StrEnum):
     RECEIVE = "receive"
     ADJUSTMENT = "adjustment"
     PO_RECEIPT = "po_receipt"
