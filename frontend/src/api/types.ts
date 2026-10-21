@@ -11,6 +11,11 @@ export interface Role {
   permissions: Permission[];
 }
 
+export interface AccessTokenResponse {
+  access_token: string;
+  token_type: string;
+}
+
 export interface User {
   id: number;
   email: string;

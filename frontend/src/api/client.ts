@@ -1,5 +1,7 @@
 import axios, { type InternalAxiosRequestConfig } from "axios";
 
+import type { AccessTokenResponse } from "@/api/types";
+
 // Production builds talk to the same origin (the host proxies /api to the backend), so the
 // httpOnly-cookie and CORS story stays simple. Local dev falls back to the standalone API port.
 const DEFAULT_API_BASE_URL = import.meta.env.PROD ? "/api/v1" : "http://localhost:8000/api/v1";
@@ -45,9 +47,11 @@ interface RetryableConfig extends InternalAxiosRequestConfig {
 let refreshPromise: Promise<string> | null = null;
 
 async function refreshAccessToken(): Promise<string> {
-  const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, undefined, { withCredentials: true });
+  const { data } = await axios.post<AccessTokenResponse>(`${API_BASE_URL}/auth/refresh`, undefined, {
+    withCredentials: true,
+  });
   setAccessToken(data.access_token);
-  return data.access_token as string;
+  return data.access_token;
 }
 
 function isAuthEndpoint(url: string | undefined): boolean {
@@ -56,7 +60,8 @@ function isAuthEndpoint(url: string | undefined): boolean {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  async (error) => {
+  async (error: unknown) => {
+    if (!axios.isAxiosError(error)) throw error;
     const originalRequest = error.config as RetryableConfig | undefined;
     // Auth endpoints answer 401 for their own reasons (wrong password, no session); refreshing
     // and bouncing to the login page there would hide the real error.
@@ -80,15 +85,15 @@ apiClient.interceptors.response.use(
         if (window.location.pathname !== LOGIN_PATH) {
           window.location.href = LOGIN_PATH;
         }
-        return Promise.reject(refreshError);
+        throw refreshError;
       }
     }
-    return Promise.reject(error);
+    throw error;
   },
 );
 
 export function extractErrorMessage(error: unknown): string {
-  if (axios.isAxiosError(error)) {
+  if (axios.isAxiosError<{ detail?: unknown }>(error)) {
     const detail = error.response?.data?.detail;
     if (typeof detail === "string") return detail;
   }
