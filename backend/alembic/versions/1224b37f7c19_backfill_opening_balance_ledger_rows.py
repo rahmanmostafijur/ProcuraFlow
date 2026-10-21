@@ -41,7 +41,7 @@ EARLIEST_ACTIVE_ADMIN = sa.text(
 
 
 def _earliest_active_admin_id(bind: sa.engine.Connection) -> int:
-    admin_id = bind.execute(EARLIEST_ACTIVE_ADMIN).scalar()
+    admin_id: int | None = bind.execute(EARLIEST_ACTIVE_ADMIN).scalar()
     if admin_id is None:
         raise RuntimeError(
             "Cannot backfill opening balances: some products have stock that is not in the inventory ledger, "

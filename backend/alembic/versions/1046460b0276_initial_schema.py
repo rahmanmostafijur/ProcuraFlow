@@ -118,7 +118,7 @@ def upgrade() -> None:
         sa.Column("action", sa.String(length=100), nullable=False),
         sa.Column("entity_type", sa.String(length=100), nullable=False),
         sa.Column("entity_id", sa.Integer(), nullable=True),
-        sa.Column("extra_data", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column("extra_data", postgresql.JSONB(astext_type=sa.Text()), nullable=True),  # type: ignore[no-untyped-call]  # JSONB() is unannotated upstream
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.ForeignKeyConstraint(
             ["user_id"],

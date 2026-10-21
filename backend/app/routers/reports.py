@@ -1,5 +1,6 @@
 import csv
 import io
+from typing import Any
 
 from fastapi import APIRouter, Response
 from sqlalchemy import func, select
@@ -19,7 +20,7 @@ router = APIRouter(prefix="/reports", tags=["reports"])
 
 
 @router.get("/supplier-performance")
-async def supplier_performance(db: DbSession, _: CurrentUser) -> list[dict]:
+async def supplier_performance(db: DbSession, _: CurrentUser) -> list[dict[str, Any]]:
     line_total = PurchaseOrderItem.quantity * PurchaseOrderItem.unit_price
     stmt = (
         select(
@@ -50,7 +51,7 @@ async def supplier_performance(db: DbSession, _: CurrentUser) -> list[dict]:
 
 
 @router.get("/delayed-deliveries")
-async def delayed_deliveries(db: DbSession, _: CurrentUser) -> list[dict]:
+async def delayed_deliveries(db: DbSession, _: CurrentUser) -> list[dict[str, Any]]:
     stmt = (
         select(Delivery)
         .options(selectinload(Delivery.purchase_order).selectinload(PurchaseOrder.supplier))
@@ -72,7 +73,7 @@ async def delayed_deliveries(db: DbSession, _: CurrentUser) -> list[dict]:
 
 
 @router.get("/on-time-delivery-rate")
-async def on_time_delivery_rate(db: DbSession, _: CurrentUser) -> dict:
+async def on_time_delivery_rate(db: DbSession, _: CurrentUser) -> dict[str, float]:
     return {"on_time_percentage": await get_on_time_delivery_rate(db)}
 
 

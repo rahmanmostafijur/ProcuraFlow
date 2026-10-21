@@ -1,13 +1,14 @@
 import ipaddress
 from collections.abc import Callable
-from typing import Any
+
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 FORWARDED_FOR = b"x-forwarded-for"
 FORWARDED_PROTO = b"x-forwarded-proto"
 SECURE_SCHEMES = {"http": "https", "ws": "wss"}
 
 
-def _entries(scope: dict[str, Any], header: bytes) -> list[str]:
+def _entries(scope: Scope, header: bytes) -> list[str]:
     """Every comma-separated value across all header lines of one name, in order."""
     values = [value.decode("latin-1") for name, value in scope.get("headers", []) if name == header]
     return [entry.strip() for value in values for entry in value.split(",") if entry.strip()]
@@ -41,11 +42,11 @@ class TrustedProxyMiddleware:
     restriction of direct access can. That is why the per-account limit is the one to rely on.
     """
 
-    def __init__(self, app: Any, hops: Callable[[], int]) -> None:
+    def __init__(self, app: ASGIApp, hops: Callable[[], int]) -> None:
         self.app = app
         self._hops = hops
 
-    async def __call__(self, scope: dict[str, Any], receive: Any, send: Any) -> None:
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] in ("http", "websocket"):
             hops = self._hops()
             if hops > 0:
@@ -53,7 +54,7 @@ class TrustedProxyMiddleware:
         await self.app(scope, receive, send)
 
     @staticmethod
-    def _resolve(scope: dict[str, Any], hops: int) -> dict[str, Any]:
+    def _resolve(scope: Scope, hops: int) -> Scope:
         chain = _entries(scope, FORWARDED_FOR)
         client = _valid_ip(chain[0]) if len(chain) == hops else None
 

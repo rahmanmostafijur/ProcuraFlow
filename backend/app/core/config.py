@@ -16,6 +16,7 @@ PLACEHOLDER_JWT_SECRETS = frozenset(
         "change-this-to-a-random-secret-in-production",
     }
 )
+Environment = Literal["development", "test", "staging", "production"]
 SECRET_HINT = 'generate one with: python -c "import secrets; print(secrets.token_urlsafe(48))"'  # noqa: S105 - help text
 
 
@@ -24,7 +25,7 @@ class Settings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore", hide_input_in_errors=True
     )
 
-    environment: Literal["development", "test", "staging", "production"] = "production"
+    environment: Environment = "production"
     debug: bool = False
 
     database_url: str = "postgresql+asyncpg://procuraflow:procuraflow@127.0.0.1:5432/procuraflow"

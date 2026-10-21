@@ -2,7 +2,7 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import pool, text
+from sqlalchemy import Connection, pool, text
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.core.config import get_settings
@@ -33,7 +33,7 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-def do_run_migrations(connection) -> None:
+def do_run_migrations(connection: Connection) -> None:
     # Instances that boot together all run this. The lock makes them take turns, and whoever is second
     # finds the schema already at head and does nothing. It has to be a session-level lock: a migration
     # that adds an enum value commits mid-run (autocommit block), which would release a transaction-scoped

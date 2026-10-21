@@ -49,7 +49,7 @@ async def get_dashboard_summary(db: DbSession, _: CurrentUser) -> DashboardSumma
         await db.execute(select(func.count()).select_from(Supplier).where(Supplier.is_active.is_(True)))
     ).scalar_one()
     inventory_value = (
-        await db.execute(select(func.coalesce(func.sum(Product.current_stock * Product.cost), 0)))
+        await db.execute(select(func.coalesce(func.sum(Product.cost * Product.current_stock), 0)))
     ).scalar_one()
     low_stock = (
         await db.execute(
