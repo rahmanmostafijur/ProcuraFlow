@@ -17,7 +17,7 @@ def _rows(response) -> list[list[str]]:
 
 
 @pytest.mark.parametrize(
-    "value, expected",
+    ("value", "expected"),
     [
         ("Plain name", "Plain name"),
         ("A4 Paper - 80gsm", "A4 Paper - 80gsm"),

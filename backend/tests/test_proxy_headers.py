@@ -82,7 +82,7 @@ async def test_repeated_header_lines_are_read_as_one_chain():
 
 
 @pytest.mark.parametrize(
-    "proto, expected",
+    ("proto", "expected"),
     [("https", "https"), ("http, https", "https"), ("https, http", "http"), (None, "http")],
 )
 async def test_https_is_detected_from_the_nearest_proxy_only(proto: str | None, expected: str):

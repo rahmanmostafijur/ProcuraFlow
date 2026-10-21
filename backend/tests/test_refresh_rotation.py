@@ -67,7 +67,8 @@ async def test_login_records_an_unused_token_row_matching_the_issued_token(
     claims = decode_token(token, expected_type="refresh")
     assert claims["jti"] == row.jti
     assert claims["fam"] == row.family_id
-    assert row.used_at is None and row.revoked_at is None
+    assert row.used_at is None
+    assert row.revoked_at is None
 
 
 async def test_refresh_rotates_the_token_within_the_same_family(client: AsyncClient, db_session: AsyncSession, user):
@@ -114,7 +115,8 @@ async def test_a_grace_window_replay_gets_an_access_token_but_no_refresh_token(
 
     replay = await _refresh_with(first)
 
-    assert rotated.status_code == 200 and "set-cookie" in rotated.headers
+    assert rotated.status_code == 200
+    assert "set-cookie" in rotated.headers
     assert replay.status_code == 200
     assert "access_token" in replay.json()
     assert "set-cookie" not in replay.headers
@@ -159,7 +161,8 @@ async def test_a_browser_refreshing_twice_at_once_keeps_the_canonical_cookie(
     assert ("set-cookie" in first.headers) != ("set-cookie" in second.headers)
     # A Set-Cookie on the next refresh proves the jar held the unused successor, not the rotated-away token.
     follow_up = await client.post(REFRESH_URL)
-    assert follow_up.status_code == 200 and "set-cookie" in follow_up.headers
+    assert follow_up.status_code == 200
+    assert "set-cookie" in follow_up.headers
     assert len(await _rows(db_session)) == 3
     assert await _live_count(db_session) == 1
 

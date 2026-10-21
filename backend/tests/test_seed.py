@@ -132,7 +132,7 @@ async def test_seed_demo_data_is_idempotent(db_session: AsyncSession, roles: dic
 
 
 @pytest.mark.parametrize(
-    "environment, expected",
+    ("environment", "expected"),
     [("development", True), ("test", True), ("staging", False), ("production", False)],
 )
 def test_demo_data_is_seeded_by_default_only_in_local_environments(

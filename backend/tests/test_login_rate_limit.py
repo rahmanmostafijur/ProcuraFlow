@@ -122,7 +122,8 @@ async def test_stored_keys_are_hashed_so_typed_emails_never_reach_the_table(db_s
     assert len(keys) == 2
     for _, key_hash in keys:
         assert len(key_hash) == 64
-        assert "victim" not in key_hash and "203.0.113.7" not in key_hash
+        assert "victim" not in key_hash
+        assert "203.0.113.7" not in key_hash
 
 
 async def test_expired_rows_are_purged_so_the_table_stays_bounded(db_session: AsyncSession):

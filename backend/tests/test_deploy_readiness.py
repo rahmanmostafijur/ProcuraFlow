@@ -11,7 +11,7 @@ STRONG_SECRET = "x" * 48
 
 
 @pytest.mark.parametrize(
-    "raw, expected",
+    ("raw", "expected"),
     [
         ("postgresql://u:p@host/db", "postgresql+asyncpg://u:p@host/db"),
         ("postgres://u:p@host/db", "postgresql+asyncpg://u:p@host/db"),
@@ -37,7 +37,7 @@ def test_normalize_database_url_keeps_an_explicit_ssl_parameter() -> None:
 
 
 @pytest.mark.parametrize(
-    "url, expected",
+    ("url", "expected"),
     [
         ("postgresql+asyncpg://u:p@ep-cool-123-pooler.us-east-2.aws.neon.tech/db", True),
         ("postgresql+asyncpg://u:p@ep-cool-123.us-east-2.aws.neon.tech/db", False),

@@ -31,6 +31,7 @@ def _run_start(tmp_path: Path, **env: str) -> list[str]:
         capture_output=True,
         text=True,
         timeout=60,
+        check=False,  # the assertion below reports stderr on failure
     )
     assert result.returncode == 0, result.stderr
     return log.read_text().splitlines()

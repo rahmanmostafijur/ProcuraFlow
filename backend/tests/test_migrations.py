@@ -27,6 +27,7 @@ def _alembic(database_url: str, *args: str) -> str:
         capture_output=True,
         text=True,
         timeout=180,
+        check=False,  # the assertion below reports stdout and stderr on failure
     )
     assert result.returncode == 0, f"alembic {' '.join(args)} failed:\n{result.stdout}\n{result.stderr}"
     return result.stdout
