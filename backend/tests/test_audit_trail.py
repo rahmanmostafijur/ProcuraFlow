@@ -1,5 +1,5 @@
 import json
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from httpx import AsyncClient
@@ -58,7 +58,7 @@ def test_field_changes_lists_only_changed_fields_as_json_safe_values():
         "name": "Widget",
         "cost": Decimal("10.00"),
         "expected_delivery_date": date(2026, 1, 31),
-        "approved_at": datetime(2026, 1, 2, 3, 4, 5, tzinfo=timezone.utc),
+        "approved_at": datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC),
         "status": POStatus.DRAFT,
         "minimum_stock": 5,
     }

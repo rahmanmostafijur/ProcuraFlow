@@ -11,8 +11,8 @@ from app.models.enums import InventoryTransactionType, POStatus
 from app.models.inventory import InventoryTransaction
 from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
-from app.models.supplier import Supplier
 from app.models.purchase_order_item import PurchaseOrderItem
+from app.models.supplier import Supplier
 from app.models.user import User
 from app.services import purchase_order_service as po_service
 from app.services.inventory_service import apply_inventory_transaction, lock_products, record_opening_balance

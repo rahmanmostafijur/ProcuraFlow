@@ -54,6 +54,8 @@ max-args = 8
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
+# The migrations folder is named alembic too; the import means the installed package.
+known-third-party = ["alembic"]
 
 [tool.mypy]
 python_version = "3.12"

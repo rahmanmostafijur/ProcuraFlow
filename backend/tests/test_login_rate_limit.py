@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -17,7 +17,7 @@ SECRET = "unit-test-secret"
 
 class FakeClock:
     def __init__(self) -> None:
-        self.now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        self.now = datetime(2026, 1, 1, tzinfo=UTC)
 
     def __call__(self) -> datetime:
         return self.now

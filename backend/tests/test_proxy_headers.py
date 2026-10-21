@@ -10,7 +10,6 @@ from starlette.routing import Route
 
 from app.core.config import get_settings
 from app.core.proxy import TrustedProxyMiddleware
-from app.main import app
 from app.models.login_failure import LoginFailure
 
 DIRECT_PEER = "10.0.0.5"

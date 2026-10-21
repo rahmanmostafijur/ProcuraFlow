@@ -6,16 +6,15 @@ Create Date: 2026-10-05 02:45:12.708648
 
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision: str = "ebae2c6ec180"
-down_revision: Union[str, None] = "1046460b0276"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "1046460b0276"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 SEQUENCE_NAME = "purchase_order_number_seq"
 

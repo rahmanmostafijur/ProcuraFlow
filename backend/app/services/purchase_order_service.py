@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -56,7 +56,7 @@ async def get_purchase_order_for_update(db: AsyncSession, po_id: int) -> Purchas
 
 
 async def generate_po_number(db: AsyncSession) -> str:
-    year = datetime.now(timezone.utc).year
+    year = datetime.now(UTC).year
     number = await db.scalar(select(PO_NUMBER_SEQUENCE.next_value()))
     return f"PO-{year}-{number:05d}"
 
@@ -76,7 +76,7 @@ def approve_purchase_order(po: PurchaseOrder, approver: User) -> None:
     _ensure_transition_allowed(po.status, POStatus.APPROVED)
     po.status = POStatus.APPROVED
     po.approved_by = approver.id
-    po.approved_at = datetime.now(timezone.utc)
+    po.approved_at = datetime.now(UTC)
 
 
 def mark_purchase_order_ordered(db: AsyncSession, po: PurchaseOrder) -> None:

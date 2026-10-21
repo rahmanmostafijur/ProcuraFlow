@@ -9,7 +9,7 @@ from app.core.config import get_settings
 from app.core.database_url import asyncpg_connect_args
 from app.db.base import Base
 from app.db.locks import MIGRATION_LOCK_KEY
-from app.models import *  # noqa: F401,F403  (registers all models on Base.metadata)
+from app.models import *  # noqa: F403  (registers all models on Base.metadata)
 
 config = context.config
 settings = get_settings()

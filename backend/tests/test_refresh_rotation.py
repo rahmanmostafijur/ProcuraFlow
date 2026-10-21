@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 import pytest
@@ -258,7 +258,7 @@ async def test_a_token_signed_with_another_key_is_rejected(client: AsyncClient, 
             "type": "refresh",
             "jti": "x",
             "fam": "y",
-            "exp": datetime.now(timezone.utc) + timedelta(days=1),
+            "exp": datetime.now(UTC) + timedelta(days=1),
         },
         "a-completely-different-signing-key-0123456789",
         algorithm="HS256",
@@ -281,7 +281,7 @@ async def test_expired_token_rows_are_purged_at_login(client: AsyncClient, db_se
             jti="long-expired",
             family_id="old-family",
             user_id=user.id,
-            expires_at=datetime.now(timezone.utc) - timedelta(days=2),
+            expires_at=datetime.now(UTC) - timedelta(days=2),
         )
     )
     await db_session.commit()
@@ -295,9 +295,7 @@ async def test_expired_token_rows_are_purged_at_login(client: AsyncClient, db_se
 
 async def _age_session(db_session: AsyncSession, days: float) -> None:
     """Pretend the login happened `days` ago, as a real session would have by the time it is refreshed."""
-    await db_session.execute(
-        update(RefreshToken).values(family_started_at=datetime.now(timezone.utc) - timedelta(days=days))
-    )
+    await db_session.execute(update(RefreshToken).values(family_started_at=datetime.now(UTC) - timedelta(days=days)))
     await db_session.commit()
 
 
@@ -308,12 +306,12 @@ async def _session_starts(db_session: AsyncSession) -> list[datetime]:
 
 
 async def test_login_stamps_when_the_session_started(client: AsyncClient, db_session: AsyncSession, user):
-    before = datetime.now(timezone.utc)
+    before = datetime.now(UTC)
     await _login(client)
 
     (started,) = await _session_starts(db_session)
 
-    assert before - timedelta(seconds=5) <= started <= datetime.now(timezone.utc) + timedelta(seconds=5)
+    assert before - timedelta(seconds=5) <= started <= datetime.now(UTC) + timedelta(seconds=5)
 
 
 async def test_rotation_keeps_the_original_session_start(client: AsyncClient, db_session: AsyncSession, user):
