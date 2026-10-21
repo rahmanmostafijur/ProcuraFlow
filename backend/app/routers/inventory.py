@@ -30,8 +30,7 @@ async def list_inventory_transactions(
     if product_id is not None:
         stmt = stmt.where(InventoryTransaction.product_id == product_id)
 
-    items, total, total_pages = await paginate(db, stmt, page, page_size)
-    return PaginatedResponse(items=items, total=total, page=page, page_size=page_size, total_pages=total_pages)
+    return await paginate(db, stmt, page, page_size, InventoryTransactionRead)
 
 
 @router.post("/adjustments", response_model=InventoryTransactionRead, status_code=status.HTTP_201_CREATED)

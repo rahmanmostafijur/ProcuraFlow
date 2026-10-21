@@ -33,8 +33,7 @@ async def list_users(
     if search:
         stmt = stmt.where(User.full_name.ilike(f"%{search}%") | User.email.ilike(f"%{search}%"))
 
-    items, total, total_pages = await paginate(db, stmt, page, page_size)
-    return PaginatedResponse(items=items, total=total, page=page, page_size=page_size, total_pages=total_pages)
+    return await paginate(db, stmt, page, page_size, UserRead)
 
 
 @router.post("", response_model=UserRead, status_code=status.HTTP_201_CREATED)

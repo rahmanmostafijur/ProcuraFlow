@@ -65,8 +65,7 @@ async def list_purchase_orders(
     if supplier_id is not None:
         stmt = stmt.where(PurchaseOrder.supplier_id == supplier_id)
 
-    items, total, total_pages = await paginate(db, stmt, page, page_size)
-    return PaginatedResponse(items=items, total=total, page=page, page_size=page_size, total_pages=total_pages)
+    return await paginate(db, stmt, page, page_size, PurchaseOrderRead)
 
 
 @router.get("/{po_id}", response_model=PurchaseOrderRead)

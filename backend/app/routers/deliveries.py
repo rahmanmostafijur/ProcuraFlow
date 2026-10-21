@@ -19,5 +19,4 @@ async def list_deliveries(
     page_size: int = Query(20, ge=1, le=100),
 ) -> PaginatedResponse[DeliveryRead]:
     stmt = select(Delivery).options(selectinload(Delivery.purchase_order)).order_by(Delivery.created_at.desc())
-    items, total, total_pages = await paginate(db, stmt, page, page_size)
-    return PaginatedResponse(items=items, total=total, page=page, page_size=page_size, total_pages=total_pages)
+    return await paginate(db, stmt, page, page_size, DeliveryRead)
