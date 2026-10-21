@@ -3,3 +3,8 @@
 pytest==8.3.4
 pytest-asyncio==0.24.0
 httpx==0.28.1
+
+# Static checks (configured in pyproject.toml)
+ruff==0.17.1
+mypy==2.4.0
+types-passlib==1.7.7.20260211

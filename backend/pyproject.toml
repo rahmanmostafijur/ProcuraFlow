@@ -1,0 +1,71 @@
+# Tool configuration only; the backend is an application, not an installable package.
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # import sorting
+    "B",     # bugbear
+    "UP",    # pyupgrade
+    "SIM",   # simplify
+    "ASYNC", # blocking calls inside async code
+    "S",     # bandit security checks
+    "DTZ",   # naive datetimes
+    "PT",    # pytest style
+    "PLE",   # pylint errors
+    "PLW",   # pylint warnings
+    "PLC",   # pylint conventions
+    "PLR",   # pylint refactoring hints
+    "RUF",   # ruff-specific
+]
+
+[tool.ruff.lint.pylint]
+# Service functions take the session plus keyword-only domain values (who, what, how much, why).
+max-args = 8
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "S101",    # assert is how pytest checks things
+    "S105",    # fixed passwords and secrets for test accounts, never real credentials
+    "S106",
+    "S107",
+    "PLR2004", # expected values written inline read better than named constants in tests
+]
+"tests/test_migrations.py" = [
+    "S603", # runs alembic with sys.executable and fixed arguments
+]
+"tests/test_start_script.py" = [
+    "S603", # runs the container start script with fixed arguments and stub commands
+    "S607", # resolves `sh` from PATH on purpose: that is how the container runs start.sh
+]
+"app/routers/**" = [
+    "PLR0913", # FastAPI declares each query parameter as an endpoint argument
+    "PLR0917",
+]
+"alembic/versions/**" = [
+    "S608", # SQL built only from module-level constants, never from input
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["app", "tests", "alembic"]
+warn_unreachable = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
