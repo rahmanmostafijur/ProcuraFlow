@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   backend:
-    name: Backend (migrations, tests)
+    name: Backend (lint, types, migrations, tests)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     defaults:
@@ -59,7 +59,15 @@ jobs:
       - name: Create the test database
         run: psql -h localhost -U procuraflow -d procuraflow -c "CREATE DATABASE procuraflow_test"
 
-      # Static checks (ruff, mypy) run here, before the tests.
+      # Cheap checks first, so a style or type error fails in seconds rather than after the test suite.
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Check formatting (ruff)
+        run: ruff format --check .
+
+      - name: Type check (mypy, strict)
+        run: mypy
 
       # The service database is empty, so this proves the migration chain builds the schema from scratch.
       - name: Apply migrations to an empty database
@@ -69,7 +77,7 @@ jobs:
         run: python -m pytest -q
 
   frontend:
-    name: Frontend (typecheck, tests, build)
+    name: Frontend (lint, types, tests, build)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -87,10 +95,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Lint and format checks run here, before the type check.
+      - name: Check formatting (Prettier)
+        run: npm run format:check
+
+      - name: Lint (ESLint)
+        run: npm run lint
 
       - name: Type check
-        run: npx tsc -b
+        run: npm run typecheck
 
       - name: Unit tests
         run: npm test
