@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, Numeric, SmallInteger, String, func
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, Numeric, SmallInteger, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -24,6 +24,9 @@ class CompanySettings(Base):
             name="ck_company_settings_tolerance_range",
         ),
         CheckConstraint("default_payment_terms_days >= 0", name="ck_company_settings_payment_terms"),
+        CheckConstraint(
+            "budget_warn_percent >= 0 AND budget_warn_percent <= 100", name="ck_company_settings_budget_warn_range"
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, default=COMPANY_SETTINGS_ID)
@@ -52,6 +55,10 @@ class CompanySettings(Base):
     po_number_prefix: Mapped[str] = mapped_column(String(10), nullable=False)
     invoice_tolerance_percent: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
     default_payment_terms_days: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # Budget rules: refuse approvals that would exceed a cost centre's budget, and warn its manager from this share.
+    budget_block_over_budget: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    budget_warn_percent: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False, default=Decimal(80))
 
     updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True)
     updated_at: Mapped[datetime] = mapped_column(

@@ -23,7 +23,7 @@ const itemSchema = z.object({
 });
 
 // Mirrors the API, which rejects a purchase order that lists a product on more than one line.
-const itemsSchema = z
+export const purchaseOrderItemsSchema = z
   .array(itemSchema)
   .min(1, "Add at least one line item")
   .superRefine((items, ctx) => {
@@ -44,9 +44,11 @@ export const purchaseOrderFormSchema = z.object({
   supplier_id: z.string().min(1, "Select a supplier"),
   // Empty means the supplier's default currency, else the company's base currency.
   currency_code: z.string().optional(),
+  // Empty means no cost centre.
+  cost_centre_id: z.string().optional(),
   expected_delivery_date: z.string().optional(),
   notes: z.string().optional(),
-  items: itemsSchema,
+  items: purchaseOrderItemsSchema,
 });
 
 export type PurchaseOrderFormValues = z.infer<typeof purchaseOrderFormSchema>;

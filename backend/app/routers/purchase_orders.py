@@ -5,31 +5,37 @@ from sqlalchemy import select
 
 from app.core.deps import CurrentUser, DbSession, require_permission
 from app.core.pagination import paginate
-from app.models.enums import POStatus
+from app.models.enums import ApprovalDocumentType, POStatus
 from app.models.purchase_order import PurchaseOrder
 from app.models.user import User
+from app.schemas.approval import DecisionRequest, RejectionRequest
 from app.schemas.common import PaginatedResponse
+from app.schemas.po_version import PurchaseOrderAmend, PurchaseOrderVersionRead
 from app.schemas.purchase_order import (
     PurchaseOrderCreate,
     PurchaseOrderRead,
     PurchaseOrderUpdate,
     ReceivePurchaseOrderRequest,
 )
-from app.services import po_draft_service
+from app.services import approval_engine, po_amendment_service, po_draft_service
 from app.services import purchase_order_service as po_service
 from app.services.audit_service import record_audit_event
+from app.services.po_version_reads import to_version_read, to_version_reads
 
 router = APIRouter(prefix="/purchase-orders", tags=["purchase-orders"])
 
 RequirePOCreate = Annotated[User, Depends(require_permission("po:create"))]
-RequirePOApprove = Annotated[User, Depends(require_permission("po:approve"))]
 RequirePOTransition = Annotated[User, Depends(require_permission("po:transition"))]
 RequireInventoryWrite = Annotated[User, Depends(require_permission("inventory:write"))]
 
 
 async def _get_po_or_404(db: DbSession, po_id: int) -> PurchaseOrder:
     result = await db.execute(
-        select(PurchaseOrder).options(*po_service.PO_LOAD_OPTIONS).where(PurchaseOrder.id == po_id)
+        select(PurchaseOrder)
+        .options(*po_service.PO_LOAD_OPTIONS)
+        .where(PurchaseOrder.id == po_id)
+        # Reflect what was just committed, not objects this request loaded before the change.
+        .execution_options(populate_existing=True)
     )
     po = result.scalar_one_or_none()
     if po is None:
@@ -93,7 +99,7 @@ async def update_purchase_order(
 @router.post("/{po_id}/submit", response_model=PurchaseOrderRead)
 async def submit_purchase_order(po_id: int, db: DbSession, current_user: RequirePOCreate) -> PurchaseOrder:
     po = await po_service.get_purchase_order_for_update(db, po_id)
-    po_service.submit_purchase_order(po)
+    await po_service.submit_purchase_order(db, po)
     await record_audit_event(
         db, user_id=current_user.id, action="po_submitted", entity_type="purchase_order", entity_id=po.id
     )
@@ -102,12 +108,29 @@ async def submit_purchase_order(po_id: int, db: DbSession, current_user: Require
 
 
 @router.post("/{po_id}/approve", response_model=PurchaseOrderRead)
-async def approve_purchase_order(po_id: int, db: DbSession, current_user: RequirePOApprove) -> PurchaseOrder:
+async def approve_purchase_order(
+    po_id: int, db: DbSession, current_user: CurrentUser, payload: DecisionRequest | None = None
+) -> PurchaseOrder:
+    """Decide the order's current approval step; the last step approves it.
+
+    Who may decide is the approval engine's call (role, limits, delegation, budget), so any signed-in user may try
+    and gets a 403 saying why when they may not.
+    """
     po = await po_service.get_purchase_order_for_update(db, po_id)
-    await po_service.approve_purchase_order(db, po, current_user)
-    await record_audit_event(
-        db, user_id=current_user.id, action="po_approved", entity_type="purchase_order", entity_id=po.id
+    await po_service.decide_purchase_order(
+        db, po, current_user, approve=True, comment=payload.comment if payload else None
     )
+    await db.commit()
+    return await _get_po_or_404(db, po_id)
+
+
+@router.post("/{po_id}/reject", response_model=PurchaseOrderRead)
+async def reject_purchase_order(
+    po_id: int, payload: RejectionRequest, db: DbSession, current_user: CurrentUser
+) -> PurchaseOrder:
+    """Reject the order at its current step: the order is cancelled and the reason is kept."""
+    po = await po_service.get_purchase_order_for_update(db, po_id)
+    await po_service.decide_purchase_order(db, po, current_user, approve=False, comment=payload.comment)
     await db.commit()
     return await _get_po_or_404(db, po_id)
 
@@ -127,11 +150,33 @@ async def mark_purchase_order_ordered(po_id: int, db: DbSession, current_user: R
 async def cancel_purchase_order(po_id: int, db: DbSession, current_user: RequirePOTransition) -> PurchaseOrder:
     po = await po_service.get_purchase_order_for_update(db, po_id)
     po_service.cancel_purchase_order(po)
+    # Nothing left to approve on a cancelled order, including an amendment that was waiting.
+    await approval_engine.skip_open_steps(db, ApprovalDocumentType.PURCHASE_ORDER, po.id)
+    await po_amendment_service.close_pending(db, po.id, current_user, reason="Order cancelled")
     await record_audit_event(
         db, user_id=current_user.id, action="po_cancelled", entity_type="purchase_order", entity_id=po.id
     )
     await db.commit()
     return await _get_po_or_404(db, po_id)
+
+
+@router.get("/{po_id}/versions", response_model=list[PurchaseOrderVersionRead])
+async def list_versions(po_id: int, db: DbSession, _: CurrentUser) -> list[PurchaseOrderVersionRead]:
+    """The order's amendment history, oldest first, each with a readable diff from the version before."""
+    await _get_po_or_404(db, po_id)
+    return await to_version_reads(db, await po_amendment_service.list_versions(db, po_id))
+
+
+@router.post("/{po_id}/amend", response_model=PurchaseOrderVersionRead, status_code=status.HTTP_201_CREATED)
+async def amend_purchase_order(
+    po_id: int, payload: PurchaseOrderAmend, db: DbSession, current_user: RequirePOTransition
+) -> PurchaseOrderVersionRead:
+    """Change an order that has been placed. A change that raises the total waits for approval."""
+    po = await po_service.get_purchase_order_for_update(db, po_id)
+    version = await po_amendment_service.amend_purchase_order(db, po, payload, current_user)
+    await db.commit()
+    await db.refresh(version)
+    return await to_version_read(db, version)
 
 
 @router.post("/{po_id}/receive", response_model=PurchaseOrderRead)

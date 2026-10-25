@@ -45,6 +45,32 @@ Cancelled orders are in none of these sets, and a draft or submitted order is ne
 
 Product costs are kept in the base currency, so inventory value needs no conversion.
 
+### Budgets
+
+One row per cost centre and fiscal year, in the base currency. A fiscal year is named after the calendar year it
+starts in, from the fiscal year start month in Settings (with an April start, 31 March 2026 is in fiscal year 2025).
+
+| Metric | Formula | Period | Time zone | Statuses |
+|---|---|---|---|---|
+| Budget | the amount set for the cost centre and fiscal year | fiscal year | n/a | n/a |
+| Spent | sum of the stored base grand total of orders charged to the cost centre | fiscal year of the order's approval date (creation date if none) | company | received |
+| Committed | the same sum | same | company | approved, ordered, partially received |
+| Remaining | budget - spent - committed (negative when overspent) | same | company | n/a |
+| Utilisation | (spent + committed) / budget as a percentage, one decimal; empty when the budget is 0 | same | company | n/a |
+| Health | `over` when spent + committed exceeds the budget; `warning` from the warning level in Settings; otherwise `ok` | same | company | n/a |
+
+Drafts, submitted and cancelled orders are never counted. The blocking rule (Settings) refuses any approval whose
+amount is more than Remaining; an amendment counts only the increase it adds. A cost centre with no budget for the
+current fiscal year is not limited.
+
+### Approvals
+
+| Metric | Formula | Shown on |
+|---|---|---|
+| Waiting for me | documents whose current approval step this user may decide now, directly or as a delegate; the same function the decision endpoints use | My approvals page, sidebar badge |
+
+The badge is the length of the list it links to by construction: both call `approval_queue_service.queue_for`.
+
 ## Adding a metric
 
 1. Write one function in `metrics_service.py` and document it in the table above.

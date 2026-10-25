@@ -1,18 +1,37 @@
-import type { PurchaseOrder, User } from "@/api/types";
+import type { ApprovalDocumentType, PurchaseOrder, QueueItem, User } from "@/api/types";
 
 type ApprovalTarget = Pick<PurchaseOrder, "status"> & { creator: Pick<User, "id"> };
 type Viewer = Pick<User, "id"> | null;
 type PermissionCheck = (code: string) => boolean;
 
-function isApprovalPending(po: ApprovalTarget, hasPermission: PermissionCheck): boolean {
-  return po.status === "submitted" && hasPermission("po:approve");
+/** The approvals queue is worked out by the API for the signed-in user alone, so it is the truth about who may decide. */
+export function isInQueue(
+  queue: readonly QueueItem[] | undefined,
+  documentType: ApprovalDocumentType,
+  documentId: number,
+): boolean {
+  return queue?.some((item) => item.document_type === documentType && item.document_id === documentId) ?? false;
 }
 
-// Mirrors the API's separation-of-duties rule: nobody approves a purchase order they created.
-export function canApprovePurchaseOrder(po: ApprovalTarget, user: Viewer, hasPermission: PermissionCheck): boolean {
-  return user !== null && isApprovalPending(po, hasPermission) && po.creator.id !== user.id;
+export function canDecidePurchaseOrder(
+  po: Pick<PurchaseOrder, "id" | "status">,
+  queue: readonly QueueItem[] | undefined,
+): boolean {
+  return po.status === "submitted" && isInQueue(queue, "purchase_order", po.id);
 }
 
-export function needsAnotherApprover(po: ApprovalTarget, user: Viewer, hasPermission: PermissionCheck): boolean {
-  return user !== null && isApprovalPending(po, hasPermission) && po.creator.id === user.id;
+// Shown to a creator who holds the approve permission but is not in the queue for their own order.
+export function needsAnotherApprover(
+  po: ApprovalTarget & Pick<PurchaseOrder, "id">,
+  user: Viewer,
+  hasPermission: PermissionCheck,
+  queue: readonly QueueItem[] | undefined,
+): boolean {
+  return (
+    user !== null &&
+    po.status === "submitted" &&
+    hasPermission("po:approve") &&
+    po.creator.id === user.id &&
+    !isInQueue(queue, "purchase_order", po.id)
+  );
 }

@@ -10,18 +10,21 @@ in force that day, and the converted amount is stored; reports read the stored a
 
 from dataclasses import dataclass
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import Date, Row, case, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.clock import today_in
+from app.core.fiscal import fiscal_year_bounds, fiscal_year_of
+from app.models.budget import Budget, CostCentre
 from app.models.company_settings import CompanySettings
 from app.models.delivery import Delivery
 from app.models.enums import COMMITTED_PO_STATUSES, DeliveryStatus, POStatus
 from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
 from app.models.supplier import Supplier
+from app.models.user import User
 from app.schemas.dashboard import DashboardSummary
 from app.services.company_settings_service import get_company_settings
 
@@ -36,6 +39,8 @@ PENDING_PO_STATUSES = (
 COMPLETED_PO_STATUSES = (POStatus.RECEIVED,)
 # A month of trend data is looked back over this many days, so a partial current month is always included.
 DAYS_PER_TREND_MONTH = 31
+HUNDRED = Decimal(100)
+ONE_DECIMAL = Decimal("0.1")
 
 
 @dataclass(frozen=True)
@@ -60,6 +65,8 @@ class MetricsContext:
     time_zone: str
     base_currency_code: str
     today: date
+    fiscal_year_start_month: int
+    budget_warn_percent: Decimal
 
     @classmethod
     def from_settings(cls, settings: CompanySettings) -> "MetricsContext":
@@ -67,7 +74,14 @@ class MetricsContext:
             time_zone=settings.timezone,
             base_currency_code=settings.base_currency_code,
             today=today_in(settings.timezone),
+            fiscal_year_start_month=settings.fiscal_year_start_month,
+            budget_warn_percent=settings.budget_warn_percent,
         )
+
+    @property
+    def fiscal_year(self) -> int:
+        """The fiscal year today falls in."""
+        return fiscal_year_of(self.today, self.fiscal_year_start_month)
 
 
 async def get_context(db: AsyncSession) -> MetricsContext:
@@ -170,6 +184,102 @@ async def committed_spend_by_supplier(db: AsyncSession) -> list[SupplierSpend]:
         )
         for row in await db.execute(stmt)
     ]
+
+
+@dataclass(frozen=True)
+class BudgetPosition:
+    budget_id: int
+    cost_centre_id: int
+    cost_centre_code: str
+    cost_centre_name: str
+    fiscal_year: int
+    budget: Decimal
+    spent: Decimal
+    committed: Decimal
+    remaining: Decimal
+    utilisation_percent: Decimal | None
+    health: str
+
+
+def _health(budget: Decimal, used: Decimal, warn_percent: Decimal) -> str:
+    if used > budget:
+        return "over"
+    if budget > 0 and used * HUNDRED >= budget * warn_percent:
+        return "warning"
+    return "ok"
+
+
+def _position(row: Row[tuple[Budget, CostCentre, Decimal, Decimal]], warn_percent: Decimal) -> BudgetPosition:
+    budget, cost_centre, spent, committed = row
+    used = spent + committed
+    utilisation = None if budget.amount == 0 else (used * HUNDRED / budget.amount).quantize(ONE_DECIMAL, ROUND_HALF_UP)
+    return BudgetPosition(
+        budget_id=budget.id,
+        cost_centre_id=cost_centre.id,
+        cost_centre_code=cost_centre.code,
+        cost_centre_name=cost_centre.name,
+        fiscal_year=budget.fiscal_year,
+        budget=budget.amount,
+        spent=spent,
+        committed=committed,
+        remaining=budget.amount - used,
+        utilisation_percent=utilisation,
+        health=_health(budget.amount, used, warn_percent),
+    )
+
+
+async def budget_positions(
+    db: AsyncSession, context: MetricsContext, fiscal_year: int, cost_centre_id: int | None = None
+) -> list[BudgetPosition]:
+    """Budget, spent, committed and remaining per cost centre for one fiscal year, in the base currency.
+
+    Spent is orders fully received; committed is orders approved, ordered or partially received. An order belongs
+    to the fiscal year of its approval date (its creation date if it has none) in the company time zone, and to the
+    cost centre it is charged to. Both use the order's stored base grand total (tax included).
+    """
+    start, end = fiscal_year_bounds(fiscal_year, context.fiscal_year_start_month)
+    order_day = cast(
+        func.timezone(context.time_zone, func.coalesce(PurchaseOrder.approved_at, PurchaseOrder.created_at)), Date
+    )
+    spent = func.coalesce(
+        func.sum(case((PurchaseOrder.status == POStatus.RECEIVED, PurchaseOrder.base_grand_total), else_=0)), 0
+    )
+    committed = func.coalesce(
+        func.sum(
+            case(
+                (
+                    PurchaseOrder.status.in_((POStatus.APPROVED, POStatus.ORDERED, POStatus.PARTIALLY_RECEIVED)),
+                    PurchaseOrder.base_grand_total,
+                ),
+                else_=0,
+            )
+        ),
+        0,
+    )
+    stmt = (
+        select(Budget, CostCentre, spent.label("spent"), committed.label("committed"))
+        .join(CostCentre, CostCentre.id == Budget.cost_centre_id)
+        .outerjoin(
+            PurchaseOrder,
+            (PurchaseOrder.cost_centre_id == Budget.cost_centre_id)
+            & PurchaseOrder.status.in_(COMMITTED_PO_STATUSES)
+            & (order_day >= start)
+            & (order_day < end),
+        )
+        .where(Budget.fiscal_year == fiscal_year)
+        .group_by(Budget.id, CostCentre.id)
+        .order_by(CostCentre.code)
+    )
+    if cost_centre_id is not None:
+        stmt = stmt.where(Budget.cost_centre_id == cost_centre_id)
+    return [_position(row, context.budget_warn_percent) for row in (await db.execute(stmt)).all()]
+
+
+async def pending_approval_count(db: AsyncSession, user: User) -> int:
+    """How many documents wait for this user's decision: the same list the approvals queue shows."""
+    from app.services.approval_queue_service import queue_for  # noqa: PLC0415 - imported here to break an import cycle
+
+    return len(await queue_for(db, user))
 
 
 async def dashboard_summary(db: AsyncSession) -> DashboardSummary:

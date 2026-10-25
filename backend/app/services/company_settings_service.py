@@ -30,6 +30,8 @@ DEFAULT_COMPANY_SETTINGS: dict[str, Any] = {
     "po_number_prefix": "PO",
     "invoice_tolerance_percent": Decimal("2.00"),
     "default_payment_terms_days": 30,
+    "budget_block_over_budget": False,
+    "budget_warn_percent": Decimal("80.00"),
 }
 LOGO_FOLDER = "logos"
 

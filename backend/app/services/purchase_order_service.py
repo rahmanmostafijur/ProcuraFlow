@@ -11,9 +11,10 @@ from app.models.enums import DeliveryStatus, InventoryTransactionType, POStatus
 from app.models.purchase_order import PO_NUMBER_SEQUENCE, PurchaseOrder
 from app.models.role import Role
 from app.models.user import User
+from app.services import approval_adapters, approval_engine
 from app.services.company_settings_service import get_company_settings
 from app.services.inventory_service import apply_inventory_transaction, lock_products
-from app.services.po_pricing import lock_base_amounts
+from app.services.po_pricing import to_base_amount
 
 # Responses serialize creator/approver roles, and a refreshing load resets lazy relationships,
 # so load them eagerly instead of relying on objects already in the session.
@@ -36,7 +37,7 @@ _ALLOWED_TRANSITIONS: dict[POStatus, set[POStatus]] = {
 }
 
 
-def _ensure_transition_allowed(current: POStatus, target: POStatus) -> None:
+def ensure_transition_allowed(current: POStatus, target: POStatus) -> None:
     if target not in _ALLOWED_TRANSITIONS.get(current, set()):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -66,28 +67,34 @@ async def generate_po_number(db: AsyncSession) -> str:
     return f"{prefix}-{year}-{number:05d}"
 
 
-def submit_purchase_order(po: PurchaseOrder) -> None:
-    _ensure_transition_allowed(po.status, POStatus.SUBMITTED)
+async def submit_purchase_order(db: AsyncSession, po: PurchaseOrder) -> None:
+    """Send a draft for approval: the amount in the base currency picks the approval rule and opens its steps."""
+    ensure_transition_allowed(po.status, POStatus.SUBMITTED)
+    amount_base = await to_base_amount(db, po.grand_total, po.currency_code)
     po.status = POStatus.SUBMITTED
+    await approval_engine.open_round(db, approval_adapters.po_subject(po, amount_base))
 
 
-async def approve_purchase_order(db: AsyncSession, po: PurchaseOrder, approver: User) -> None:
-    # Separation of duties: nobody, including admins, signs off on spend they raised themselves.
-    if po.created_by == approver.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You cannot approve a purchase order you created.",
-        )
-    _ensure_transition_allowed(po.status, POStatus.APPROVED)
-    # Before the state change: a missing exchange rate must leave the order submitted, not half-approved.
-    await lock_base_amounts(db, po)
-    po.status = POStatus.APPROVED
-    po.approved_by = approver.id
-    po.approved_at = datetime.now(UTC)
+async def decide_purchase_order(
+    db: AsyncSession, po: PurchaseOrder, actor: User, *, approve: bool, comment: str | None = None
+) -> bool:
+    """Approve or reject the order's current approval step; returns whether that settled the order.
+
+    Whether this person may decide (not the creator, not already on an earlier step, right role or permission,
+    within their limit, budget rules) is the approval engine's call, the same for every kind of document.
+    """
+    outcome = await approval_engine.decide(
+        db, approval_adapters.po_subject(po), actor, approve=approve, comment=comment
+    )
+    return outcome.is_final
+
+
+async def approve_purchase_order(db: AsyncSession, po: PurchaseOrder, approver: User) -> bool:
+    return await decide_purchase_order(db, po, approver, approve=True)
 
 
 def mark_purchase_order_ordered(db: AsyncSession, po: PurchaseOrder) -> None:
-    _ensure_transition_allowed(po.status, POStatus.ORDERED)
+    ensure_transition_allowed(po.status, POStatus.ORDERED)
     po.status = POStatus.ORDERED
 
     total_ordered = sum(item.quantity for item in po.items)
@@ -102,7 +109,7 @@ def mark_purchase_order_ordered(db: AsyncSession, po: PurchaseOrder) -> None:
 
 
 def cancel_purchase_order(po: PurchaseOrder) -> None:
-    _ensure_transition_allowed(po.status, POStatus.CANCELLED)
+    ensure_transition_allowed(po.status, POStatus.CANCELLED)
     po.status = POStatus.CANCELLED
 
 

@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, DateTime, ForeignKey, Numeric, Sequence, String, Text, func
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, Sequence, String, Text, func
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -38,6 +38,11 @@ class PurchaseOrder(Base):
     base_subtotal: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
     base_tax_total: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
     base_grand_total: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
+    # Budget the order is charged to, and the request it was converted from, when there was one.
+    cost_centre_id: Mapped[int | None] = mapped_column(ForeignKey("cost_centres.id"), index=True)
+    purchase_request_id: Mapped[int | None] = mapped_column(ForeignKey("purchase_requests.id"), index=True)
+    # Counts amendments made after the order was placed; 1 is the order as first approved.
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     expected_delivery_date: Mapped[date | None] = mapped_column(Date)
     notes: Mapped[str | None] = mapped_column(Text)
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)

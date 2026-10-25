@@ -1,4 +1,8 @@
+from app.models.approval import ApprovalDelegation, ApprovalLimit, ApprovalRule, ApprovalRuleStep, ApprovalStep
+from app.models.attachment import Attachment
 from app.models.audit import AuditLog
+from app.models.budget import Budget, BudgetChange, BudgetTransfer, CostCentre
+from app.models.catalog import CatalogItem
 from app.models.category import Category
 from app.models.company_settings import CompanySettings
 from app.models.currency import Currency, ExchangeRate
@@ -8,9 +12,11 @@ from app.models.inventory import InventoryTransaction
 from app.models.login_failure import LoginFailure
 from app.models.notification import Notification
 from app.models.permission import Permission, role_permissions
+from app.models.po_version import PurchaseOrderVersion
 from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
 from app.models.purchase_order_item import PurchaseOrderItem
+from app.models.purchase_request import PurchaseRequest, PurchaseRequestLine
 from app.models.refresh_token import RefreshToken
 from app.models.role import Role
 from app.models.supplier import Supplier
@@ -18,9 +24,20 @@ from app.models.tax_rate import TaxRate
 from app.models.user import User
 
 __all__ = [
+    "ApprovalDelegation",
+    "ApprovalLimit",
+    "ApprovalRule",
+    "ApprovalRuleStep",
+    "ApprovalStep",
+    "Attachment",
     "AuditLog",
+    "Budget",
+    "BudgetChange",
+    "BudgetTransfer",
+    "CatalogItem",
     "Category",
     "CompanySettings",
+    "CostCentre",
     "Currency",
     "Delivery",
     "DeliveryStatus",
@@ -34,6 +51,9 @@ __all__ = [
     "Product",
     "PurchaseOrder",
     "PurchaseOrderItem",
+    "PurchaseOrderVersion",
+    "PurchaseRequest",
+    "PurchaseRequestLine",
     "RefreshToken",
     "Role",
     "Supplier",

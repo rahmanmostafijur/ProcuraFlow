@@ -148,6 +148,10 @@ export interface PurchaseOrder {
   supplier: Supplier;
   status: POStatus;
   currency_code: string;
+  cost_centre_id: number | null;
+  purchase_request_id: number | null;
+  // How many times the order was amended; 1 is the order as first approved.
+  version: number;
   expected_delivery_date: string | null;
   notes: string | null;
   items: POItem[];
@@ -251,4 +255,230 @@ export interface DelayedDelivery {
   expected_date: string | null;
   actual_date: string | null;
   variance_days: number | null;
+}
+
+export interface Person {
+  id: number;
+  full_name: string;
+}
+
+// --- purchase requests -------------------------------------------------------------------------------------
+
+export type PurchaseRequestStatus = "draft" | "submitted" | "approved" | "rejected" | "converted" | "cancelled";
+
+export interface RequestLine {
+  id: number;
+  description: string;
+  catalog_item_id: number | null;
+  product_id: number | null;
+  supplier_id: number | null;
+  quantity: number;
+  unit: string;
+  estimated_unit_price: string;
+  line_total: string;
+  converted_po_id: number | null;
+}
+
+export interface PurchaseRequest {
+  id: number;
+  request_number: string;
+  requester: Person;
+  title: string;
+  notes: string | null;
+  cost_centre_id: number | null;
+  currency_code: string;
+  needed_by: string | null;
+  status: PurchaseRequestStatus;
+  estimated_total: string;
+  base_estimated_total: string | null;
+  submitted_at: string | null;
+  decided_at: string | null;
+  rejection_reason: string | null;
+  created_at: string;
+  updated_at: string;
+  lines: RequestLine[];
+}
+
+// --- approvals ---------------------------------------------------------------------------------------------
+
+export type ApprovalDocumentType =
+  "purchase_request" | "purchase_order" | "purchase_order_amendment" | "invoice_exception";
+export type ApprovalStepStatus = "pending" | "approved" | "rejected" | "skipped";
+
+export interface ApprovalStep {
+  id: number;
+  round: number;
+  step_order: number;
+  approver_role_id: number | null;
+  required_permission: string | null;
+  rule_name: string | null;
+  amount_base: string;
+  status: ApprovalStepStatus;
+  decided_by: number | null;
+  on_behalf_of: number | null;
+  decided_at: string | null;
+  comment: string | null;
+  approver_label: string;
+  decided_by_person: Person | null;
+  on_behalf_of_person: Person | null;
+}
+
+export interface QueueItem {
+  document_type: ApprovalDocumentType;
+  document_id: number;
+  // The order an order or amendment belongs to; null for other documents.
+  po_id: number | null;
+  label: string;
+  title: string;
+  amount_base: string;
+  requester: Person;
+  submitted_at: string | null;
+  step_order: number;
+  steps_total: number;
+  rule_name: string | null;
+  on_behalf_of: Person | null;
+}
+
+export interface QueuePage {
+  items: QueueItem[];
+  total: number;
+}
+
+export interface ApprovalRule {
+  id: number;
+  name: string;
+  document_type: ApprovalDocumentType;
+  min_amount: string;
+  max_amount: string | null;
+  is_active: boolean;
+  steps: { step_order: number; approver_role_id: number }[];
+}
+
+export interface ApprovalLimit {
+  id: number;
+  user_id: number;
+  document_type: ApprovalDocumentType;
+  max_amount: string;
+  updated_at: string;
+}
+
+export interface Delegation {
+  id: number;
+  delegator: Person;
+  delegate: Person;
+  starts_on: string;
+  ends_on: string;
+  revoked_at: string | null;
+  created_at: string;
+}
+
+// --- budgets -----------------------------------------------------------------------------------------------
+
+export interface CostCentre {
+  id: number;
+  code: string;
+  name: string;
+  manager_id: number | null;
+  is_active: boolean;
+}
+
+export type BudgetHealth = "ok" | "warning" | "over";
+
+export interface BudgetPosition {
+  budget_id: number;
+  cost_centre_id: number;
+  cost_centre_code: string;
+  cost_centre_name: string;
+  fiscal_year: number;
+  budget: string;
+  spent: string;
+  committed: string;
+  remaining: string;
+  utilisation_percent: string | null;
+  health: BudgetHealth;
+}
+
+export interface BudgetChange {
+  id: number;
+  change_type: "created" | "adjusted" | "transfer_in" | "transfer_out";
+  old_amount: string | null;
+  new_amount: string;
+  reason: string | null;
+  transfer_id: number | null;
+  changed_by: number;
+  created_at: string;
+}
+
+export interface BudgetTransfer {
+  id: number;
+  from_budget_id: number;
+  to_budget_id: number;
+  from_label: string;
+  to_label: string;
+  amount: string;
+  reason: string;
+  status: "pending" | "approved" | "rejected";
+  requested_by: Person;
+  decided_by: Person | null;
+  decided_at: string | null;
+  decision_comment: string | null;
+  created_at: string;
+}
+
+// --- catalog, attachments, order versions -------------------------------------------------------------------
+
+export interface CatalogItem {
+  id: number;
+  product_id: number;
+  product_sku: string;
+  product_name: string;
+  supplier_id: number;
+  supplier_name: string;
+  contract_price: string;
+  currency_code: string;
+  lead_time_days: number;
+  valid_from: string | null;
+  valid_until: string | null;
+  is_active: boolean;
+  is_current: boolean;
+  created_at: string;
+}
+
+export type AttachmentParentType = "purchase_request" | "purchase_order";
+
+export interface Attachment {
+  id: number;
+  parent_type: AttachmentParentType;
+  parent_id: number;
+  filename: string;
+  content_type: string;
+  size_bytes: number;
+  uploaded_by: Person;
+  created_at: string;
+}
+
+export interface VersionChange {
+  kind: "field" | "line_added" | "line_removed" | "line_changed" | "total";
+  label: string;
+  field?: string;
+  from?: string | number | null;
+  to?: string | number | null;
+  quantity?: number;
+  unit_price?: string;
+  line_total?: string;
+  from_total?: string;
+  to_total?: string;
+  changes?: { field: string; label: string; from: string | number | null; to: string | number | null }[];
+}
+
+export interface PurchaseOrderVersion {
+  id: number;
+  po_id: number;
+  version: number;
+  status: "applied" | "pending_approval" | "rejected";
+  reason: string;
+  created_by_person: Person;
+  created_at: string;
+  decided_at: string | null;
+  changes: VersionChange[];
 }

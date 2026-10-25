@@ -56,6 +56,8 @@ REQUIRED_FIELDS = frozenset(
         "po_number_prefix",
         "invoice_tolerance_percent",
         "default_payment_terms_days",
+        "budget_block_over_budget",
+        "budget_warn_percent",
     }
 )
 
@@ -82,6 +84,8 @@ class CompanySettingsUpdate(BaseModel):
     po_number_prefix: PONumberPrefix | None = None
     invoice_tolerance_percent: Decimal | None = Field(default=None, ge=0, le=100, decimal_places=2)
     default_payment_terms_days: int | None = Field(default=None, ge=0, le=365)
+    budget_block_over_budget: bool | None = None
+    budget_warn_percent: Decimal | None = Field(default=None, ge=0, le=100, decimal_places=2)
 
     @model_validator(mode="after")
     def _required_fields_are_not_cleared(self) -> "CompanySettingsUpdate":
@@ -119,4 +123,6 @@ class CompanySettingsRead(BrandingRead):
     po_number_prefix: str
     invoice_tolerance_percent: Decimal
     default_payment_terms_days: int
+    budget_block_over_budget: bool
+    budget_warn_percent: Decimal
     updated_at: datetime

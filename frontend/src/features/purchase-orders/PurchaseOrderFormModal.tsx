@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 
 import type { PurchaseOrderInput } from "@/api/purchaseOrders";
+import { useCostCentres } from "@/api/budgets";
 import { useCurrencies, useTaxRates } from "@/api/finance";
 import { useProducts } from "@/api/products";
 import { useSuppliers } from "@/api/suppliers";
@@ -28,6 +29,7 @@ export function PurchaseOrderFormModal({ isOpen, onClose, onSubmit, isSubmitting
   const { data: products } = useProducts({ page: 1, page_size: 100, is_active: true });
   const { data: currencies } = useCurrencies(true);
   const { data: taxRates } = useTaxRates(true);
+  const { data: costCentres } = useCostCentres(true);
 
   const {
     register,
@@ -47,6 +49,7 @@ export function PurchaseOrderFormModal({ isOpen, onClose, onSubmit, isSubmitting
     if (isOpen) {
       reset({
         supplier_id: "",
+        cost_centre_id: "",
         expected_delivery_date: "",
         notes: "",
         items: [{ product_id: "", quantity: 1, unit_price: 0 }],
@@ -57,6 +60,7 @@ export function PurchaseOrderFormModal({ isOpen, onClose, onSubmit, isSubmitting
   const submit = handleSubmit(async (values) => {
     await onSubmit({
       supplier_id: Number(values.supplier_id),
+      cost_centre_id: values.cost_centre_id ? Number(values.cost_centre_id) : null,
       currency_code: values.currency_code || null,
       expected_delivery_date: values.expected_delivery_date || null,
       notes: values.notes || null,
@@ -93,6 +97,17 @@ export function PurchaseOrderFormModal({ isOpen, onClose, onSubmit, isSubmitting
               {currencies?.map((currency) => (
                 <option key={currency.code} value={currency.code}>
                   {currency.code} — {currency.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="cost_centre_id">Cost centre</Label>
+            <Select id="cost_centre_id" {...register("cost_centre_id")}>
+              <option value="">None</option>
+              {costCentres?.map((centre) => (
+                <option key={centre.id} value={centre.id}>
+                  {centre.code} — {centre.name}
                 </option>
               ))}
             </Select>

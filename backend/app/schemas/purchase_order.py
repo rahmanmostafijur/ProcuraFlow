@@ -58,6 +58,8 @@ class PurchaseOrderCreate(BaseModel):
     supplier_id: int
     # Omitted: the supplier's default currency, else the company's base currency.
     currency_code: CurrencyCodeStr | None = None
+    # The budget the order is charged to; optional.
+    cost_centre_id: int | None = None
     expected_delivery_date: date | None = None
     notes: str | None = None
     items: POItemList = Field(min_length=1)
@@ -65,6 +67,7 @@ class PurchaseOrderCreate(BaseModel):
 
 class PurchaseOrderUpdate(BaseModel):
     currency_code: CurrencyCodeStr | None = None
+    cost_centre_id: int | None = None
     expected_delivery_date: date | None = None
     notes: str | None = None
     items: POItemList | None = None
@@ -78,6 +81,10 @@ class PurchaseOrderRead(BaseModel):
     supplier: SupplierRead
     status: POStatus
     currency_code: str
+    cost_centre_id: int | None
+    purchase_request_id: int | None
+    # How many times the order has been amended; 1 is the order as first approved.
+    version: int
     expected_delivery_date: date | None
     notes: str | None
     items: list[POItemRead]

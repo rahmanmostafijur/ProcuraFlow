@@ -5,8 +5,13 @@ from fastapi.responses import JSONResponse
 from app.core.config import get_settings
 from app.core.proxy import TrustedProxyMiddleware
 from app.routers import (
+    approval_admin,
+    approvals,
+    attachments,
     audit,
     auth,
+    budgets,
+    catalog,
     categories,
     company_settings,
     currencies,
@@ -14,8 +19,10 @@ from app.routers import (
     deliveries,
     health,
     inventory,
+    po_amendments,
     products,
     purchase_orders,
+    purchase_requests,
     reports,
     roles,
     suppliers,
@@ -73,3 +80,10 @@ app.include_router(audit.router, prefix=API_PREFIX)
 app.include_router(company_settings.router, prefix=API_PREFIX)
 app.include_router(currencies.router, prefix=API_PREFIX)
 app.include_router(tax_rates.router, prefix=API_PREFIX)
+app.include_router(purchase_requests.router, prefix=API_PREFIX)
+app.include_router(approvals.router, prefix=API_PREFIX)
+app.include_router(approval_admin.router, prefix=API_PREFIX)
+app.include_router(po_amendments.router, prefix=API_PREFIX)
+app.include_router(budgets.router, prefix=API_PREFIX)
+app.include_router(catalog.router, prefix=API_PREFIX)
+app.include_router(attachments.router, prefix=API_PREFIX)

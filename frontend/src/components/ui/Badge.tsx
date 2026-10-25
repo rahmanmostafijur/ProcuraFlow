@@ -16,6 +16,14 @@ const STATUS_COLORS: Record<string, string> = {
   on_time: "bg-green-100 text-green-800",
   delayed: "bg-red-100 text-red-700",
   partial: "bg-amber-100 text-amber-800",
+  rejected: "bg-red-100 text-red-700",
+  converted: "bg-indigo-100 text-indigo-800",
+  skipped: "bg-slate-100 text-slate-500",
+  ok: "bg-green-100 text-green-800",
+  warning: "bg-amber-100 text-amber-800",
+  over: "bg-red-100 text-red-700",
+  applied: "bg-green-100 text-green-800",
+  pending_approval: "bg-amber-100 text-amber-800",
 };
 
 export function Badge({ status, children }: { status?: string; children: ReactNode }) {

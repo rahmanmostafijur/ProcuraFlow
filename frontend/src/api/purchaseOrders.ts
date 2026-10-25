@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiClient } from "./client";
-import type { PaginatedResponse, POStatus, PurchaseOrder } from "./types";
+import type { PaginatedResponse, POStatus, PurchaseOrder, PurchaseOrderVersion } from "./types";
 
 export interface PurchaseOrderListParams {
   page: number;
@@ -19,6 +19,7 @@ export interface PurchaseOrderItemInput {
 
 export interface PurchaseOrderInput {
   supplier_id: number;
+  cost_centre_id?: number | null;
   // Omitted: the supplier's default currency, else the company's base currency.
   currency_code?: string | null;
   expected_delivery_date?: string | null;
@@ -72,6 +73,66 @@ export function usePurchaseOrderTransition(transition: Transition) {
         queryClient.invalidateQueries({ queryKey: ["purchase-orders"] }),
         queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
       ]),
+  });
+}
+
+export function useRejectPurchaseOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, comment }: { id: number; comment: string }) => {
+      const { data } = await apiClient.post<PurchaseOrder>(`/purchase-orders/${id}/reject`, { comment });
+      return data;
+    },
+    onSuccess: () =>
+      Promise.all(
+        ["purchase-orders", "approvals", "dashboard"].map((key) => queryClient.invalidateQueries({ queryKey: [key] })),
+      ),
+  });
+}
+
+export function usePurchaseOrderVersions(id: number | undefined) {
+  return useQuery({
+    queryKey: ["purchase-orders", id, "versions"],
+    queryFn: async () => {
+      const { data } = await apiClient.get<PurchaseOrderVersion[]>(`/purchase-orders/${id}/versions`);
+      return data;
+    },
+    enabled: id !== undefined,
+  });
+}
+
+export interface AmendInput {
+  reason: string;
+  items?: PurchaseOrderItemInput[];
+  expected_delivery_date?: string | null;
+  notes?: string | null;
+}
+
+export function useAmendPurchaseOrder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...input }: AmendInput & { id: number }) => {
+      const { data } = await apiClient.post<PurchaseOrderVersion>(`/purchase-orders/${id}/amend`, input);
+      return data;
+    },
+    onSuccess: () =>
+      Promise.all(
+        ["purchase-orders", "approvals", "dashboard", "deliveries"].map((key) =>
+          queryClient.invalidateQueries({ queryKey: [key] }),
+        ),
+      ),
+  });
+}
+
+export function useWithdrawAmendment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (versionId: number) => {
+      const { data } = await apiClient.post<PurchaseOrderVersion>(`/po-amendments/${versionId}/withdraw`);
+      return data;
+    },
+    onSuccess: () =>
+      Promise.all(["purchase-orders", "approvals"].map((key) => queryClient.invalidateQueries({ queryKey: [key] }))),
   });
 }
 

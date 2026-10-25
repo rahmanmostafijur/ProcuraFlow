@@ -44,6 +44,11 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Db
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
+def has_permission(user: User, permission_code: str) -> bool:
+    """Whether the user's role grants the permission. The user must have been loaded with role and permissions."""
+    return any(permission.code == permission_code for permission in user.role.permissions)
+
+
 def require_permission(permission_code: str) -> Callable[[CurrentUser], Awaitable[User]]:
     async def _checker(current_user: CurrentUser) -> User:
         permission_codes = {p.code for p in current_user.role.permissions}

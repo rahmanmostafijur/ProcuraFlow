@@ -6,11 +6,14 @@ from decimal import Decimal
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.clock import utc_today
 from app.models.enums import COMMITTED_PO_STATUSES, POStatus
 from app.models.product import Product
 from app.models.supplier import Supplier
+from app.models.user import User
 from app.services import metrics_service
 from tests.fixture_types import AuthHeaders, MakeUser
+from tests.flow_helpers import API, submitted_po, user_id
 from tests.po_factory import build_po
 
 SPEND_BY_SUPPLIER_URL = "/api/v1/reports/supplier-performance"
@@ -119,6 +122,80 @@ async def test_the_company_time_zone_decides_which_month_an_order_belongs_to(
 
     assert [row["month"] for row in in_utc] == ["2026-03"]
     assert [row["month"] for row in in_tokyo] == ["2026-04"]
+
+
+async def test_the_approvals_badge_equals_the_length_of_the_queue_it_links_to(
+    client: AsyncClient, auth_headers: AuthHeaders, db_session: AsyncSession, supplier: Supplier, product: Product
+) -> None:
+    officer = await auth_headers("purchasing_officer")
+    employee = await auth_headers("employee")
+    manager = await auth_headers("procurement_manager")
+    viewer = await auth_headers("viewer")
+    await submitted_po(client, officer, supplier, product)
+    await submitted_po(client, officer, supplier, product)
+    request = (
+        await client.post(
+            f"{API}/purchase-requests",
+            json={"title": "Desk", "lines": [{"description": "Desk", "quantity": 1, "estimated_unit_price": "300"}]},
+            headers=employee,
+        )
+    ).json()
+    await client.post(f"{API}/purchase-requests/{request['id']}/submit", headers=employee)
+
+    for headers, expected in ((manager, 3), (officer, 0), (employee, 0), (viewer, 0)):
+        user = await db_session.get(User, await user_id(client, headers))
+        assert user is not None
+        queue_page = (await client.get(f"{API}/approvals/queue", headers=headers)).json()
+        assert queue_page["total"] == len(queue_page["items"]) == expected
+        assert await metrics_service.pending_approval_count(db_session, user) == expected
+
+
+async def test_budget_figures_agree_with_the_spend_report(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    auth_headers: AuthHeaders,
+    make_user: MakeUser,
+    product: Product,
+) -> None:
+    finance = await auth_headers("finance")
+    creator = await make_user("creator@example.com", "procurement_manager")
+    centre = (
+        await client.post(f"{API}/cost-centres", json={"code": "MKT", "name": "Marketing"}, headers=finance)
+    ).json()
+    await client.put(
+        f"{API}/budgets",
+        json={"cost_centre_id": centre["id"], "fiscal_year": utc_today().year, "amount": "100000"},
+        headers=finance,
+    )
+    for index, (status, price) in enumerate(
+        (
+            (POStatus.APPROVED, "120.00"),
+            (POStatus.ORDERED, "80.50"),
+            (POStatus.RECEIVED, "300.25"),
+            (POStatus.DRAFT, "9.00"),
+        )
+    ):
+        db_session.add(
+            build_po(
+                po_number=f"PO-BUD-{index}",
+                supplier_id=product.supplier_id,
+                created_by=creator.id,
+                status=status,
+                lines=[(product.id, 1, Decimal(price))],
+                cost_centre_id=centre["id"],
+                approved_at=datetime.now(UTC),
+            )
+        )
+    await db_session.commit()
+
+    [position] = (await client.get(f"{API}/budgets", headers=finance)).json()
+    spend = (await client.get(SPEND_BY_SUPPLIER_URL, headers=finance)).json()
+
+    # Every committed order belongs to this one supplier and cost centre, so the report's spend is exactly the
+    # budget screen's spent plus committed.
+    [row] = [r for r in spend if r["supplier_id"] == product.supplier_id]
+    assert Decimal(position["spent"]) + Decimal(position["committed"]) == Decimal(row["total_spend"])
+    assert Decimal(position["remaining"]) == Decimal(position["budget"]) - Decimal(row["total_spend"])
 
 
 async def test_dashboard_counts_match_the_purchase_order_lists(

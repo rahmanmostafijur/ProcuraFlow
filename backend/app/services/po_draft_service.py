@@ -17,6 +17,7 @@ from app.models.user import User
 from app.schemas.purchase_order import PurchaseOrderCreate, PurchaseOrderUpdate
 from app.services import po_pricing
 from app.services.audit_service import current_values, field_changes
+from app.services.budget_service import get_active_cost_centre
 from app.services.currency_service import get_active_currency
 from app.services.po_pricing import LineSpec
 from app.services.purchase_order_service import generate_po_number
@@ -47,7 +48,8 @@ async def _ensure_products_exist(db: AsyncSession, product_ids: set[int]) -> Non
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown product ids: {sorted(missing)}")
 
 
-async def _specs_from_payload(db: AsyncSession, items: Iterable[Mapping[str, Any]]) -> list[LineSpec]:
+async def specs_from_payload(db: AsyncSession, items: Iterable[Mapping[str, Any]]) -> list[LineSpec]:
+    """Validate submitted lines (products exist, tax rates usable) and turn them into pricing specs."""
     rows = list(items)
     await _ensure_products_exist(db, {row["product_id"] for row in rows})
     snapshots = await po_pricing.resolve_tax_snapshots(
@@ -64,19 +66,25 @@ async def _specs_from_payload(db: AsyncSession, items: Iterable[Mapping[str, Any
     ]
 
 
-async def create_draft(db: AsyncSession, payload: PurchaseOrderCreate, creator: User) -> PurchaseOrder:
+async def create_draft(
+    db: AsyncSession, payload: PurchaseOrderCreate, creator: User, *, purchase_request_id: int | None = None
+) -> PurchaseOrder:
     supplier = await db.get(Supplier, payload.supplier_id)
     if supplier is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Supplier not found")
+    if payload.cost_centre_id is not None:
+        await get_active_cost_centre(db, payload.cost_centre_id)
 
     currency = await po_pricing.resolve_currency(db, payload.currency_code, supplier)
-    specs = await _specs_from_payload(db, (item.model_dump() for item in payload.items))
+    specs = await specs_from_payload(db, (item.model_dump() for item in payload.items))
     items, totals = po_pricing.price_lines(specs, currency)
 
     po = PurchaseOrder(
         po_number=await generate_po_number(db),
         supplier_id=payload.supplier_id,
         currency_code=currency.code,
+        cost_centre_id=payload.cost_centre_id,
+        purchase_request_id=purchase_request_id,
         expected_delivery_date=payload.expected_delivery_date,
         notes=payload.notes,
         created_by=creator.id,
@@ -97,6 +105,8 @@ async def update_draft(db: AsyncSession, po: PurchaseOrder, payload: PurchaseOrd
     update_data = payload.model_dump(exclude_unset=True)
     items_data = update_data.pop("items", None)
     requested_currency = update_data.pop("currency_code", None)
+    if update_data.get("cost_centre_id") is not None:
+        await get_active_cost_centre(db, update_data["cost_centre_id"])
     changes = field_changes(current_values(po, update_data), update_data)
     for field, value in update_data.items():
         setattr(po, field, value)
@@ -110,7 +120,7 @@ async def update_draft(db: AsyncSession, po: PurchaseOrder, payload: PurchaseOrd
         return changes
 
     if items_data is not None:
-        specs = await _specs_from_payload(db, items_data)
+        specs = await specs_from_payload(db, items_data)
         previous_lines = _audited_lines(current_values(item, AUDITED_LINE_FIELDS) for item in po.items)
         changes = {**changes, **field_changes({"items": previous_lines}, {"items": _audited_lines(items_data)})}
     else:

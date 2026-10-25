@@ -2,8 +2,20 @@ import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import { useApprovalQueue } from "@/api/approvals";
+import { useCostCentres } from "@/api/budgets";
 import { extractErrorMessage } from "@/api/client";
-import { usePurchaseOrder, usePurchaseOrderTransition, useReceivePurchaseOrder } from "@/api/purchaseOrders";
+import {
+  useAmendPurchaseOrder,
+  usePurchaseOrder,
+  usePurchaseOrderTransition,
+  useReceivePurchaseOrder,
+  useRejectPurchaseOrder,
+  type AmendInput,
+} from "@/api/purchaseOrders";
+import { ApprovalTimeline } from "@/components/approvals/ApprovalTimeline";
+import { DecisionDialog } from "@/components/approvals/DecisionDialog";
+import { Attachments } from "@/components/attachments/Attachments";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -14,9 +26,15 @@ import { useToast } from "@/components/ui/toast-context";
 import { useAuth } from "@/lib/auth-context";
 import { formatDate, formatDateTime } from "@/lib/utils";
 
-import { canApprovePurchaseOrder, needsAnotherApprover } from "./approval";
+import { canDecidePurchaseOrder, needsAnotherApprover } from "./approval";
+import { AmendPurchaseOrderModal } from "./AmendPurchaseOrderModal";
 import { PurchaseOrderLines } from "./PurchaseOrderLines";
 import { ReceivePurchaseOrderModal } from "./ReceivePurchaseOrderModal";
+import { VersionsPanel } from "./VersionsPanel";
+
+// The API caps a page at 100 items.
+const QUEUE_LOOKUP_SIZE = 100;
+const AMENDABLE_STATUSES = ["approved", "ordered", "partially_received"];
 
 type PendingAction = "submit" | "approve" | "order" | "cancel" | null;
 
@@ -33,9 +51,15 @@ export function PurchaseOrderDetailPage() {
   const orderMutation = usePurchaseOrderTransition("order");
   const cancelMutation = usePurchaseOrderTransition("cancel");
   const receiveMutation = useReceivePurchaseOrder();
+  const rejectMutation = useRejectPurchaseOrder();
+  const amendMutation = useAmendPurchaseOrder();
+  const { data: queue } = useApprovalQueue(1, QUEUE_LOOKUP_SIZE);
+  const { data: costCentres } = useCostCentres();
 
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [isReceiveModalOpen, setReceiveModalOpen] = useState(false);
+  const [isRejectOpen, setRejectOpen] = useState(false);
+  const [isAmendOpen, setAmendOpen] = useState(false);
 
   if (isLoading) return <LoadingState label="Loading purchase order…" />;
   if (isError || !po) return <ErrorState message="Purchase order not found." />;
@@ -74,9 +98,32 @@ export function PurchaseOrderDetailPage() {
     }
   };
 
+  const handleReject = async (comment: string) => {
+    try {
+      await rejectMutation.mutateAsync({ id: po.id, comment });
+      showToast("Purchase order rejected and cancelled");
+      setRejectOpen(false);
+    } catch (error) {
+      showToast(extractErrorMessage(error), "error");
+    }
+  };
+
+  const handleAmend = async (input: AmendInput) => {
+    try {
+      const version = await amendMutation.mutateAsync({ id: po.id, ...input });
+      showToast(version.status === "applied" ? "Change applied" : "Change sent for approval");
+      setAmendOpen(false);
+    } catch (error) {
+      showToast(extractErrorMessage(error), "error");
+    }
+  };
+
   const canCreate = hasPermission("po:create");
-  const canApprove = canApprovePurchaseOrder(po, user, hasPermission);
-  const showApproverHint = needsAnotherApprover(po, user, hasPermission);
+  const canApprove = canDecidePurchaseOrder(po, queue?.items);
+  const showApproverHint = needsAnotherApprover(po, user, hasPermission, queue?.items);
+  const costCentre = costCentres?.find((centre) => centre.id === po.cost_centre_id);
+  const canAmend = AMENDABLE_STATUSES.includes(po.status) && hasPermission("po:transition");
+  const showVersions = !["draft", "submitted"].includes(po.status);
   const canTransition = hasPermission("po:transition");
   const canReceive = hasPermission("inventory:write");
 
@@ -124,6 +171,16 @@ export function PurchaseOrderDetailPage() {
                 {a.label}
               </Button>
             ))}
+          {canApprove && (
+            <Button variant="danger" onClick={() => setRejectOpen(true)}>
+              Reject
+            </Button>
+          )}
+          {canAmend && (
+            <Button variant="secondary" onClick={() => setAmendOpen(true)}>
+              Amend
+            </Button>
+          )}
           {canReceiveNow && <Button onClick={() => setReceiveModalOpen(true)}>Receive Stock</Button>}
           {showApproverHint && (
             <p className="self-center text-sm text-slate-500">
@@ -142,6 +199,10 @@ export function PurchaseOrderDetailPage() {
             <div className="flex justify-between">
               <dt className="text-slate-500">Currency</dt>
               <dd className="font-medium text-slate-800">{po.currency_code}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-slate-500">Cost centre</dt>
+              <dd className="text-slate-800">{costCentre ? `${costCentre.code} — ${costCentre.name}` : "—"}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-slate-500">Created by</dt>
@@ -171,6 +232,12 @@ export function PurchaseOrderDetailPage() {
         </Card>
       </div>
 
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <ApprovalTimeline documentType="purchase_order" documentId={po.id} />
+        <Attachments parentType="purchase_order" parentId={po.id} canWrite={canCreate} />
+      </div>
+      {showVersions && <VersionsPanel po={po} />}
+
       <ConfirmDialog
         isOpen={pendingAction !== null}
         title={pendingAction === "cancel" ? "Cancel Purchase Order" : "Confirm Action"}
@@ -188,6 +255,22 @@ export function PurchaseOrderDetailPage() {
         onCancel={() => setPendingAction(null)}
       />
 
+      <DecisionDialog
+        isOpen={isRejectOpen}
+        mode="reject"
+        subject={`${po.po_number} · ${po.supplier.name}`}
+        notice="A rejected purchase order is cancelled. The creator can raise a new one."
+        isSubmitting={rejectMutation.isPending}
+        onClose={() => setRejectOpen(false)}
+        onSubmit={(comment) => void handleReject(comment)}
+      />
+      <AmendPurchaseOrderModal
+        isOpen={isAmendOpen}
+        po={po}
+        isSubmitting={amendMutation.isPending}
+        onClose={() => setAmendOpen(false)}
+        onSubmit={handleAmend}
+      />
       <ReceivePurchaseOrderModal
         isOpen={isReceiveModalOpen}
         onClose={() => setReceiveModalOpen(false)}

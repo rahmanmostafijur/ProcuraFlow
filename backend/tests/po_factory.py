@@ -2,6 +2,7 @@
 statuses or timestamps without walking each order through the API."""
 
 from collections.abc import Sequence
+from datetime import datetime
 from decimal import Decimal
 
 from app.core.money import compute_line, sum_lines
@@ -12,7 +13,7 @@ from app.models.purchase_order_item import PurchaseOrderItem
 Line = tuple[int, int, Decimal]  # product id, quantity, unit price
 
 
-def build_po(
+def build_po(  # noqa: PLR0913 - a test factory: every field is a named, optional override
     *,
     po_number: str,
     supplier_id: int | None,
@@ -22,6 +23,8 @@ def build_po(
     currency_code: str = "USD",
     minor_units: int = 2,
     exchange_rate: Decimal = Decimal(1),
+    cost_centre_id: int | None = None,
+    approved_at: datetime | None = None,
 ) -> PurchaseOrder:
     """An order whose line, document and (for committed statuses) base-currency amounts are already stored."""
     items: list[PurchaseOrderItem] = []
@@ -52,6 +55,8 @@ def build_po(
         created_by=created_by,
         status=status,
         currency_code=currency_code,
+        cost_centre_id=cost_centre_id,
+        approved_at=approved_at,
         subtotal=totals.subtotal,
         tax_total=totals.tax_total,
         grand_total=totals.grand_total,

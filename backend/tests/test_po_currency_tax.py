@@ -194,15 +194,40 @@ async def test_changing_a_draft_currency_reprices_it_in_the_new_minor_units(
     assert Decimal(body["grand_total"]) == Decimal(1001)
 
 
-async def test_a_missing_exchange_rate_blocks_approval_and_leaves_the_order_submitted(
+async def test_an_order_in_a_foreign_currency_cannot_be_submitted_without_a_rate(
     client: AsyncClient, auth_headers: AuthHeaders, supplier: Supplier, product: Product
 ) -> None:
     officer = await auth_headers("purchasing_officer")
+    po_id = (await _create_po(client, officer, supplier, [_line(product, 10, "10.00")], currency_code="EUR")).json()[
+        "id"
+    ]
+
+    response = await client.post(f"{PO_URL}/{po_id}/submit", headers=officer)
+
+    # Approval rules and limits are written in the base currency, so the amount must be convertible up front.
+    assert response.status_code == 409
+    assert "exchange rate" in response.json()["detail"]
+    assert (await client.get(f"{PO_URL}/{po_id}", headers=officer)).json()["status"] == "draft"
+
+
+async def test_a_rate_that_disappears_after_submission_blocks_approval_and_leaves_the_order_submitted(
+    client: AsyncClient, auth_headers: AuthHeaders, supplier: Supplier, product: Product
+) -> None:
+    finance = await auth_headers("finance")
+    officer = await auth_headers("purchasing_officer")
     manager = await auth_headers("procurement_manager")
+    rate_id = (
+        await client.post(
+            "/api/v1/exchange-rates",
+            json={"currency_code": "EUR", "rate": "1.1", "effective_date": utc_today().isoformat()},
+            headers=finance,
+        )
+    ).json()["id"]
     po_id = (await _create_po(client, officer, supplier, [_line(product, 10, "10.00")], currency_code="EUR")).json()[
         "id"
     ]
     await client.post(f"{PO_URL}/{po_id}/submit", headers=officer)
+    await client.delete(f"/api/v1/exchange-rates/{rate_id}", headers=finance)
 
     response = await client.post(f"{PO_URL}/{po_id}/approve", headers=manager)
 
