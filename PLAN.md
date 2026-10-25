@@ -4,6 +4,13 @@ Goal: turn ProcuraFlow into a complete, self-hosted procure-to-pay product for s
 US and Europe. Work happens on the `vibe96` branch, one phase at a time, one conventional commit per phase after
 backend tests, frontend tests, type-check, lint and build are green. Nothing is pushed or deployed.
 
+Positioning: a lean, self-hosted procure-to-pay app for small and mid-size companies in the US and Europe with a
+one-time licence, no monthly fee, full source code and numbers you can trust. All design, text, names and layouts are
+original; nothing is copied from another product.
+
+Out of scope for v1.0: AI assistant, contracts module, third-party ERP integrations, e-signature, guided product tour,
+Arabic/RTL.
+
 ## Starting point (measured 2026-10-26 on `main` at 06d6cfe)
 
 - Backend: FastAPI, async SQLAlchemy 2, Alembic, Postgres 16. 242 tests pass, ruff and strict mypy are clean.
@@ -60,6 +67,11 @@ shadcn/ui; this brief keeps Tailwind 3 with a token-based design system). The wo
   payment terms. New permission `finance:manage`, new role `finance`.
 - Dashboard and reports switch to stored base-currency amounts. Base currency can only change while no order has a
   locked rate.
+- Metrics integrity (the core selling point) starts here: `app/services/metrics_service.py` is the only place a
+  business number is computed, one definition per metric, documented in `docs/metrics.md` (name, formula, period,
+  timezone, statuses included). The dashboard and every report call it. "This month" uses the company time zone.
+  Each later phase adds its metrics to the same service and the same document, and a cross-screen test asserts that
+  every metric is identical through every API that shows it.
 
 ## Phase 3: purchase requests and approval rules
 
@@ -78,6 +90,16 @@ shadcn/ui; this brief keeps Tailwind 3 with a token-based design system). The wo
   the current step.
 - "My approvals" queue for requests, POs and (Phase 4) invoice exceptions. New roles: `employee`,
   `department_manager`. Generic `attachments` table (parent type + id) with access derived from the parent.
+- Per-user approval limits by document type (base currency): a user cannot decide a document above their limit.
+  Delegation for a date range records both the delegate and the original approver on every decision.
+- Budgets per cost centre and fiscal year (the fiscal year start comes from settings): spent, committed, remaining,
+  computed by the metrics service. Settings: block over-budget requests (on/off) and warn the owner at a configurable
+  percentage. Moving budget between cost centres needs finance approval and keeps a full change history. A request or
+  PO that breaks a blocking rule cannot be approved, checked in the service so no endpoint can skip it (tested).
+  POs and requests carry a cost centre.
+- Simple catalog: items with contract price, supplier and lead time; request lines can pick from it.
+- PO amendments: an ordered PO can be amended, each change creates a version with a readable diff of what changed
+  (lines, prices, dates, supplier terms), and an amendment that raises the total goes back through approval.
 
 ## Phase 4: supplier invoices, matching and payments
 
@@ -88,6 +110,13 @@ shadcn/ui; this brief keeps Tailwind 3 with a token-based design system). The wo
 - Statuses: draft, matched, exception, approved, on hold, paid, void. Manual payments (bank transfer, card, cheque),
   partial payments allowed, never above the open amount; fully paid invoices become `paid`.
 - Permissions `invoice:read`, `invoice:write`, `invoice:approve`, `payment:write`.
+- Goods receipt with accepted and rejected quantity and a condition note. Rejected quantity stays open on the PO, and
+  three-way matching counts accepted quantity only. A lightweight return-to-supplier record has a reason, a resolution
+  (replace, credit note or repair) and a status.
+- Duplicate invoice detection (same supplier and invoice number, or same supplier, amount and a date within a
+  window) is stored as a match exception with a link to the invoice it duplicates.
+- Payment runs: approved invoices are grouped into a run that a second person must release; the same person cannot
+  create and release it. Releasing records the payments. File export of a released run is in Phase 6.
 
 ## Phase 5: documents and email
 
@@ -100,6 +129,8 @@ shadcn/ui; this brief keeps Tailwind 3 with a token-based design system). The wo
   rendered in a Jinja2 sandbox with a fixed variable list and validated on save.
 - Password reset and invitations: hashed, single-use tokens (reset: 30 minutes), throttled requests, no account
   enumeration, sessions revoked on reset. Profile page: change own password.
+- Notification centre on the existing `notifications` table, with a command that runs daily (for cron) to create
+  notifications for expiring supplier documents (Phase 6) and overdue approvals.
 
 ## Phase 6: attachments, exports and GDPR
 
@@ -109,31 +140,68 @@ shadcn/ui; this brief keeps Tailwind 3 with a token-based design system). The wo
   through one shared writer that applies the existing formula-injection protection.
 - GDPR (`gdpr:manage`, admin): JSON export of a user's or supplier contact's personal data; anonymisation that keeps
   financial records intact; both recorded in the audit log.
+- Supplier documents (W-9, VAT certificate, insurance, ISO, bank letter) with expiry dates. The status (valid,
+  expiring soon, expired) is computed from today's date when queried and never stored. Changing a supplier's bank
+  details needs a second approver, and the old details stay in the history.
+- Payment file export from a released payment run: SEPA credit transfer (ISO 20022 pain.001) for EU suppliers and
+  NACHA/ACH CSV for US suppliers; the file is generated once per run and the export is audited.
+- Lite supplier portal: suppliers are invited by email and sign in to a separate, simpler area (own role, own routes).
+  They see only their own POs, acknowledge them, upload invoices and keep their documents current. Isolation is
+  enforced in a single scoped query layer and tested hard: a supplier can never read or change another supplier's
+  data, and a supplier account can reach no internal endpoint.
 
 ## Phase 7: design system and redesign
 
-- Tokens as CSS variables (colour, radius, shadow, spacing, type) wired into `tailwind.config.ts`; Plus Jakarta Sans
-  self-hosted via `@fontsource`; ink/navy neutrals, emerald/teal brand, amber accent; light and dark themes with a
-  toggle, WCAG AA contrast, `prefers-reduced-motion` honoured.
-- Component set: buttons, inputs, selects, date picker, data table (sort, filter, paginate, sticky header), badges,
-  KPI cards, modal, drawer, tabs, toasts, skeletons, SVG empty-state illustrations, confirm dialog, Ctrl+K search
-  (backed by a scope-aware `/search` endpoint).
-- Every screen redesigned, responsive to 360px, keyboard accessible. Routes are code-split.
+- Step A, `DESIGN.md` first: brand idea in one sentence; tokens as CSS variables wired into `tailwind.config.ts`
+  (ink/navy neutrals 50-950, emerald/teal brand, amber accent, red/orange/blue for status, each text pairing checked
+  against WCAG AA, light and dark themes, spacing scale, radii 8/12/16/20, three soft layered elevations, motion
+  durations and easing, `prefers-reduced-motion` honoured). Plus Jakarta Sans self-hosted via `@fontsource`, tabular
+  numerals on every amount, table and KPI, a mono face only for document numbers, negative letter-spacing on display
+  sizes. Money and dates formatted with `Intl` from the company locale and currency, never hand-built strings.
+- Step B, component library with a dev-only `/design-system` route showing every component in every state (default,
+  hover, focus, disabled, loading, error, empty, dark): buttons, inputs, selects, combobox, date range picker, data
+  table (sorting, filters, column visibility, pagination, row selection, sticky header, density toggle), status
+  badges, KPI cards with sparkline, token-themed charts with custom tooltips, modal, drawer, tabs, toasts, skeletons,
+  empty states with original SVG illustrations in one style, confirm dialog, command palette (Ctrl+K, recent items
+  and actions, backed by a scope-aware `/search` endpoint), shortcut help (?), lifecycle stepper, activity timeline,
+  diff viewer, file dropzone.
+- Step C, every screen redesigned: collapsible sidebar grouped by workflow with badges, breadcrumbs, global search,
+  theme toggle, notification centre, user menu. Every document page (request, PO, invoice, payment run) has a
+  lifecycle stepper, a sticky action bar with only the permitted actions, a summary panel and an activity timeline
+  with comments. Optimistic updates with rollback, inline validation, unsaved-changes warning. Split sign-in with a
+  small live component in the brand panel. Dashboard: request-to-paid pipeline strip, KPI cards with sparklines, spend
+  by month, budget health by cost centre, "waiting for you", documents expiring soon. Responsive to 360px, keyboard
+  accessible, routes code-split. Sidebar badge counts equal the length of the list they link to.
+- Step E, visual QA loop: a Playwright script captures every page at 1440x900, 1024x768 and 390x844 in light and dark
+  into `docs/qa-screens/`; the screenshots are reviewed against the checklist (spacing, overflow, hierarchy with one
+  primary action per view, icon sizes, right-aligned tabular amounts, empty and loading states, focus rings, dark-mode
+  contrast) and fixed until clean. axe-core checks in the frontend tests allow zero serious or critical violations.
+  `DESIGN_REVIEW.md` logs each pass.
 
 ## Phase 8: landing page and demo mode
 
-- Public landing page at `/` (signed-in users go to `/dashboard`).
-- `DEMO_MODE=true`: one-click role sign-in on the login page, destructive admin actions blocked, email logged only,
-  and `python -m app.cli.demo_reset` restores the demo data (for a nightly cron).
+- Step D, public landing page at `/` (signed-in users go to `/dashboard`): hero about trustworthy numbers and no
+  monthly fee with an animated request-to-pay pipeline built from real app components and realistic data (not
+  screenshots); the problem today, how it works, feature grid, "numbers you can trust" (metrics integrity explained),
+  security (audit log, RBAC, token rotation, throttling, supplier isolation), self-hosted with a one-time licence, FAQ
+  and a call to action to the live demo. No fake testimonials, customer logos or invented statistics. Lighthouse on
+  the landing page: Performance, Accessibility, Best Practices and SEO all at least 90.
+- `DEMO_MODE=true`: one-click role sign-in on the login page (including a supplier), destructive admin actions
+  blocked, email logged only, and `python -m app.cli.demo_reset` restores the demo data (for a nightly cron).
 - Realistic seed for a fictional US/EU company across 12 months in USD, EUR and GBP, created through the services
-  so totals, approvals, matching and stock all agree.
+  so totals, approvals, matching and stock all agree. It also shows every later feature alive: budgets near and over
+  limit, an expired and an expiring supplier document, a duplicate-invoice exception, a partial receipt with a
+  rejection and a return, a PO with two amendments, a delegated approval, a released SEPA run and two invited
+  suppliers with portal accounts. Afterwards every metric is re-checked across all screens.
 
 ## Phase 9: documentation and deployment
 
 - README, HowToSetup.md, AGENTS.md, CHANGELOG.md (1.0.0), complete `.env.example`; production refuses weak secrets.
 - Docker Compose route with Caddy (automatic HTTPS) and database backup/restore scripts; the existing Render + Neon +
   Vercel route; sizing and monthly cost for both.
-- Playwright script that captures 8+ screenshots at 1920x1080 into `docs/screenshots/`.
+- README, HowToSetup.md, AGENTS.md, CHANGELOG.md, `.env.example` and `docs/metrics.md` brought up to date.
+- Playwright script that captures at least 10 screenshots at 1920x1080 into `docs/screenshots/`, including the
+  landing page and the supplier portal.
 
 ## Final check
 
