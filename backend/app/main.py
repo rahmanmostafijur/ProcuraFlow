@@ -9,6 +9,7 @@ from app.routers import (
     auth,
     categories,
     company_settings,
+    currencies,
     dashboard,
     deliveries,
     health,
@@ -18,6 +19,7 @@ from app.routers import (
     reports,
     roles,
     suppliers,
+    tax_rates,
     users,
 )
 
@@ -69,3 +71,5 @@ app.include_router(dashboard.router, prefix=API_PREFIX)
 app.include_router(reports.router, prefix=API_PREFIX)
 app.include_router(audit.router, prefix=API_PREFIX)
 app.include_router(company_settings.router, prefix=API_PREFIX)
+app.include_router(currencies.router, prefix=API_PREFIX)
+app.include_router(tax_rates.router, prefix=API_PREFIX)

@@ -10,6 +10,7 @@ from app.models.user import User
 from app.schemas.common import PaginatedResponse
 from app.schemas.supplier import SupplierCreate, SupplierRead, SupplierUpdate
 from app.services.audit_service import current_values, field_changes, record_audit_event
+from app.services.currency_service import get_active_currency
 
 router = APIRouter(prefix="/suppliers", tags=["suppliers"])
 
@@ -49,6 +50,8 @@ async def get_supplier(supplier_id: int, db: DbSession, _: CurrentUser) -> Suppl
 
 @router.post("", response_model=SupplierRead, status_code=status.HTTP_201_CREATED)
 async def create_supplier(payload: SupplierCreate, db: DbSession, current_user: RequireSupplierWrite) -> Supplier:
+    if payload.currency_code is not None:
+        await get_active_currency(db, payload.currency_code)
     supplier = Supplier(**payload.model_dump())
     db.add(supplier)
     await db.flush()
@@ -69,6 +72,8 @@ async def update_supplier(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Supplier not found")
 
     update_data = payload.model_dump(exclude_unset=True)
+    if update_data.get("currency_code") is not None:
+        await get_active_currency(db, update_data["currency_code"])
     changes = field_changes(current_values(supplier, update_data), update_data)
     for field, value in update_data.items():
         setattr(supplier, field, value)

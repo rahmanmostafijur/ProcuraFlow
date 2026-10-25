@@ -13,6 +13,7 @@ from app.models.role import Role
 from app.models.user import User
 from app.services.company_settings_service import get_company_settings
 from app.services.inventory_service import apply_inventory_transaction, lock_products
+from app.services.po_pricing import lock_base_amounts
 
 # Responses serialize creator/approver roles, and a refreshing load resets lazy relationships,
 # so load them eagerly instead of relying on objects already in the session.
@@ -70,7 +71,7 @@ def submit_purchase_order(po: PurchaseOrder) -> None:
     po.status = POStatus.SUBMITTED
 
 
-def approve_purchase_order(po: PurchaseOrder, approver: User) -> None:
+async def approve_purchase_order(db: AsyncSession, po: PurchaseOrder, approver: User) -> None:
     # Separation of duties: nobody, including admins, signs off on spend they raised themselves.
     if po.created_by == approver.id:
         raise HTTPException(
@@ -78,6 +79,8 @@ def approve_purchase_order(po: PurchaseOrder, approver: User) -> None:
             detail="You cannot approve a purchase order you created.",
         )
     _ensure_transition_allowed(po.status, POStatus.APPROVED)
+    # Before the state change: a missing exchange rate must leave the order submitted, not half-approved.
+    await lock_base_amounts(db, po)
     po.status = POStatus.APPROVED
     po.approved_by = approver.id
     po.approved_at = datetime.now(UTC)

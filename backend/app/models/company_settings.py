@@ -44,7 +44,7 @@ class CompanySettings(Base):
     logo_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     brand_color: Mapped[str] = mapped_column(String(7), nullable=False)
 
-    base_currency_code: Mapped[str] = mapped_column(String(3), nullable=False)
+    base_currency_code: Mapped[str] = mapped_column(ForeignKey("currencies.code"), nullable=False, index=True)
     fiscal_year_start_month: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     date_format: Mapped[str] = mapped_column(String(10), nullable=False)
     timezone: Mapped[str] = mapped_column(String(64), nullable=False)

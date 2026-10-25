@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, ForeignKey, Integer, Numeric, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Integer, Numeric, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -25,8 +25,17 @@ class PurchaseOrderItem(Base):
     po_id: Mapped[int] = mapped_column(ForeignKey("purchase_orders.id", ondelete="CASCADE"), nullable=False, index=True)
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), nullable=False, index=True)
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
-    unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    unit_price: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
     received_quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # The tax chosen for the line, copied when the line is priced so later edits to the rate change nothing here.
+    tax_rate_id: Mapped[int | None] = mapped_column(ForeignKey("tax_rates.id"), index=True)
+    tax_name: Mapped[str | None] = mapped_column(String(100))
+    tax_percent: Mapped[Decimal] = mapped_column(Numeric(7, 4), nullable=False, default=0)
+    tax_inclusive: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    reverse_charge: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    line_net: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
+    line_tax: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
+    line_total: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
 
     purchase_order: Mapped["PurchaseOrder"] = relationship(back_populates="items")
     product: Mapped["Product"] = relationship()

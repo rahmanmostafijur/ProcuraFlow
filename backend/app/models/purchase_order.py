@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, DateTime, ForeignKey, Sequence, String, Text, func
+from sqlalchemy import Date, DateTime, ForeignKey, Numeric, Sequence, String, Text, func
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -28,6 +28,16 @@ class PurchaseOrder(Base):
     status: Mapped[POStatus] = mapped_column(
         SAEnum(POStatus, name="po_status"), nullable=False, default=POStatus.DRAFT, index=True
     )
+    currency_code: Mapped[str] = mapped_column(ForeignKey("currencies.code"), nullable=False, index=True)
+    # Stored, not derived: each line is rounded once when priced, and these are the sums of those lines.
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
+    tax_total: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
+    grand_total: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False, default=0)
+    # Locked at approval (base units per one unit of the PO currency), so base-currency reports never move.
+    exchange_rate: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
+    base_subtotal: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
+    base_tax_total: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
+    base_grand_total: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
     expected_delivery_date: Mapped[date | None] = mapped_column(Date)
     notes: Mapped[str | None] = mapped_column(Text)
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
@@ -50,4 +60,5 @@ class PurchaseOrder(Base):
 
     @property
     def total(self) -> Decimal:
-        return sum((item.quantity * item.unit_price for item in self.items), Decimal("0"))
+        """Kept for API compatibility: the amount payable in the PO currency."""
+        return self.grand_total

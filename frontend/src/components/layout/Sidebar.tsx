@@ -2,6 +2,7 @@ import {
   BarChart3,
   Building2,
   ClipboardList,
+  Coins,
   History,
   LayoutDashboard,
   Package,
@@ -34,6 +35,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/deliveries", label: "Deliveries", icon: Truck },
   { to: "/reports", label: "Reports", icon: BarChart3 },
   { to: "/audit-log", label: "Audit Log", icon: History, permission: "audit:read" },
+  { to: "/finance", label: "Currencies & tax", icon: Coins, permission: "finance:manage" },
   { to: "/users", label: "Users", icon: Users, permission: "user:manage" },
   { to: "/settings", label: "Settings", icon: Settings, permission: "settings:manage" },
 ];

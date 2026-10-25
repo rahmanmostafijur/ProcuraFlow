@@ -12,9 +12,10 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { useToast } from "@/components/ui/toast-context";
 import { useAuth } from "@/lib/auth-context";
-import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
+import { formatDate, formatDateTime } from "@/lib/utils";
 
 import { canApprovePurchaseOrder, needsAnotherApprover } from "./approval";
+import { PurchaseOrderLines } from "./PurchaseOrderLines";
 import { ReceivePurchaseOrderModal } from "./ReceivePurchaseOrderModal";
 
 type PendingAction = "submit" | "approve" | "order" | "cancel" | null;
@@ -133,49 +134,15 @@ export function PurchaseOrderDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card className="p-5 lg:col-span-2">
-          <h2 className="mb-4 text-sm font-semibold text-slate-900">Line Items</h2>
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead>
-              <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                <th className="py-2">Product ID</th>
-                <th className="py-2">Quantity</th>
-                <th className="py-2">Received</th>
-                <th className="py-2">Unit Price</th>
-                <th className="py-2 text-right">Line Total</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {po.items.map((item) => (
-                <tr key={item.id}>
-                  <td className="py-2">{item.product_id}</td>
-                  <td className="py-2">{item.quantity}</td>
-                  <td className="py-2">{item.received_quantity}</td>
-                  <td className="py-2">{formatCurrency(item.unit_price)}</td>
-                  <td className="py-2 text-right">{formatCurrency(Number(item.unit_price) * item.quantity)}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colSpan={4} className="pt-3 text-right text-sm font-medium text-slate-600">
-                  Total
-                </td>
-                <td className="pt-3 text-right text-sm font-semibold text-slate-900">{formatCurrency(po.total)}</td>
-              </tr>
-            </tfoot>
-          </table>
-          {po.notes && (
-            <div className="mt-4 rounded-md bg-slate-50 p-3 text-sm text-slate-600">
-              <span className="font-medium text-slate-700">Notes: </span>
-              {po.notes}
-            </div>
-          )}
-        </Card>
+        <PurchaseOrderLines po={po} />
 
         <Card className="p-5">
           <h2 className="mb-4 text-sm font-semibold text-slate-900">Details</h2>
           <dl className="space-y-3 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-slate-500">Currency</dt>
+              <dd className="font-medium text-slate-800">{po.currency_code}</dd>
+            </div>
             <div className="flex justify-between">
               <dt className="text-slate-500">Created by</dt>
               <dd className="font-medium text-slate-800">{po.creator.full_name}</dd>

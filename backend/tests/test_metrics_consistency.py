@@ -1,0 +1,153 @@
+"""Every number that more than one screen shows must come out identical through each of them."""
+
+from datetime import UTC, datetime
+from decimal import Decimal
+
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.enums import COMMITTED_PO_STATUSES, POStatus
+from app.models.product import Product
+from app.models.supplier import Supplier
+from app.services import metrics_service
+from tests.fixture_types import AuthHeaders, MakeUser
+from tests.po_factory import build_po
+
+SPEND_BY_SUPPLIER_URL = "/api/v1/reports/supplier-performance"
+MONTHLY_TRENDS_URL = "/api/v1/dashboard/monthly-trends"
+MAX_MONTHS = 24
+
+
+async def _seed_mixed_orders(db: AsyncSession, product: Product, creator_id: int) -> None:
+    """One order per status, alternating dollars and euros (euros converted at 1.25), plus a second supplier."""
+    other = Supplier(name="Second Supplier", email="second@example.com")
+    db.add(other)
+    await db.flush()
+    for index, po_status in enumerate(POStatus):
+        in_euros = index % 2 == 1
+        db.add(
+            build_po(
+                po_number=f"PO-MIX-{index}",
+                supplier_id=other.id if index % 3 == 0 else product.supplier_id,
+                created_by=creator_id,
+                status=po_status,
+                lines=[(product.id, index + 1, Decimal("10.00"))],
+                currency_code="EUR" if in_euros else "USD",
+                exchange_rate=Decimal("1.25") if in_euros else Decimal(1),
+            )
+        )
+    await db.commit()
+
+
+async def test_spend_by_supplier_and_by_month_add_up_to_the_same_total(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    auth_headers: AuthHeaders,
+    make_user: MakeUser,
+    product: Product,
+) -> None:
+    headers = await auth_headers("viewer")
+    creator = await make_user("creator@example.com", "procurement_manager")
+    await _seed_mixed_orders(db_session, product, creator.id)
+
+    by_supplier = (await client.get(SPEND_BY_SUPPLIER_URL, headers=headers)).json()
+    by_month = (await client.get(MONTHLY_TRENDS_URL, params={"months": MAX_MONTHS}, headers=headers)).json()
+    context = await metrics_service.get_context(db_session)
+    from_service = await metrics_service.committed_spend_by_month(db_session, context, MAX_MONTHS)
+
+    supplier_total = sum(Decimal(row["total_spend"]) for row in by_supplier)
+    month_total = sum(Decimal(row["total_spend"]) for row in by_month)
+    service_total = sum(row.total_spend for row in from_service)
+    assert supplier_total == month_total == service_total
+    assert supplier_total > 0
+    assert sum(row["order_count"] for row in by_supplier) == sum(row["order_count"] for row in by_month)
+    assert sum(row["order_count"] for row in by_month) == len(COMMITTED_PO_STATUSES)
+
+
+async def test_foreign_currency_orders_count_at_their_locked_base_amount(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    auth_headers: AuthHeaders,
+    make_user: MakeUser,
+    product: Product,
+) -> None:
+    headers = await auth_headers("viewer")
+    creator = await make_user("creator@example.com", "procurement_manager")
+    db_session.add(
+        build_po(
+            po_number="PO-EUR-1",
+            supplier_id=product.supplier_id,
+            created_by=creator.id,
+            status=POStatus.ORDERED,
+            lines=[(product.id, 10, Decimal("10.00"))],
+            currency_code="EUR",
+            exchange_rate=Decimal(2),
+        )
+    )
+    await db_session.commit()
+
+    rows = (await client.get(SPEND_BY_SUPPLIER_URL, headers=headers)).json()
+
+    [row] = [r for r in rows if r["supplier_id"] == product.supplier_id]
+    assert row["total_spend"] == "200.00"
+
+
+async def test_the_company_time_zone_decides_which_month_an_order_belongs_to(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    auth_headers: AuthHeaders,
+    make_user: MakeUser,
+    product: Product,
+) -> None:
+    admin = await auth_headers("admin")
+    creator = await make_user("creator@example.com", "procurement_manager")
+    # 20:00 UTC on 31 March is already 1 April in Tokyo.
+    late_march = build_po(
+        po_number="PO-TZ-1",
+        supplier_id=product.supplier_id,
+        created_by=creator.id,
+        status=POStatus.APPROVED,
+        lines=[(product.id, 1, Decimal("10.00"))],
+    )
+    late_march.created_at = datetime(2026, 3, 31, 20, 0, tzinfo=UTC)
+    db_session.add(late_march)
+    await db_session.commit()
+
+    in_utc = (await client.get(MONTHLY_TRENDS_URL, params={"months": MAX_MONTHS}, headers=admin)).json()
+    await client.patch("/api/v1/company-settings", json={"timezone": "Asia/Tokyo"}, headers=admin)
+    in_tokyo = (await client.get(MONTHLY_TRENDS_URL, params={"months": MAX_MONTHS}, headers=admin)).json()
+
+    assert [row["month"] for row in in_utc] == ["2026-03"]
+    assert [row["month"] for row in in_tokyo] == ["2026-04"]
+
+
+async def test_dashboard_counts_match_the_purchase_order_lists(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    auth_headers: AuthHeaders,
+    make_user: MakeUser,
+    product: Product,
+) -> None:
+    headers = await auth_headers("viewer")
+    creator = await make_user("creator@example.com", "procurement_manager")
+    await _seed_mixed_orders(db_session, product, creator.id)
+
+    summary = (await client.get("/api/v1/dashboard/summary", headers=headers)).json()
+    everything = (await client.get("/api/v1/purchase-orders", params={"page_size": 1}, headers=headers)).json()
+
+    async def listed(*statuses: POStatus) -> int:
+        total = 0
+        for po_status in statuses:
+            page = await client.get(
+                "/api/v1/purchase-orders", params={"status": po_status.value, "page_size": 1}, headers=headers
+            )
+            total += page.json()["total"]
+        return int(total)
+
+    assert summary["total_purchase_orders"] == everything["total"] == len(POStatus)
+    assert summary["pending_orders"] == await listed(*metrics_service.PENDING_PO_STATUSES)
+    assert summary["completed_orders"] == await listed(*metrics_service.COMPLETED_PO_STATUSES)
+    assert (
+        summary["supplier_count"]
+        == (await client.get("/api/v1/suppliers", params={"is_active": True}, headers=headers)).json()["total"]
+    )

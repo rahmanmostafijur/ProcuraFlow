@@ -6,6 +6,8 @@ from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 from pydantic_core import PydanticCustomError
 
 from app.models.enums import POStatus
+from app.schemas.common import Money
+from app.schemas.currency import CurrencyCodeStr
 from app.schemas.supplier import SupplierRead
 from app.schemas.user import UserRead
 
@@ -13,7 +15,8 @@ from app.schemas.user import UserRead
 class POItemCreate(BaseModel):
     product_id: int
     quantity: int = Field(gt=0)
-    unit_price: Decimal = Field(ge=0)
+    unit_price: Decimal = Field(ge=0, max_digits=14, decimal_places=4)
+    tax_rate_id: int | None = None
 
 
 def reject_duplicate_products(items: list[POItemCreate]) -> list[POItemCreate]:
@@ -39,18 +42,29 @@ class POItemRead(BaseModel):
     id: int
     product_id: int
     quantity: int
-    unit_price: Decimal
+    unit_price: Money
     received_quantity: int
+    tax_rate_id: int | None
+    tax_name: str | None
+    tax_percent: Decimal
+    tax_inclusive: bool
+    reverse_charge: bool
+    line_net: Money
+    line_tax: Money
+    line_total: Money
 
 
 class PurchaseOrderCreate(BaseModel):
     supplier_id: int
+    # Omitted: the supplier's default currency, else the company's base currency.
+    currency_code: CurrencyCodeStr | None = None
     expected_delivery_date: date | None = None
     notes: str | None = None
     items: POItemList = Field(min_length=1)
 
 
 class PurchaseOrderUpdate(BaseModel):
+    currency_code: CurrencyCodeStr | None = None
     expected_delivery_date: date | None = None
     notes: str | None = None
     items: POItemList | None = None
@@ -63,6 +77,7 @@ class PurchaseOrderRead(BaseModel):
     po_number: str
     supplier: SupplierRead
     status: POStatus
+    currency_code: str
     expected_delivery_date: date | None
     notes: str | None
     items: list[POItemRead]
@@ -71,7 +86,15 @@ class PurchaseOrderRead(BaseModel):
     approved_at: datetime | None
     created_at: datetime
     updated_at: datetime
-    total: Decimal
+    subtotal: Money
+    tax_total: Money
+    grand_total: Money
+    # Locked at approval; null while the order is still a draft or awaiting approval.
+    exchange_rate: Decimal | None
+    base_subtotal: Money | None
+    base_tax_total: Money | None
+    base_grand_total: Money | None
+    total: Money
 
 
 class ReceiveItem(BaseModel):

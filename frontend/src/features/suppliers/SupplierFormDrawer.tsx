@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { useCurrencies } from "@/api/finance";
 import type { SupplierInput } from "@/api/suppliers";
 import type { Supplier } from "@/api/types";
 import { Button } from "@/components/ui/Button";
@@ -17,6 +18,17 @@ const schema = z.object({
   email: z.string().email("Enter a valid email").optional().or(z.literal("")),
   phone: z.string().max(50).optional().or(z.literal("")),
   address: z.string().max(500).optional().or(z.literal("")),
+  country_code: z
+    .string()
+    .trim()
+    .regex(/^([A-Za-z]{2})?$/, "Two letters, e.g. DE"),
+  tax_id: z.string().trim().max(50),
+  currency_code: z.string(),
+  payment_terms_days: z
+    .string()
+    .trim()
+    .regex(/^(\d{1,3})?$/, "Whole days, 0 to 365")
+    .refine((value) => value === "" || Number(value) <= 365, "Whole days, 0 to 365"),
   is_active: z.enum(["true", "false"]).optional(),
 });
 
@@ -31,6 +43,7 @@ interface SupplierFormDrawerProps {
 }
 
 export function SupplierFormDrawer({ isOpen, onClose, supplier, onSubmit, isSubmitting }: SupplierFormDrawerProps) {
+  const { data: currencies } = useCurrencies(true);
   const {
     register,
     handleSubmit,
@@ -46,6 +59,10 @@ export function SupplierFormDrawer({ isOpen, onClose, supplier, onSubmit, isSubm
         email: supplier?.email ?? "",
         phone: supplier?.phone ?? "",
         address: supplier?.address ?? "",
+        country_code: supplier?.country_code ?? "",
+        tax_id: supplier?.tax_id ?? "",
+        currency_code: supplier?.currency_code ?? "",
+        payment_terms_days: supplier?.payment_terms_days?.toString() ?? "",
         is_active: supplier ? (supplier.is_active ? "true" : "false") : "true",
       });
     }
@@ -58,6 +75,10 @@ export function SupplierFormDrawer({ isOpen, onClose, supplier, onSubmit, isSubm
       email: values.email || null,
       phone: values.phone || null,
       address: values.address || null,
+      country_code: values.country_code ? values.country_code.toUpperCase() : null,
+      tax_id: values.tax_id || null,
+      currency_code: values.currency_code || null,
+      payment_terms_days: values.payment_terms_days === "" ? null : Number(values.payment_terms_days),
       is_active: values.is_active ? values.is_active === "true" : undefined,
     });
   });
@@ -86,6 +107,42 @@ export function SupplierFormDrawer({ isOpen, onClose, supplier, onSubmit, isSubm
         <div>
           <Label htmlFor="address">Address</Label>
           <Input id="address" error={errors.address?.message} {...register("address")} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="country_code">Country</Label>
+            <Input
+              id="country_code"
+              placeholder="e.g. DE"
+              error={errors.country_code?.message}
+              {...register("country_code")}
+            />
+          </div>
+          <div>
+            <Label htmlFor="tax_id">VAT / tax ID</Label>
+            <Input id="tax_id" error={errors.tax_id?.message} {...register("tax_id")} />
+          </div>
+          <div>
+            <Label htmlFor="currency_code">Default currency</Label>
+            <Select id="currency_code" {...register("currency_code")}>
+              <option value="">Company base currency</option>
+              {currencies?.map((currency) => (
+                <option key={currency.code} value={currency.code}>
+                  {currency.code} — {currency.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="payment_terms_days">Payment terms (days)</Label>
+            <Input
+              id="payment_terms_days"
+              inputMode="numeric"
+              placeholder="Company default"
+              error={errors.payment_terms_days?.message}
+              {...register("payment_terms_days")}
+            />
+          </div>
         </div>
         {supplier && (
           <div>

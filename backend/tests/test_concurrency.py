@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import Awaitable, Callable
+from decimal import Decimal
 
 import pytest
 from fastapi import HTTPException
@@ -11,12 +12,12 @@ from app.models.enums import InventoryTransactionType, POStatus
 from app.models.inventory import InventoryTransaction
 from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
-from app.models.purchase_order_item import PurchaseOrderItem
 from app.models.supplier import Supplier
 from app.models.user import User
 from app.services import purchase_order_service as po_service
 from app.services.inventory_service import apply_inventory_transaction, lock_products, record_opening_balance
 from tests.fixture_types import AuthHeaders, MakeUser, StockMatchesLedger
+from tests.po_factory import build_po
 
 # How long the second writer must stay blocked while the first one holds its row locks.
 BLOCKED_WINDOW_SECONDS = 0.5
@@ -30,13 +31,13 @@ SessionWork = Callable[[AsyncSession], Awaitable[None]]
 
 
 async def _create_po(db: AsyncSession, creator: User, product: Product, po_status: POStatus) -> PurchaseOrder:
-    po = PurchaseOrder(
+    po = build_po(
         po_number=f"PO-RACE-{po_status.value}",
         supplier_id=product.supplier_id,
         created_by=creator.id,
         status=po_status,
+        lines=[(product.id, ORDERED_QUANTITY, Decimal(10))],
     )
-    po.items = [PurchaseOrderItem(product_id=product.id, quantity=ORDERED_QUANTITY, unit_price=10)]
     db.add(po)
     await db.commit()
     return po
@@ -117,7 +118,7 @@ def _transition(po_id: int, action: str, user: User) -> SessionWork:
     async def work(session: AsyncSession) -> None:
         po = await po_service.get_purchase_order_for_update(session, po_id)
         if action == "approve":
-            po_service.approve_purchase_order(po, user)
+            await po_service.approve_purchase_order(session, po, user)
         else:
             po_service.cancel_purchase_order(po)
 

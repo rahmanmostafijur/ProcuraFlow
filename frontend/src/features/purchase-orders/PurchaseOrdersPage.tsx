@@ -47,7 +47,7 @@ export function PurchaseOrdersPage() {
     { header: "PO Number", accessor: (row) => <span className="font-medium text-slate-900">{row.po_number}</span> },
     { header: "Supplier", accessor: (row) => row.supplier.name },
     { header: "Status", accessor: (row) => <Badge status={row.status}>{row.status.replace(/_/g, " ")}</Badge> },
-    { header: "Total", accessor: (row) => formatCurrency(row.total) },
+    { header: "Total", accessor: (row) => formatCurrency(row.total, row.currency_code) },
     { header: "Expected Delivery", accessor: (row) => formatDate(row.expected_delivery_date) },
     { header: "Created", accessor: (row) => formatDate(row.created_at) },
   ];

@@ -3,50 +3,32 @@ import io
 from typing import Any
 
 from fastapi import APIRouter, Response
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.core.csv_safety import neutralize_formula
 from app.core.deps import CurrentUser, DbSession
 from app.models.delivery import Delivery
-from app.models.enums import COMMITTED_PO_STATUSES, DeliveryStatus
+from app.models.enums import DeliveryStatus
 from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
-from app.models.purchase_order_item import PurchaseOrderItem
-from app.models.supplier import Supplier
+from app.schemas.dashboard import SupplierPerformanceRow
+from app.services import metrics_service
 from app.services.delivery_service import get_on_time_delivery_rate
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
 
-@router.get("/supplier-performance")
-async def supplier_performance(db: DbSession, _: CurrentUser) -> list[dict[str, Any]]:
-    line_total = PurchaseOrderItem.quantity * PurchaseOrderItem.unit_price
-    stmt = (
-        select(
-            Supplier.id,
-            Supplier.name,
-            func.count(func.distinct(PurchaseOrder.id)).label("order_count"),
-            func.coalesce(func.sum(line_total), 0).label("total_spend"),
-        )
-        # The status filter sits in the join so suppliers without committed orders still get a zero row.
-        .outerjoin(
-            PurchaseOrder,
-            (PurchaseOrder.supplier_id == Supplier.id) & PurchaseOrder.status.in_(COMMITTED_PO_STATUSES),
-        )
-        .outerjoin(PurchaseOrderItem, PurchaseOrderItem.po_id == PurchaseOrder.id)
-        .group_by(Supplier.id, Supplier.name)
-        .order_by(Supplier.name)
-    )
-    result = await db.execute(stmt)
+@router.get("/supplier-performance", response_model=list[SupplierPerformanceRow])
+async def supplier_performance(db: DbSession, _: CurrentUser) -> list[SupplierPerformanceRow]:
     return [
-        {
-            "supplier_id": row.id,
-            "supplier_name": row.name,
-            "order_count": row.order_count,
-            "total_spend": row.total_spend,
-        }
-        for row in result
+        SupplierPerformanceRow(
+            supplier_id=row.supplier_id,
+            supplier_name=row.supplier_name,
+            order_count=row.order_count,
+            total_spend=row.total_spend,
+        )
+        for row in await metrics_service.committed_spend_by_supplier(db)
     ]
 
 

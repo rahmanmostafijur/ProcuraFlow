@@ -1,104 +1,35 @@
-from datetime import timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from app.core.clock import utc_today
 from app.core.deps import CurrentUser, DbSession, require_permission
 from app.models.audit import AuditLog
-from app.models.delivery import Delivery
-from app.models.enums import COMMITTED_PO_STATUSES, DeliveryStatus, POStatus
-from app.models.product import Product
-from app.models.purchase_order import PurchaseOrder
-from app.models.purchase_order_item import PurchaseOrderItem
-from app.models.supplier import Supplier
 from app.models.user import User
 from app.schemas.dashboard import DashboardSummary, MonthlyTrendPoint, RecentActivityItem
+from app.services import metrics_service
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 # The activity feed is a view of the audit log, so it carries the audit log's permission.
 RequireAuditRead = Annotated[User, Depends(require_permission("audit:read"))]
 
-_PENDING_STATUSES = (
-    POStatus.DRAFT,
-    POStatus.SUBMITTED,
-    POStatus.APPROVED,
-    POStatus.ORDERED,
-    POStatus.PARTIALLY_RECEIVED,
-)
-_COMPLETED_STATUSES = (POStatus.RECEIVED,)
-
 
 @router.get("/summary", response_model=DashboardSummary)
 async def get_dashboard_summary(db: DbSession, _: CurrentUser) -> DashboardSummary:
-    total_pos = (await db.execute(select(func.count()).select_from(PurchaseOrder))).scalar_one()
-    pending = (
-        await db.execute(
-            select(func.count()).select_from(PurchaseOrder).where(PurchaseOrder.status.in_(_PENDING_STATUSES))
-        )
-    ).scalar_one()
-    completed = (
-        await db.execute(
-            select(func.count()).select_from(PurchaseOrder).where(PurchaseOrder.status.in_(_COMPLETED_STATUSES))
-        )
-    ).scalar_one()
-    supplier_count = (
-        await db.execute(select(func.count()).select_from(Supplier).where(Supplier.is_active.is_(True)))
-    ).scalar_one()
-    inventory_value = (
-        await db.execute(select(func.coalesce(func.sum(Product.cost * Product.current_stock), 0)))
-    ).scalar_one()
-    low_stock = (
-        await db.execute(
-            select(func.count())
-            .select_from(Product)
-            .where(Product.current_stock <= Product.minimum_stock, Product.is_active.is_(True))
-        )
-    ).scalar_one()
-    upcoming_deliveries = (
-        await db.execute(
-            select(func.count())
-            .select_from(Delivery)
-            .where(Delivery.status == DeliveryStatus.PENDING, Delivery.expected_date >= utc_today())
-        )
-    ).scalar_one()
-
-    return DashboardSummary(
-        total_purchase_orders=total_pos,
-        pending_orders=pending,
-        completed_orders=completed,
-        supplier_count=supplier_count,
-        inventory_value=inventory_value,
-        low_stock_products=low_stock,
-        upcoming_deliveries=upcoming_deliveries,
-    )
+    return await metrics_service.dashboard_summary(db)
 
 
 @router.get("/monthly-trends", response_model=list[MonthlyTrendPoint])
 async def get_monthly_trends(
     db: DbSession, _: CurrentUser, months: int = Query(6, ge=1, le=24)
 ) -> list[MonthlyTrendPoint]:
-    cutoff = utc_today().replace(day=1) - timedelta(days=months * 31)
-    month_expr = func.to_char(PurchaseOrder.created_at, "YYYY-MM")
-    line_total = PurchaseOrderItem.quantity * PurchaseOrderItem.unit_price
-
-    stmt = (
-        select(
-            month_expr.label("month"),
-            func.coalesce(func.sum(line_total), 0).label("total_spend"),
-            func.count(func.distinct(PurchaseOrder.id)).label("order_count"),
-        )
-        .join(PurchaseOrderItem, PurchaseOrderItem.po_id == PurchaseOrder.id)
-        .where(PurchaseOrder.created_at >= cutoff, PurchaseOrder.status.in_(COMMITTED_PO_STATUSES))
-        .group_by(month_expr)
-        .order_by(month_expr)
-    )
-    result = await db.execute(stmt)
+    context = await metrics_service.get_context(db)
+    points = await metrics_service.committed_spend_by_month(db, context, months)
     return [
-        MonthlyTrendPoint(month=row.month, total_spend=row.total_spend, order_count=row.order_count) for row in result
+        MonthlyTrendPoint(month=point.month, total_spend=point.total_spend, order_count=point.order_count)
+        for point in points
     ]
 
 

@@ -1,6 +1,7 @@
 from app.models.audit import AuditLog
 from app.models.category import Category
 from app.models.company_settings import CompanySettings
+from app.models.currency import Currency, ExchangeRate
 from app.models.delivery import Delivery
 from app.models.enums import DeliveryStatus, InventoryTransactionType, POStatus
 from app.models.inventory import InventoryTransaction
@@ -13,14 +14,17 @@ from app.models.purchase_order_item import PurchaseOrderItem
 from app.models.refresh_token import RefreshToken
 from app.models.role import Role
 from app.models.supplier import Supplier
+from app.models.tax_rate import TaxRate
 from app.models.user import User
 
 __all__ = [
     "AuditLog",
     "Category",
     "CompanySettings",
+    "Currency",
     "Delivery",
     "DeliveryStatus",
+    "ExchangeRate",
     "InventoryTransaction",
     "InventoryTransactionType",
     "LoginFailure",
@@ -33,6 +37,7 @@ __all__ = [
     "RefreshToken",
     "Role",
     "Supplier",
+    "TaxRate",
     "User",
     "role_permissions",
 ]

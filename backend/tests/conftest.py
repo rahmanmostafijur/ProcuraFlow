@@ -14,11 +14,13 @@ os.environ.setdefault("ENVIRONMENT", "test")
 os.environ.setdefault("JWT_SECRET_KEY", "test-only-secret-key-0123456789abcdef0123456789abcdef")
 
 from app.core.config import get_settings
+from app.core.currency_data import STANDARD_CURRENCIES
 from app.core.permissions import PERMISSIONS, ROLE_DESCRIPTIONS, ROLE_PERMISSIONS
 from app.core.security import hash_password, pwd_context
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+from app.models.currency import Currency
 from app.models.inventory import InventoryTransaction
 from app.models.permission import Permission
 from app.models.product import Product
@@ -47,6 +49,17 @@ async def setup_database() -> AsyncIterator[None]:
         await conn.run_sync(Base.metadata.create_all)
     yield
     await test_engine.dispose()
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def seed_currencies(setup_database: None) -> None:
+    """The migration seeds the standard currencies; tests build the schema directly, so they get them here."""
+    async with TestSessionLocal() as session:
+        session.add_all(
+            Currency(code=code, name=name, symbol=symbol, minor_units=units, is_active=active)
+            for code, name, symbol, units, active in STANDARD_CURRENCIES
+        )
+        await session.commit()
 
 
 @pytest_asyncio.fixture(autouse=True)

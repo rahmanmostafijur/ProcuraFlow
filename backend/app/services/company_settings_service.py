@@ -3,12 +3,15 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import select
+from fastapi import HTTPException, status
+from sqlalchemy import exists, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.uploads import ValidatedFile
 from app.models.company_settings import COMPANY_SETTINGS_ID, CompanySettings
+from app.models.currency import Currency
+from app.models.purchase_order import PurchaseOrder
 from app.models.user import User
 from app.schemas.company_settings import BrandingRead, CompanySettingsRead, CompanySettingsUpdate
 from app.services.audit_service import current_values, field_changes, record_audit_event
@@ -68,6 +71,9 @@ def to_read(row: CompanySettings) -> CompanySettingsRead:
 async def update_company_settings(db: AsyncSession, payload: CompanySettingsUpdate, user: User) -> CompanySettings:
     row = await get_company_settings(db, for_update=True)
     update_data = payload.model_dump(exclude_unset=True)
+    new_base = update_data.get("base_currency_code")
+    if new_base is not None and new_base != row.base_currency_code:
+        await _ensure_base_currency_can_change(db, new_base)
     changes = field_changes(current_values(row, update_data), update_data)
     for field, value in update_data.items():
         setattr(row, field, value)
@@ -84,6 +90,20 @@ async def update_company_settings(db: AsyncSession, payload: CompanySettingsUpda
     await db.commit()
     await db.refresh(row)
     return row
+
+
+async def _ensure_base_currency_can_change(db: AsyncSession, new_base: str) -> None:
+    currency = await db.get(Currency, new_base)
+    if currency is None or not currency.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=f"Currency '{new_base}' is unknown or not active"
+        )
+    # Approved orders hold amounts converted into the current base currency; switching would orphan them.
+    if await db.scalar(select(exists().where(PurchaseOrder.exchange_rate.is_not(None)))):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="The base currency cannot change once purchase orders have been approved.",
+        )
 
 
 async def replace_logo(db: AsyncSession, storage: StorageBackend, image: ValidatedFile, user: User) -> CompanySettings:

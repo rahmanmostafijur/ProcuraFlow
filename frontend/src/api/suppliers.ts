@@ -16,6 +16,10 @@ export interface SupplierInput {
   email?: string | null;
   phone?: string | null;
   address?: string | null;
+  country_code?: string | null;
+  tax_id?: string | null;
+  currency_code?: string | null;
+  payment_terms_days?: number | null;
 }
 
 export function useSuppliers(params: SupplierListParams) {

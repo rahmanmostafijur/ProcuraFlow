@@ -1,4 +1,10 @@
 from datetime import UTC, date, datetime
+from zoneinfo import ZoneInfo
+
+
+def today_in(time_zone: str) -> date:
+    """The calendar date right now in the company's time zone (an IANA name from the company settings)."""
+    return datetime.now(ZoneInfo(time_zone)).date()
 
 
 def utc_today() -> date:

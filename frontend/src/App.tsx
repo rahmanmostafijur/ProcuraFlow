@@ -5,6 +5,7 @@ import { AuditLogPage } from "@/features/audit/AuditLogPage";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
 import { DeliveriesPage } from "@/features/deliveries/DeliveriesPage";
+import { FinancePage } from "@/features/finance/FinancePage";
 import { InventoryPage } from "@/features/inventory/InventoryPage";
 import { ProductsPage } from "@/features/products/ProductsPage";
 import { PurchaseOrderDetailPage } from "@/features/purchase-orders/PurchaseOrderDetailPage";
@@ -45,6 +46,9 @@ export function App() {
           </Route>
           <Route element={<PermissionRoute permission="settings:manage" />}>
             <Route path="/settings" element={<CompanySettingsPage />} />
+          </Route>
+          <Route element={<PermissionRoute permission="finance:manage" />}>
+            <Route path="/finance" element={<FinancePage />} />
           </Route>
         </Route>
       </Route>

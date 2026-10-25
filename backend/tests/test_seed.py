@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.config import Environment, Settings
+from app.core.permissions import ROLE_PERMISSIONS
 from app.core.security import verify_password
 from app.models.enums import InventoryTransactionType
 from app.models.inventory import InventoryTransaction
@@ -202,5 +203,5 @@ async def test_several_instances_seeding_at_once_do_not_collide(
     await asyncio.gather(*[run_seed(settings, session_factory) for _ in range(3)])
 
     assert await db_session.scalar(select(func.count()).select_from(User).where(User.email == ADMIN_EMAIL)) == 1
-    assert await db_session.scalar(select(func.count()).select_from(Role)) == 5
+    assert await db_session.scalar(select(func.count()).select_from(Role)) == len(ROLE_PERMISSIONS)
     assert await db_session.scalar(select(func.count()).select_from(Supplier)) == 3

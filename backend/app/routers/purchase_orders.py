@@ -1,5 +1,4 @@
-from collections.abc import Iterable, Mapping
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -7,10 +6,7 @@ from sqlalchemy import select
 from app.core.deps import CurrentUser, DbSession, require_permission
 from app.core.pagination import paginate
 from app.models.enums import POStatus
-from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
-from app.models.purchase_order_item import PurchaseOrderItem
-from app.models.supplier import Supplier
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
 from app.schemas.purchase_order import (
@@ -19,8 +15,9 @@ from app.schemas.purchase_order import (
     PurchaseOrderUpdate,
     ReceivePurchaseOrderRequest,
 )
+from app.services import po_draft_service
 from app.services import purchase_order_service as po_service
-from app.services.audit_service import current_values, field_changes, record_audit_event
+from app.services.audit_service import record_audit_event
 
 router = APIRouter(prefix="/purchase-orders", tags=["purchase-orders"])
 
@@ -28,16 +25,6 @@ RequirePOCreate = Annotated[User, Depends(require_permission("po:create"))]
 RequirePOApprove = Annotated[User, Depends(require_permission("po:approve"))]
 RequirePOTransition = Annotated[User, Depends(require_permission("po:transition"))]
 RequireInventoryWrite = Annotated[User, Depends(require_permission("inventory:write"))]
-
-AUDITED_LINE_FIELDS = ("product_id", "quantity", "unit_price")
-
-
-def _audited_lines(lines: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
-    # Sorted by product so that reordering otherwise identical lines is not reported as a change.
-    return sorted(
-        ({field: line[field] for field in AUDITED_LINE_FIELDS} for line in lines),
-        key=lambda line: line["product_id"],
-    )
 
 
 async def _get_po_or_404(db: DbSession, po_id: int) -> PurchaseOrder:
@@ -77,31 +64,7 @@ async def get_purchase_order(po_id: int, db: DbSession, _: CurrentUser) -> Purch
 async def create_purchase_order(
     payload: PurchaseOrderCreate, db: DbSession, current_user: RequirePOCreate
 ) -> PurchaseOrder:
-    supplier = await db.get(Supplier, payload.supplier_id)
-    if supplier is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Supplier not found")
-
-    product_ids = {item.product_id for item in payload.items}
-    result = await db.execute(select(Product.id).where(Product.id.in_(product_ids)))
-    found_ids = set(result.scalars().all())
-    missing = product_ids - found_ids
-    if missing:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown product ids: {sorted(missing)}")
-
-    po = PurchaseOrder(
-        po_number=await po_service.generate_po_number(db),
-        supplier_id=payload.supplier_id,
-        expected_delivery_date=payload.expected_delivery_date,
-        notes=payload.notes,
-        created_by=current_user.id,
-        status=POStatus.DRAFT,
-    )
-    po.items = [
-        PurchaseOrderItem(product_id=item.product_id, quantity=item.quantity, unit_price=item.unit_price)
-        for item in payload.items
-    ]
-    db.add(po)
-    await db.flush()
+    po = await po_draft_service.create_draft(db, payload, current_user)
     await record_audit_event(
         db, user_id=current_user.id, action="po_created", entity_type="purchase_order", entity_id=po.id
     )
@@ -114,37 +77,7 @@ async def update_purchase_order(
     po_id: int, payload: PurchaseOrderUpdate, db: DbSession, current_user: RequirePOCreate
 ) -> PurchaseOrder:
     po = await po_service.get_purchase_order_for_update(db, po_id)
-    if po.status != POStatus.DRAFT:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Only draft purchase orders can be edited")
-
-    update_data = payload.model_dump(exclude_unset=True)
-    items_data = update_data.pop("items", None)
-    changes = field_changes(current_values(po, update_data), update_data)
-    for field, value in update_data.items():
-        setattr(po, field, value)
-
-    if items_data is not None:
-        product_ids = {item["product_id"] for item in items_data}
-        result = await db.execute(select(Product.id).where(Product.id.in_(product_ids)))
-        found_ids = set(result.scalars().all())
-        missing = product_ids - found_ids
-        if missing:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown product ids: {sorted(missing)}"
-            )
-
-        previous_lines = _audited_lines(current_values(item, AUDITED_LINE_FIELDS) for item in po.items)
-        changes = {**changes, **field_changes({"items": previous_lines}, {"items": _audited_lines(items_data)})}
-
-        po.items.clear()
-        # Delete the old lines first; the unit of work would otherwise insert the new ones before
-        # removing the orphans and trip the one-line-per-product constraint.
-        await db.flush()
-        po.items = [
-            PurchaseOrderItem(product_id=item["product_id"], quantity=item["quantity"], unit_price=item["unit_price"])
-            for item in items_data
-        ]
-
+    changes = await po_draft_service.update_draft(db, po, payload)
     await record_audit_event(
         db,
         user_id=current_user.id,
@@ -171,7 +104,7 @@ async def submit_purchase_order(po_id: int, db: DbSession, current_user: Require
 @router.post("/{po_id}/approve", response_model=PurchaseOrderRead)
 async def approve_purchase_order(po_id: int, db: DbSession, current_user: RequirePOApprove) -> PurchaseOrder:
     po = await po_service.get_purchase_order_for_update(db, po_id)
-    po_service.approve_purchase_order(po, current_user)
+    await po_service.approve_purchase_order(db, po, current_user)
     await record_audit_event(
         db, user_id=current_user.id, action="po_approved", entity_type="purchase_order", entity_id=po.id
     )

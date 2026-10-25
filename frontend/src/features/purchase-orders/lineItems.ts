@@ -14,7 +14,12 @@ export function productIdsChosenOnOtherLines(items: readonly LineProduct[], inde
 const itemSchema = z.object({
   product_id: z.string().min(1, "Select a product"),
   quantity: z.coerce.number().int().positive("Must be greater than 0"),
-  unit_price: z.coerce.number().min(0, "Must be zero or more"),
+  unit_price: z.coerce
+    .number()
+    .min(0, "Must be zero or more")
+    .refine((value) => Math.abs(value * 10_000 - Math.round(value * 10_000)) < 1e-6, "At most 4 decimals"),
+  // Empty means no tax on this line; otherwise the id of a tax rate.
+  tax_rate_id: z.string().optional(),
 });
 
 // Mirrors the API, which rejects a purchase order that lists a product on more than one line.
@@ -37,6 +42,8 @@ const itemsSchema = z
 
 export const purchaseOrderFormSchema = z.object({
   supplier_id: z.string().min(1, "Select a supplier"),
+  // Empty means the supplier's default currency, else the company's base currency.
+  currency_code: z.string().optional(),
   expected_delivery_date: z.string().optional(),
   notes: z.string().optional(),
   items: itemsSchema,

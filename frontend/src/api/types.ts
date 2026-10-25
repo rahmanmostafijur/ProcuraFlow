@@ -61,6 +61,42 @@ export interface Supplier {
   email: string | null;
   phone: string | null;
   address: string | null;
+  country_code: string | null;
+  tax_id: string | null;
+  currency_code: string | null;
+  payment_terms_days: number | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Currency {
+  code: string;
+  name: string;
+  symbol: string;
+  minor_units: number;
+  is_active: boolean;
+}
+
+export interface ExchangeRate {
+  id: number;
+  base_currency_code: string;
+  currency_code: string;
+  rate: string;
+  effective_date: string;
+  created_at: string;
+}
+
+export type TaxType = "vat" | "sales_tax";
+
+export interface TaxRate {
+  id: number;
+  name: string;
+  percentage: string;
+  tax_type: TaxType;
+  is_inclusive: boolean;
+  is_reverse_charge: boolean;
+  region: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -96,6 +132,14 @@ export interface POItem {
   quantity: number;
   unit_price: string;
   received_quantity: number;
+  tax_rate_id: number | null;
+  tax_name: string | null;
+  tax_percent: string;
+  tax_inclusive: boolean;
+  reverse_charge: boolean;
+  line_net: string;
+  line_tax: string;
+  line_total: string;
 }
 
 export interface PurchaseOrder {
@@ -103,6 +147,7 @@ export interface PurchaseOrder {
   po_number: string;
   supplier: Supplier;
   status: POStatus;
+  currency_code: string;
   expected_delivery_date: string | null;
   notes: string | null;
   items: POItem[];
@@ -111,6 +156,14 @@ export interface PurchaseOrder {
   approved_at: string | null;
   created_at: string;
   updated_at: string;
+  subtotal: string;
+  tax_total: string;
+  grand_total: string;
+  // Locked at approval; null until then.
+  exchange_rate: string | null;
+  base_subtotal: string | null;
+  base_tax_total: string | null;
+  base_grand_total: string | null;
   total: string;
 }
 

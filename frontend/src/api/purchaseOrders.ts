@@ -14,10 +14,13 @@ export interface PurchaseOrderItemInput {
   product_id: number;
   quantity: number;
   unit_price: string;
+  tax_rate_id?: number | null;
 }
 
 export interface PurchaseOrderInput {
   supplier_id: number;
+  // Omitted: the supplier's default currency, else the company's base currency.
+  currency_code?: string | null;
   expected_delivery_date?: string | null;
   notes?: string | null;
   items: PurchaseOrderItemInput[];

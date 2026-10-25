@@ -1,7 +1,8 @@
 from datetime import datetime
-from decimal import Decimal
 
 from pydantic import BaseModel
+
+from app.schemas.common import Money
 
 
 class DashboardSummary(BaseModel):
@@ -9,15 +10,22 @@ class DashboardSummary(BaseModel):
     pending_orders: int
     completed_orders: int
     supplier_count: int
-    inventory_value: Decimal
+    inventory_value: Money
     low_stock_products: int
     upcoming_deliveries: int
 
 
 class MonthlyTrendPoint(BaseModel):
     month: str
-    total_spend: Decimal
+    total_spend: Money
     order_count: int
+
+
+class SupplierPerformanceRow(BaseModel):
+    supplier_id: int
+    supplier_name: str
+    order_count: int
+    total_spend: Money
 
 
 class RecentActivityItem(BaseModel):

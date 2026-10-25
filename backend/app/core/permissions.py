@@ -8,6 +8,7 @@ PERMISSIONS: dict[str, str] = {
     "po:transition": "Mark purchase orders ordered or cancelled",
     "audit:read": "View the audit log",
     "settings:manage": "Manage company settings and branding",
+    "finance:manage": "Manage currencies, exchange rates and tax rates",
 }
 
 ROLE_PERMISSIONS: dict[str, list[str]] = {
@@ -22,6 +23,7 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
     ],
     "purchasing_officer": ["po:create", "po:transition"],
     "warehouse_manager": ["inventory:write"],
+    "finance": ["finance:manage", "audit:read"],
     "viewer": [],
 }
 
@@ -30,5 +32,6 @@ ROLE_DESCRIPTIONS: dict[str, str] = {
     "procurement_manager": "Manages suppliers, products, and purchase order approvals.",
     "purchasing_officer": "Creates and progresses purchase orders.",
     "warehouse_manager": "Receives stock and manages inventory levels.",
+    "finance": "Maintains currencies, exchange rates and tax rates, and reviews the audit log.",
     "viewer": "Read-only access across the platform.",
 }

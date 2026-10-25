@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 
 import type { PurchaseOrderInput } from "@/api/purchaseOrders";
+import { useCurrencies, useTaxRates } from "@/api/finance";
 import { useProducts } from "@/api/products";
 import { useSuppliers } from "@/api/suppliers";
 import { Button } from "@/components/ui/Button";
@@ -25,6 +26,8 @@ interface PurchaseOrderFormModalProps {
 export function PurchaseOrderFormModal({ isOpen, onClose, onSubmit, isSubmitting }: PurchaseOrderFormModalProps) {
   const { data: suppliers } = useSuppliers({ page: 1, page_size: 100, is_active: true });
   const { data: products } = useProducts({ page: 1, page_size: 100, is_active: true });
+  const { data: currencies } = useCurrencies(true);
+  const { data: taxRates } = useTaxRates(true);
 
   const {
     register,
@@ -54,12 +57,14 @@ export function PurchaseOrderFormModal({ isOpen, onClose, onSubmit, isSubmitting
   const submit = handleSubmit(async (values) => {
     await onSubmit({
       supplier_id: Number(values.supplier_id),
+      currency_code: values.currency_code || null,
       expected_delivery_date: values.expected_delivery_date || null,
       notes: values.notes || null,
       items: values.items.map((item) => ({
         product_id: Number(item.product_id),
         quantity: item.quantity,
-        unit_price: item.unit_price.toFixed(2),
+        unit_price: item.unit_price.toFixed(4),
+        tax_rate_id: item.tax_rate_id ? Number(item.tax_rate_id) : null,
       })),
     });
   });
@@ -77,6 +82,17 @@ export function PurchaseOrderFormModal({ isOpen, onClose, onSubmit, isSubmitting
               {suppliers?.items.map((supplier) => (
                 <option key={supplier.id} value={supplier.id}>
                   {supplier.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="currency_code">Currency</Label>
+            <Select id="currency_code" {...register("currency_code")}>
+              <option value="">Supplier default</option>
+              {currencies?.map((currency) => (
+                <option key={currency.code} value={currency.code}>
+                  {currency.code} — {currency.name}
                 </option>
               ))}
             </Select>
@@ -129,10 +145,21 @@ export function PurchaseOrderFormModal({ isOpen, onClose, onSubmit, isSubmitting
                   <div className="w-28">
                     <Input
                       type="number"
-                      step="0.01"
+                      step="0.0001"
                       placeholder="Unit price"
+                      error={errors.items?.[index]?.unit_price?.message}
                       {...register(`items.${index}.unit_price` as const)}
                     />
+                  </div>
+                  <div className="w-44">
+                    <Select aria-label="Tax rate" {...register(`items.${index}.tax_rate_id` as const)}>
+                      <option value="">No tax</option>
+                      {taxRates?.map((rate) => (
+                        <option key={rate.id} value={rate.id}>
+                          {rate.name}
+                        </option>
+                      ))}
+                    </Select>
                   </div>
                   <Button
                     type="button"

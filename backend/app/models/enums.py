@@ -20,6 +20,11 @@ COMMITTED_PO_STATUSES = (
 )
 
 
+class TaxType(enum.StrEnum):
+    VAT = "vat"
+    SALES_TAX = "sales_tax"
+
+
 class DeliveryStatus(enum.StrEnum):
     PENDING = "pending"
     ON_TIME = "on_time"
