@@ -210,7 +210,9 @@ branch, then `RELEASE_CHECK.md`. Stop and wait.
 
 ## Decisions to review
 
-1. Rejected POs go back to `draft` (new `submitted -> draft` transition). Alternative: reject means cancel.
+1. Rejected POs end as `cancelled` with the reason kept, because the order lifecycle has no way back to draft and adding a
+   `submitted -> draft` transition would change the core state machine. Rejected purchase requests can be edited and
+   resubmitted (they are a new document type). Say if you want orders to return to draft instead.
 2. Approval rules are seeded only with demo data. A fresh install keeps single-step approval until an admin adds
    rules, so upgrading an existing installation changes nothing by surprise.
 3. SMTP credentials live in environment variables, not the database; the settings page shows whether SMTP is
