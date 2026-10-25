@@ -1,5 +1,6 @@
 import os
-from collections.abc import AsyncGenerator, AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator, Iterator
+from pathlib import Path
 
 import pytest
 import pytest_asyncio
@@ -14,7 +15,7 @@ os.environ.setdefault("JWT_SECRET_KEY", "test-only-secret-key-0123456789abcdef01
 
 from app.core.config import get_settings
 from app.core.permissions import PERMISSIONS, ROLE_DESCRIPTIONS, ROLE_PERMISSIONS
-from app.core.security import hash_password
+from app.core.security import hash_password, pwd_context
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
@@ -25,9 +26,15 @@ from app.models.role import Role
 from app.models.supplier import Supplier
 from app.models.user import User
 from app.services.inventory_service import record_opening_balance
+from app.storage import get_storage
+from app.storage.local import LocalStorage
 from tests.fixture_types import AuthHeaders, MakeUser, StockMatchesLedger
 
 settings = get_settings()
+
+# The cheapest bcrypt cost for this test process only: test accounts are throwaway, and full-cost hashing
+# dominated the suite's run time. Production code never lowers it.
+pwd_context.update(bcrypt__rounds=4)
 
 test_engine = create_async_engine(settings.test_database_url, poolclass=NullPool)
 TestSessionLocal = async_sessionmaker(bind=test_engine, expire_on_commit=False, class_=AsyncSession)
@@ -56,6 +63,15 @@ async def _override_get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 app.dependency_overrides[get_db] = _override_get_db
+
+
+@pytest.fixture(autouse=True)
+def storage(tmp_path: Path) -> Iterator[LocalStorage]:
+    """Uploaded files go to a per-test directory instead of the configured storage location."""
+    backend = LocalStorage(tmp_path / "uploads")
+    app.dependency_overrides[get_storage] = lambda: backend
+    yield backend
+    app.dependency_overrides.pop(get_storage, None)
 
 
 @pytest_asyncio.fixture

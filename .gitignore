@@ -19,3 +19,9 @@ Thumbs.db
 ## Env files (never commit real secrets)
 .env
 .env.local
+
+## Build output
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+backend/var/

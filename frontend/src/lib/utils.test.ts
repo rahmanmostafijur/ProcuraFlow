@@ -18,8 +18,8 @@ describe("formatDate", () => {
     expect(formatDate(undefined)).toBe("—");
   });
 
-  it("formats an ISO date string", () => {
-    expect(formatDate("2026-03-15")).toBe("Mar 15, 2026");
+  it("formats an ISO date string in the default company pattern", () => {
+    expect(formatDate("2026-03-15")).toBe("03/15/2026");
   });
 });
 

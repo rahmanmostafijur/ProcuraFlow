@@ -1,6 +1,9 @@
 {
   "compilerOptions": {
     "composite": true,
+    // Build output and cache stay out of the source tree (tsc -b needs somewhere to write them).
+    "outDir": "./node_modules/.tmp/tsconfig-node",
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "skipLibCheck": true,
     "module": "ESNext",
     "moduleResolution": "bundler",

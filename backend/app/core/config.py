@@ -59,6 +59,10 @@ class Settings(BaseSettings):
     # Placeholder only: the seed refuses it outside development/test (app/seeds/seed.py).
     default_admin_password: str = "change-this-admin-password"  # noqa: S105
 
+    # Uploaded files (logo, attachments) when STORAGE_BACKEND is local. Relative paths are resolved from the
+    # backend directory; containers mount a volume here.
+    storage_local_path: str = "var/uploads"
+
     # Demo suppliers and products: seeded by default only in local environments. A deployment that
     # wants them (a public demo) must say so; a real one never gets them by accident.
     seed_demo_data: bool | None = None

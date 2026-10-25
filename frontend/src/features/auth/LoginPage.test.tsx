@@ -9,6 +9,10 @@ import { LoginPage } from "./LoginPage";
 
 vi.mock("@/lib/auth-context", () => ({ useAuth: vi.fn() }));
 vi.mock("@/lib/use-backend-readiness", () => ({ useBackendReadiness: vi.fn() }));
+vi.mock("@/api/companySettings", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/api/companySettings")>()),
+  useBranding: () => ({ data: { company_name: "Northbeam Instruments", brand_color: "#0F766E", logo_url: null } }),
+}));
 
 const retry = vi.fn();
 
@@ -33,6 +37,12 @@ describe("LoginPage backend readiness", () => {
       logout: vi.fn(),
       hasPermission: () => false,
     });
+  });
+
+  it("shows the company's name from the branding settings", () => {
+    renderLogin("ready");
+
+    expect(screen.getByRole("heading", { name: "Sign in to Northbeam Instruments" })).toBeInTheDocument();
   });
 
   it("enables sign in and shows no notice once the backend is ready", () => {

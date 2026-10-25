@@ -26,6 +26,8 @@ Status values: `todo`, `in progress`, `done`, `blocked (owner action)`.
 
 ## Engineering tasks
 
+Tasks 3 to 12 below are superseded by the ProcuraFlow 1.0 plan in [`PLAN.md`](../PLAN.md) (branch `vibe96`).
+
 | # | Task group | Status | Change record |
 |---|---|---|---|
 | 1 | CI on GitHub Actions: backend (Postgres 16, migrations, pytest), frontend (typecheck, lint, unit tests, build), e2e, dependency audit; README badges | done (merged) | [01-ci](changes/01-ci.md) |

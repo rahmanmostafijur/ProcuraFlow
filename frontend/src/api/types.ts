@@ -25,6 +25,35 @@ export interface User {
   created_at: string;
 }
 
+export type DateFormat = "YYYY-MM-DD" | "MM/DD/YYYY" | "DD/MM/YYYY" | "DD.MM.YYYY";
+
+export interface Branding {
+  company_name: string;
+  brand_color: string;
+  logo_url: string | null;
+}
+
+export interface CompanySettings extends Branding {
+  legal_name: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  region: string | null;
+  postal_code: string | null;
+  country_code: string | null;
+  tax_id: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  base_currency_code: string;
+  fiscal_year_start_month: number;
+  date_format: DateFormat;
+  timezone: string;
+  po_number_prefix: string;
+  invoice_tolerance_percent: string;
+  default_payment_terms_days: number;
+  updated_at: string;
+}
+
 export interface Supplier {
   id: number;
   name: string;

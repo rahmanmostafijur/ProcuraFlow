@@ -7,6 +7,7 @@ PERMISSIONS: dict[str, str] = {
     "po:approve": "Submit and approve purchase orders",
     "po:transition": "Mark purchase orders ordered or cancelled",
     "audit:read": "View the audit log",
+    "settings:manage": "Manage company settings and branding",
 }
 
 ROLE_PERMISSIONS: dict[str, list[str]] = {

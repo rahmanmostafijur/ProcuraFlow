@@ -5,10 +5,13 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
 import { extractErrorMessage } from "@/api/client";
+import { useBranding } from "@/api/companySettings";
+import { CompanyMark } from "@/components/layout/CompanyMark";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { useAuth } from "@/lib/auth-context";
+import { useApplyBrandColor } from "@/lib/use-brand-color";
 import { type BackendStatus, useBackendReadiness } from "@/lib/use-backend-readiness";
 
 import { BackendStatusNotice } from "./BackendStatusNotice";
@@ -32,6 +35,10 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [formError, setFormError] = useState<string | null>(null);
   const backend = useBackendReadiness();
+  // Only asked once the API answers, so a sleeping backend shows the waking notice instead of a failed request.
+  const { data: branding } = useBranding(backend.status === "ready");
+  useApplyBrandColor(branding?.brand_color);
+  const companyName = branding?.company_name ?? "ProcuraFlow";
 
   const {
     register,
@@ -59,10 +66,8 @@ export function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-2">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-brand-600 text-lg font-bold text-white">
-            PF
-          </div>
-          <h1 className="text-xl font-semibold text-slate-900">Sign in to ProcuraFlow</h1>
+          <CompanyMark branding={branding} size="lg" showName={false} />
+          <h1 className="text-xl font-semibold text-slate-900">Sign in to {companyName}</h1>
           <p className="text-sm text-slate-500">Procurement, inventory &amp; delivery management</p>
         </div>
 

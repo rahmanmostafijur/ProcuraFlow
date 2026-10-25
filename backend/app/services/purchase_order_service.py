@@ -11,6 +11,7 @@ from app.models.enums import DeliveryStatus, InventoryTransactionType, POStatus
 from app.models.purchase_order import PO_NUMBER_SEQUENCE, PurchaseOrder
 from app.models.role import Role
 from app.models.user import User
+from app.services.company_settings_service import get_company_settings
 from app.services.inventory_service import apply_inventory_transaction, lock_products
 
 # Responses serialize creator/approver roles, and a refreshing load resets lazy relationships,
@@ -58,8 +59,10 @@ async def get_purchase_order_for_update(db: AsyncSession, po_id: int) -> Purchas
 
 async def generate_po_number(db: AsyncSession) -> str:
     year = datetime.now(UTC).year
+    prefix = (await get_company_settings(db)).po_number_prefix
     number = await db.scalar(select(PO_NUMBER_SEQUENCE.next_value()))
-    return f"PO-{year}-{number:05d}"
+    # The sequence is shared by every prefix, so changing the prefix can never produce a duplicate number.
+    return f"{prefix}-{year}-{number:05d}"
 
 
 def submit_purchase_order(po: PurchaseOrder) -> None:

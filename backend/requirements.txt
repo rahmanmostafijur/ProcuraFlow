@@ -12,3 +12,8 @@ pyjwt==2.15.1
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 python-dotenv==1.2.2
+# File uploads (logo, attachments) and image checks.
+python-multipart==0.0.32
+pillow==13.0.0
+# IANA time zone data for zoneinfo; Windows and slim images ship none.
+tzdata==2026.5

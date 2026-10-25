@@ -10,6 +10,8 @@ import { ProductsPage } from "@/features/products/ProductsPage";
 import { PurchaseOrderDetailPage } from "@/features/purchase-orders/PurchaseOrderDetailPage";
 import { PurchaseOrdersPage } from "@/features/purchase-orders/PurchaseOrdersPage";
 import { ReportsPage } from "@/features/reports/ReportsPage";
+import { CompanySettingsPage } from "@/features/settings/CompanySettingsPage";
+import { CompanySettingsProvider } from "@/lib/CompanySettingsProvider";
 import { SuppliersPage } from "@/features/suppliers/SuppliersPage";
 import { UsersPage } from "@/features/users/UsersPage";
 import { PermissionRoute } from "@/routes/PermissionRoute";
@@ -20,7 +22,13 @@ export function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route element={<ProtectedRoute />}>
-        <Route element={<AppShell />}>
+        <Route
+          element={
+            <CompanySettingsProvider>
+              <AppShell />
+            </CompanySettingsProvider>
+          }
+        >
           <Route path="/" element={<DashboardPage />} />
           <Route path="/suppliers" element={<SuppliersPage />} />
           <Route path="/products" element={<ProductsPage />} />
@@ -34,6 +42,9 @@ export function App() {
           </Route>
           <Route element={<PermissionRoute permission="user:manage" />}>
             <Route path="/users" element={<UsersPage />} />
+          </Route>
+          <Route element={<PermissionRoute permission="settings:manage" />}>
+            <Route path="/settings" element={<CompanySettingsPage />} />
           </Route>
         </Route>
       </Route>

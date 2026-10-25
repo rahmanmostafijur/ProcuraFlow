@@ -12,6 +12,8 @@ RUN pip install -r requirements.txt
 
 RUN useradd --create-home --uid 1000 app
 COPY --chown=app:app . .
+# Local file storage (STORAGE_LOCAL_PATH); mount a volume here so uploads survive container replacement.
+RUN mkdir -p /app/var/uploads && chown -R app:app /app/var
 USER app
 
 EXPOSE 8000
