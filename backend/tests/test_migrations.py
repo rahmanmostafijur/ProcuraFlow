@@ -203,3 +203,112 @@ async def test_several_instances_upgrading_at_once_all_succeed(scratch_database_
     tables, _ = await _schema(scratch_database_url)
     assert {"users", "refresh_tokens", "login_failures"} <= tables
     assert "(head)" in _alembic(scratch_database_url, "current")
+
+
+APPROVALS_REVISION = "a8e0f2b4c6d3"
+INVOICES_REVISION = "b7d1f3a5c9e2"
+
+
+async def _insert_current_orders(database_url: str) -> None:
+    """An ordered order with two lines, as it exists once currencies are in place."""
+    await _execute(database_url, "INSERT INTO roles (name) VALUES ('legacy')")
+    await _execute(
+        database_url,
+        "INSERT INTO users (email, hashed_password, full_name, role_id, is_active) "
+        "SELECT 'legacy@example.com', 'x', 'Legacy', id, true FROM roles WHERE name = 'legacy'",
+    )
+    await _execute(database_url, "INSERT INTO suppliers (name, is_active) VALUES ('Legacy Supplier', true)")
+    await _execute(
+        database_url,
+        "INSERT INTO products (sku, name, unit, cost, current_stock, minimum_stock, is_active) "
+        "VALUES ('LEG-1', 'LEG-1', 'unit', 1, 0, 0, true), ('LEG-2', 'LEG-2', 'unit', 1, 0, 0, true)",
+    )
+    await _execute(
+        database_url,
+        "INSERT INTO purchase_orders (po_number, supplier_id, status, created_by, currency_code) "
+        "SELECT 'PO-LEGACY-1', (SELECT min(id) FROM suppliers), 'ORDERED', (SELECT min(id) FROM users), 'USD'",
+    )
+    await _execute(
+        database_url,
+        "INSERT INTO purchase_order_items (po_id, product_id, quantity, unit_price, received_quantity) "
+        "SELECT (SELECT min(id) FROM purchase_orders), id, 10, 5, 0 FROM products",
+    )
+
+
+async def _scalar(database_url: str, sql: str) -> object:
+    engine = create_async_engine(database_url, poolclass=NullPool)
+    async with engine.begin() as connection:
+        value = (await connection.execute(text(sql))).scalar_one()
+    await engine.dispose()
+    return value
+
+
+async def _execute(database_url: str, sql: str) -> None:
+    engine = create_async_engine(database_url, poolclass=NullPool)
+    async with engine.begin() as connection:
+        await connection.execute(text(sql))
+    await engine.dispose()
+
+
+async def test_invoice_migration_keeps_legacy_orders_receipts_and_settings(scratch_database_url: str) -> None:
+    _alembic(scratch_database_url, "upgrade", APPROVALS_REVISION)
+    await _insert_current_orders(scratch_database_url)
+    # A legacy order that was partly received before rejections existed, with a file attached to it.
+    await _execute(
+        scratch_database_url,
+        "UPDATE purchase_order_items SET received_quantity = 3 WHERE id = (SELECT min(id) FROM purchase_order_items)",
+    )
+    await _execute(
+        scratch_database_url,
+        "INSERT INTO attachments (parent_type, parent_id, filename, content_type, size_bytes, sha256, storage_key, "
+        "uploaded_by) SELECT 'PURCHASE_ORDER', min(id), 'legacy.pdf', 'application/pdf', 10, 'abc', 'legacy-key', "
+        "(SELECT min(id) FROM users) FROM purchase_orders",
+    )
+
+    _alembic(scratch_database_url, "upgrade", "head")
+
+    # Matching starts as three-way, and the tolerance and terms the company already had are untouched.
+    assert await _scalar(scratch_database_url, "SELECT invoice_matching::text FROM company_settings") == "THREE_WAY"
+    assert await _scalar(scratch_database_url, "SELECT invoice_tolerance_percent FROM company_settings") == Decimal(
+        "2.00"
+    )
+    # Units received before are still counted as received (accepted), and the file is still attached.
+    assert await _scalar(scratch_database_url, "SELECT min(received_quantity) FROM purchase_order_items") == 0
+    assert await _scalar(scratch_database_url, "SELECT max(received_quantity) FROM purchase_order_items") == 3
+    assert await _scalar(scratch_database_url, "SELECT count(*) FROM attachments WHERE filename = 'legacy.pdf'") == 1
+    empty_count_sql = (
+        "SELECT (SELECT count(*) FROM goods_receipts) + (SELECT count(*) FROM supplier_returns) "
+        "+ (SELECT count(*) FROM supplier_invoices) + (SELECT count(*) FROM payments) "
+        "+ (SELECT count(*) FROM payment_runs)"
+    )
+    assert await _scalar(scratch_database_url, empty_count_sql) == 0
+    values = await _scalar(
+        scratch_database_url,
+        "SELECT string_agg(enumlabel, ',') FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid "
+        "WHERE t.typname = 'attachment_parent_type'",
+    )
+    assert "SUPPLIER_INVOICE" in str(values)
+
+
+async def test_the_invoice_migration_downgrades_even_with_invoice_attachments_and_upgrades_again(
+    scratch_database_url: str,
+) -> None:
+    _alembic(scratch_database_url, "upgrade", "head")
+    await _insert_current_orders(scratch_database_url)
+    await _execute(
+        scratch_database_url,
+        "INSERT INTO attachments (parent_type, parent_id, filename, content_type, size_bytes, sha256, storage_key, "
+        "uploaded_by) SELECT 'SUPPLIER_INVOICE', 1, 'bill.pdf', 'application/pdf', 10, 'abc', 'bill-key', "
+        "(SELECT min(id) FROM users)",
+    )
+
+    _alembic(scratch_database_url, "downgrade", APPROVALS_REVISION)
+    tables, _ = await _schema(scratch_database_url)
+    assert "supplier_invoices" not in tables
+    assert "payment_runs" not in tables
+    assert await _scalar(scratch_database_url, "SELECT count(*) FROM attachments") == 0
+
+    _alembic(scratch_database_url, "upgrade", "head")
+    tables, _ = await _schema(scratch_database_url)
+    assert {"supplier_invoices", "supplier_invoice_lines", "payments", "payment_runs", "payment_run_items"} <= tables
+    assert await _scalar(scratch_database_url, "SELECT invoice_matching::text FROM company_settings") == "THREE_WAY"

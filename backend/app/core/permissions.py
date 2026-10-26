@@ -17,6 +17,11 @@ PERMISSIONS: dict[str, str] = {
     "budget:manage": "Set budgets, manage cost centres and approve budget transfers",
     "budget:request_transfer": "Ask to move budget between cost centres",
     "catalog:manage": "Maintain the catalog of contract prices",
+    "invoice:read": "See supplier invoices, payments and payment runs",
+    "invoice:write": "Record and edit supplier invoices",
+    "invoice:approve": "Approve matched and exception invoices, and put invoices on hold",
+    "payment:write": "Record payments and create payment runs",
+    "payment:release": "Release payment runs (a second person from the one who created them)",
 }
 
 ROLE_PERMISSIONS: dict[str, list[str]] = {
@@ -34,8 +39,18 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "budget:read",
         "budget:request_transfer",
         "catalog:manage",
+        "invoice:read",
+        "invoice:write",
     ],
-    "purchasing_officer": ["po:create", "po:transition", "request:create", "request:read_all", "budget:read"],
+    "purchasing_officer": [
+        "po:create",
+        "po:transition",
+        "request:create",
+        "request:read_all",
+        "budget:read",
+        "invoice:read",
+        "invoice:write",
+    ],
     "warehouse_manager": ["inventory:write", "request:create"],
     "finance": [
         "finance:manage",
@@ -45,6 +60,11 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "approval:manage",
         "budget:read",
         "budget:manage",
+        "invoice:read",
+        "invoice:write",
+        "invoice:approve",
+        "payment:write",
+        "payment:release",
     ],
     "department_manager": ["request:create", "request:approve", "budget:read", "budget:request_transfer"],
     "employee": ["request:create"],

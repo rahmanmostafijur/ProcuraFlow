@@ -6,10 +6,12 @@ from sqlalchemy import select
 from app.core.deps import CurrentUser, DbSession, require_permission
 from app.core.pagination import paginate
 from app.models.enums import ApprovalDocumentType, POStatus
+from app.models.goods_receipt import GoodsReceipt
 from app.models.purchase_order import PurchaseOrder
 from app.models.user import User
 from app.schemas.approval import DecisionRequest, RejectionRequest
 from app.schemas.common import PaginatedResponse
+from app.schemas.goods_receipt import GoodsReceiptRead
 from app.schemas.po_version import PurchaseOrderAmend, PurchaseOrderVersionRead
 from app.schemas.purchase_order import (
     PurchaseOrderCreate,
@@ -20,6 +22,8 @@ from app.schemas.purchase_order import (
 from app.services import approval_engine, po_amendment_service, po_draft_service
 from app.services import purchase_order_service as po_service
 from app.services.audit_service import record_audit_event
+from app.services.goods_receipt_service import ReceiptInput, receive_goods
+from app.services.goods_receipt_service import list_receipts as list_goods_receipts
 from app.services.po_version_reads import to_version_read, to_version_reads
 
 router = APIRouter(prefix="/purchase-orders", tags=["purchase-orders"])
@@ -183,16 +187,37 @@ async def amend_purchase_order(
 async def receive_purchase_order(
     po_id: int, payload: ReceivePurchaseOrderRequest, db: DbSession, current_user: RequireInventoryWrite
 ) -> PurchaseOrder:
+    """Book a delivery. Rejected units stay open on the order; only accepted units enter stock."""
     po = await po_service.get_purchase_order_for_update(db, po_id)
-    received_items = {item.product_id: item.quantity for item in payload.items}
-    await po_service.receive_purchase_order_items(db, po, received_items, current_user.id)
+    lines = [
+        ReceiptInput(
+            product_id=item.product_id,
+            delivered=item.quantity,
+            rejected=item.rejected_quantity,
+            condition=item.condition,
+            note=item.note,
+        )
+        for item in payload.items
+    ]
+    receipt = await receive_goods(db, po, lines, current_user.id, payload.note)
     await record_audit_event(
         db,
         user_id=current_user.id,
         action="po_received",
         entity_type="purchase_order",
         entity_id=po.id,
-        extra_data={"items": received_items},
+        extra_data={
+            "items": {line.product_id: line.delivered for line in lines},
+            "rejected": {line.product_id: line.rejected for line in lines},
+            "receipt_id": receipt.id,
+        },
     )
     await db.commit()
     return await _get_po_or_404(db, po_id)
+
+
+@router.get("/{po_id}/receipts", response_model=list[GoodsReceiptRead])
+async def list_receipts(po_id: int, db: DbSession, _: CurrentUser) -> list[GoodsReceipt]:
+    """The deliveries booked against the order, oldest first, with what was accepted and rejected on each."""
+    await _get_po_or_404(db, po_id)
+    return await list_goods_receipts(db, po_id)

@@ -65,6 +65,7 @@ class BudgetChangeType(enum.StrEnum):
 class AttachmentParentType(enum.StrEnum):
     PURCHASE_REQUEST = "purchase_request"
     PURCHASE_ORDER = "purchase_order"
+    SUPPLIER_INVOICE = "supplier_invoice"
 
 
 class AmendmentStatus(enum.StrEnum):
@@ -87,3 +88,61 @@ class InventoryTransactionType(enum.StrEnum):
     ADJUSTMENT = "adjustment"
     PO_RECEIPT = "po_receipt"
     OPENING_BALANCE = "opening_balance"
+
+
+class ReceiptCondition(enum.StrEnum):
+    GOOD = "good"
+    DAMAGED = "damaged"
+    WRONG_ITEM = "wrong_item"
+    OTHER = "other"
+
+
+class ReturnResolution(enum.StrEnum):
+    REPLACE = "replace"
+    CREDIT_NOTE = "credit_note"
+    REPAIR = "repair"
+
+
+class ReturnStatus(enum.StrEnum):
+    OPEN = "open"
+    SENT = "sent"
+    RESOLVED = "resolved"
+    CANCELLED = "cancelled"
+
+
+class InvoiceStatus(enum.StrEnum):
+    DRAFT = "draft"
+    MATCHED = "matched"
+    EXCEPTION = "exception"
+    APPROVED = "approved"
+    ON_HOLD = "on_hold"
+    PAID = "paid"
+    VOID = "void"
+
+
+class InvoiceMatchMode(enum.StrEnum):
+    # Price and quantity against what was received (accepted units only).
+    THREE_WAY = "three_way"
+    # Price and quantity against what was ordered.
+    TWO_WAY = "two_way"
+
+
+class PaymentMethod(enum.StrEnum):
+    BANK_TRANSFER = "bank_transfer"
+    CARD = "card"
+    CHEQUE = "cheque"
+
+
+class PaymentRunStatus(enum.StrEnum):
+    DRAFT = "draft"
+    RELEASED = "released"
+    CANCELLED = "cancelled"
+
+
+class MatchReasonCode(enum.StrEnum):
+    PRICE_VARIANCE = "PRICE_VARIANCE"
+    QUANTITY_EXCEEDS_RECEIVED = "QUANTITY_EXCEEDS_RECEIVED"
+    QUANTITY_EXCEEDS_ORDERED = "QUANTITY_EXCEEDS_ORDERED"
+    TOTAL_EXCEEDS_ORDER = "TOTAL_EXCEEDS_ORDER"
+    DUPLICATE_INVOICE = "DUPLICATE_INVOICE"
+    UNKNOWN_LINE = "UNKNOWN_LINE"

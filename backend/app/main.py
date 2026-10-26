@@ -19,12 +19,15 @@ from app.routers import (
     deliveries,
     health,
     inventory,
+    payment_runs,
     po_amendments,
     products,
     purchase_orders,
     purchase_requests,
     reports,
     roles,
+    supplier_invoices,
+    supplier_returns,
     suppliers,
     tax_rates,
     users,
@@ -87,3 +90,6 @@ app.include_router(po_amendments.router, prefix=API_PREFIX)
 app.include_router(budgets.router, prefix=API_PREFIX)
 app.include_router(catalog.router, prefix=API_PREFIX)
 app.include_router(attachments.router, prefix=API_PREFIX)
+app.include_router(supplier_returns.router, prefix=API_PREFIX)
+app.include_router(supplier_invoices.router, prefix=API_PREFIX)
+app.include_router(payment_runs.router, prefix=API_PREFIX)

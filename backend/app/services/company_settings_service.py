@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.uploads import ValidatedFile
 from app.models.company_settings import COMPANY_SETTINGS_ID, CompanySettings
 from app.models.currency import Currency
+from app.models.enums import InvoiceMatchMode
 from app.models.purchase_order import PurchaseOrder
 from app.models.user import User
 from app.schemas.company_settings import BrandingRead, CompanySettingsRead, CompanySettingsUpdate
@@ -30,6 +31,7 @@ DEFAULT_COMPANY_SETTINGS: dict[str, Any] = {
     "po_number_prefix": "PO",
     "invoice_tolerance_percent": Decimal("2.00"),
     "default_payment_terms_days": 30,
+    "invoice_matching": InvoiceMatchMode.THREE_WAY,
     "budget_block_over_budget": False,
     "budget_warn_percent": Decimal("80.00"),
 }

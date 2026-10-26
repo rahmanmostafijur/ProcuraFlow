@@ -31,6 +31,7 @@ from app.services.inventory_service import record_opening_balance
 from app.storage import get_storage
 from app.storage.local import LocalStorage
 from tests.fixture_types import AuthHeaders, MakeUser, StockMatchesLedger
+from tests.invoice_helpers import Staff, make_staff
 
 settings = get_settings()
 
@@ -189,3 +190,9 @@ async def product(db_session: AsyncSession, supplier: Supplier, make_user: MakeU
     await db_session.commit()
     await db_session.refresh(product_obj)
     return product_obj
+
+
+@pytest_asyncio.fixture
+async def staff(auth_headers: AuthHeaders) -> Staff:
+    """Signed-in purchasing, finance (two people), warehouse, viewer and admin accounts for the invoice flow."""
+    return await make_staff(auth_headers)

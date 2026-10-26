@@ -8,13 +8,16 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.enums import AmendmentStatus, ApprovalDocumentType, POStatus, PurchaseRequestStatus
+from app.models.enums import AmendmentStatus, ApprovalDocumentType, InvoiceStatus, POStatus, PurchaseRequestStatus
 from app.models.po_version import PurchaseOrderVersion
 from app.models.purchase_order import PurchaseOrder
 from app.models.purchase_request import PurchaseRequest
+from app.models.supplier_invoice import SupplierInvoice
 from app.models.user import User
 from app.services.approval_engine import ApprovalSubject, register_adapter
 from app.services.audit_service import record_audit_event
+from app.services.invoice_queries import INVOICE_LOAD
+from app.services.invoice_transitions import mark_approved, send_back_to_draft
 from app.services.po_pricing import lock_base_amounts, to_base_amount
 
 
@@ -205,9 +208,49 @@ class PurchaseOrderAmendmentAdapter:
         )
 
 
+# --- supplier invoice exceptions ---------------------------------------------------------------------------------
+
+
+def invoice_subject(invoice: SupplierInvoice, amount_base: Decimal | None = None) -> ApprovalSubject:
+    # No cost centre: approving an invoice never changes a budget, because budgets count orders.
+    return ApprovalSubject(
+        document_type=ApprovalDocumentType.INVOICE_EXCEPTION,
+        document_id=invoice.id,
+        owner_id=invoice.created_by,
+        owner_name=invoice.creator.full_name,
+        noun="invoice",
+        label=f"{invoice.supplier.name} {invoice.invoice_number}",
+        title=f"Invoice {invoice.invoice_number} from {invoice.supplier.name}",
+        submitted_at=invoice.submitted_at,
+        cost_centre_id=None,
+        document=invoice,
+        amount_base=amount_base,
+    )
+
+
+class InvoiceExceptionAdapter:
+    document_type = ApprovalDocumentType.INVOICE_EXCEPTION
+
+    async def base_amount(self, db: AsyncSession, subject: ApprovalSubject) -> Decimal:
+        invoice: SupplierInvoice = subject.document
+        return await to_base_amount(db, invoice.grand_total, invoice.currency_code)
+
+    async def ensure_decidable(self, subject: ApprovalSubject) -> None:
+        invoice: SupplierInvoice = subject.document
+        if invoice.status != InvoiceStatus.EXCEPTION:
+            raise _conflict(f"Cannot decide an invoice that is '{invoice.status.value}'")
+
+    async def on_approved(self, db: AsyncSession, subject: ApprovalSubject, decider: User) -> None:
+        await mark_approved(db, subject.document, decider)
+
+    async def on_rejected(self, db: AsyncSession, subject: ApprovalSubject, decider: User, comment: str) -> None:
+        await send_back_to_draft(db, subject.document, decider, comment)
+
+
 register_adapter(PurchaseRequestAdapter())
 register_adapter(PurchaseOrderAdapter())
 register_adapter(PurchaseOrderAmendmentAdapter())
+register_adapter(InvoiceExceptionAdapter())
 
 
 # --- loading a document by id (for the approvals queue and for who-can-see checks) -------------------------------
@@ -238,4 +281,5 @@ async def subject_by_id(
         po = await db.scalar(select(PurchaseOrder).options(*PO_LOAD_OPTIONS).where(PurchaseOrder.id == version.po_id))
         creator = await db.get(User, version.created_by)
         return None if po is None or creator is None else amendment_subject(version, po, creator)
-    return None
+    invoice = await db.scalar(select(SupplierInvoice).options(*INVOICE_LOAD).where(SupplierInvoice.id == document_id))
+    return None if invoice is None else invoice_subject(invoice)

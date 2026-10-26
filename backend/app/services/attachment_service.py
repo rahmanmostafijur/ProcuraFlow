@@ -13,12 +13,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import has_permission
 from app.models.attachment import Attachment
-from app.models.enums import AttachmentParentType, PurchaseRequestStatus
+from app.models.enums import AttachmentParentType, InvoiceStatus, PurchaseRequestStatus
 from app.models.purchase_order import PurchaseOrder
 from app.models.purchase_request import PurchaseRequest
+from app.models.supplier_invoice import SupplierInvoice
 from app.models.user import User
 from app.schemas.attachment import AttachmentRead
 from app.schemas.person import PersonRead
+from app.services import invoice_access
 from app.services.audit_service import record_audit_event
 from app.services.purchase_request_service import get_request
 from app.storage import StorageBackend, StoredObjectNotFoundError
@@ -86,9 +88,28 @@ async def _order_writable(db: AsyncSession, user: User, parent_id: int) -> bool:
     return has_permission(user, "po:create") and await _order_readable(db, user, parent_id)
 
 
+INVOICE_ATTACHABLE_STATUSES = (InvoiceStatus.DRAFT, InvoiceStatus.EXCEPTION, InvoiceStatus.ON_HOLD)
+
+
+async def _invoice_readable(db: AsyncSession, user: User, parent_id: int) -> bool:
+    invoice = await db.get(SupplierInvoice, parent_id)
+    return invoice is not None and await invoice_access.can_view(db, invoice, user)
+
+
+async def _invoice_writable(db: AsyncSession, user: User, parent_id: int) -> bool:
+    invoice = await db.get(SupplierInvoice, parent_id)
+    return (
+        invoice is not None
+        and has_permission(user, "invoice:write")
+        and invoice_access.can_modify(invoice, user)
+        and invoice.status in INVOICE_ATTACHABLE_STATUSES
+    )
+
+
 POLICIES: dict[AttachmentParentType, ParentPolicy] = {
     AttachmentParentType.PURCHASE_REQUEST: ParentPolicy(_request_readable, _request_writable),
     AttachmentParentType.PURCHASE_ORDER: ParentPolicy(_order_readable, _order_writable),
+    AttachmentParentType.SUPPLIER_INVOICE: ParentPolicy(_invoice_readable, _invoice_writable),
 }
 
 

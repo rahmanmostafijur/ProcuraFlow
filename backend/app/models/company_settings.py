@@ -3,9 +3,11 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, Numeric, SmallInteger, String, func
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.models.enums import InvoiceMatchMode
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -55,6 +57,13 @@ class CompanySettings(Base):
     po_number_prefix: Mapped[str] = mapped_column(String(10), nullable=False)
     invoice_tolerance_percent: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
     default_payment_terms_days: Mapped[int] = mapped_column(Integer, nullable=False)
+    # What supplier invoices are matched against: the quantity received (three way) or the quantity ordered (two way).
+    invoice_matching: Mapped[InvoiceMatchMode] = mapped_column(
+        SAEnum(InvoiceMatchMode, name="invoice_match_mode"),
+        nullable=False,
+        default=InvoiceMatchMode.THREE_WAY,
+        server_default=InvoiceMatchMode.THREE_WAY.name,
+    )
 
     # Budget rules: refuse approvals that would exceed a cost centre's budget, and warn its manager from this share.
     budget_block_over_budget: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

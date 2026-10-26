@@ -71,6 +71,27 @@ current fiscal year is not limited.
 
 The badge is the length of the list it links to by construction: both call `approval_queue_service.queue_for`.
 
+### Supplier invoices and payables
+
+Supplier invoices are converted once, when they are approved, at the exchange rate in force that day, exactly like
+purchase orders. The rate and the converted totals are stored on the invoice, so payables never move when rates change
+later. Payments are in the invoice currency and are converted at the invoice's locked rate.
+
+| Metric | Formula | Period | Time zone | Statuses | Shown on |
+|---|---|---|---|---|---|
+| Payables outstanding | sum over invoices of (grand total - paid total) x the invoice's locked rate, each invoice rounded half-up to the base currency's minor units | now | n/a | approved | Dashboard, invoice list totals |
+| Overdue payables | the same sum, restricted to invoices whose due date is before today | today | company | approved | Dashboard, invoice list totals |
+| Invoices by status | count of invoices per status, every status listed (zero when none) | all time | n/a | all | Invoice list totals |
+| Invoices needing attention | matched + exception invoices | all time | n/a | matched, exception | Dashboard, invoice list totals |
+
+Invoices on hold, void, paid or not yet approved are not payables: on hold means payment is paused and the invoice is
+no longer counted until it is released. An invoice that is due today is not overdue. The invoice list takes the same
+filters (status, supplier, order, due before, number search) as these functions, so its totals for a set of filters
+equal the dashboard figures for the same filters (with no filters, the dashboard figures).
+
+Invoice matching compares quantities with the accepted quantity of an order line (units received minus units rejected),
+so a rejected delivery never counts as received for matching or for the order's status.
+
 ## Adding a metric
 
 1. Write one function in `metrics_service.py` and document it in the table above.

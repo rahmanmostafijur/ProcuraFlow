@@ -150,17 +150,35 @@ async def to_base_amount(db: AsyncSession, amount: Decimal, currency_code: str) 
     return convert_to_base(amount, rate, base_currency.minor_units)
 
 
-async def lock_base_amounts(db: AsyncSession, po: PurchaseOrder) -> None:
-    """Freeze the order's base-currency amounts at approval using the rate in force today (company time zone)."""
+async def locked_rate_today(db: AsyncSession, currency_code: str) -> Decimal:
+    """The exchange rate (base units per one unit of ``currency_code``) in force today in the company time zone.
+
+    A foreign currency with no rate on or before today is refused with the same message everywhere a document locks.
+    """
     settings = await get_company_settings(db)
     base_code = settings.base_currency_code
     today = today_in(settings.timezone)
     rate_row = None
-    if po.currency_code != base_code:
-        rate_row = await get_rate_in_force(db, base_code, po.currency_code, today)
-    rate = lock_rate_value(rate_row, po.currency_code, base_code, today)
+    if currency_code != base_code:
+        rate_row = await get_rate_in_force(db, base_code, currency_code, today)
+    return lock_rate_value(rate_row, currency_code, base_code, today)
 
-    po.exchange_rate = rate
+
+async def base_totals(
+    db: AsyncSession, subtotal: Decimal, tax_total: Decimal, rate: Decimal
+) -> tuple[Decimal, Decimal, Decimal]:
+    """Base-currency subtotal, tax and grand total of a document, converted at its locked rate."""
+    base_code = (await get_company_settings(db)).base_currency_code
+    base_currency = await db.get(Currency, base_code)
+    assert base_currency is not None  # noqa: S101 - the settings row references it by foreign key
+    base_subtotal = convert_to_base(subtotal, rate, base_currency.minor_units)
+    base_tax_total = convert_to_base(tax_total, rate, base_currency.minor_units)
+    return base_subtotal, base_tax_total, base_subtotal + base_tax_total
+
+
+async def lock_base_amounts(db: AsyncSession, po: PurchaseOrder) -> None:
+    """Freeze the order's base-currency amounts at approval using the rate in force today (company time zone)."""
+    po.exchange_rate = await locked_rate_today(db, po.currency_code)
     await refresh_base_amounts(db, po)
 
 
@@ -170,9 +188,6 @@ async def refresh_base_amounts(db: AsyncSession, po: PurchaseOrder) -> None:
     Used when an amendment changes the totals: the order keeps its original rate, so only the amounts move.
     """
     assert po.exchange_rate is not None  # noqa: S101 - only approved orders have amounts to refresh
-    base_code = (await get_company_settings(db)).base_currency_code
-    base_currency = await db.get(Currency, base_code)
-    assert base_currency is not None  # noqa: S101 - the settings row references it by foreign key
-    po.base_subtotal = convert_to_base(po.subtotal, po.exchange_rate, base_currency.minor_units)
-    po.base_tax_total = convert_to_base(po.tax_total, po.exchange_rate, base_currency.minor_units)
-    po.base_grand_total = po.base_subtotal + po.base_tax_total
+    po.base_subtotal, po.base_tax_total, po.base_grand_total = await base_totals(
+        db, po.subtotal, po.tax_total, po.exchange_rate
+    )

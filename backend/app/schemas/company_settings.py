@@ -14,6 +14,8 @@ from pydantic import (
     model_validator,
 )
 
+from app.models.enums import InvoiceMatchMode
+
 DateFormat = Literal["YYYY-MM-DD", "MM/DD/YYYY", "DD/MM/YYYY", "DD.MM.YYYY"]
 
 
@@ -56,6 +58,7 @@ REQUIRED_FIELDS = frozenset(
         "po_number_prefix",
         "invoice_tolerance_percent",
         "default_payment_terms_days",
+        "invoice_matching",
         "budget_block_over_budget",
         "budget_warn_percent",
     }
@@ -84,6 +87,7 @@ class CompanySettingsUpdate(BaseModel):
     po_number_prefix: PONumberPrefix | None = None
     invoice_tolerance_percent: Decimal | None = Field(default=None, ge=0, le=100, decimal_places=2)
     default_payment_terms_days: int | None = Field(default=None, ge=0, le=365)
+    invoice_matching: InvoiceMatchMode | None = None
     budget_block_over_budget: bool | None = None
     budget_warn_percent: Decimal | None = Field(default=None, ge=0, le=100, decimal_places=2)
 
@@ -123,6 +127,7 @@ class CompanySettingsRead(BrandingRead):
     po_number_prefix: str
     invoice_tolerance_percent: Decimal
     default_payment_terms_days: int
+    invoice_matching: InvoiceMatchMode
     budget_block_over_budget: bool
     budget_warn_percent: Decimal
     updated_at: datetime

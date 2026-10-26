@@ -1,6 +1,6 @@
 """Every number that more than one screen shows must come out identical through each of them."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from httpx import AsyncClient
@@ -11,9 +11,11 @@ from app.models.enums import COMMITTED_PO_STATUSES, POStatus
 from app.models.product import Product
 from app.models.supplier import Supplier
 from app.models.user import User
+from app.schemas.common import format_money
 from app.services import metrics_service
 from tests.fixture_types import AuthHeaders, MakeUser
 from tests.flow_helpers import API, submitted_po, user_id
+from tests.invoice_helpers import INVOICES, add_rate, approved_invoice, make_staff, matched_invoice, received_po
 from tests.po_factory import build_po
 
 SPEND_BY_SUPPLIER_URL = "/api/v1/reports/supplier-performance"
@@ -228,3 +230,49 @@ async def test_dashboard_counts_match_the_purchase_order_lists(
         summary["supplier_count"]
         == (await client.get("/api/v1/suppliers", params={"is_active": True}, headers=headers)).json()["total"]
     )
+
+
+async def test_payables_and_invoice_counts_agree_between_dashboard_invoice_list_and_service(
+    client: AsyncClient, db_session: AsyncSession, auth_headers: AuthHeaders, supplier: Supplier, product: Product
+) -> None:
+    staff = await make_staff(auth_headers)
+    await add_rate(client, staff.finance, "EUR", "2")
+    for number, currency in (("A-USD", "USD"), ("B-EUR", "EUR")):
+        po = await received_po(client, staff, supplier, product, currency_code=currency)
+        await approved_invoice(client, staff, po, product, number=number)
+    late_po = await received_po(client, staff, supplier, product)
+    await approved_invoice(
+        client,
+        staff,
+        late_po,
+        product,
+        number="C-LATE",
+        invoice_date=(utc_today() - timedelta(days=40)).isoformat(),
+        due_date=(utc_today() - timedelta(days=2)).isoformat(),
+    )
+    matched_po = await received_po(client, staff, supplier, product)
+    await matched_invoice(client, staff, matched_po, product, number="D-MATCHED")
+
+    summary = (await client.get("/api/v1/dashboard/summary", headers=staff.viewer)).json()
+    listing = (await client.get(INVOICES, headers=staff.finance)).json()
+    context = await metrics_service.get_context(db_session)
+    approved_only = (await client.get(INVOICES, params={"status": "approved"}, headers=staff.finance)).json()
+    overdue_only = (
+        await client.get(INVOICES, params={"due_before": utc_today().isoformat()}, headers=staff.finance)
+    ).json()
+
+    assert summary["payables_outstanding"] == "400.00"
+    assert summary["payables_outstanding"] == listing["totals"]["payables_outstanding"]
+    assert summary["payables_outstanding"] == approved_only["totals"]["payables_outstanding"]
+    assert summary["payables_outstanding"] == format_money(
+        await metrics_service.payables_outstanding(db_session, context)
+    )
+    assert summary["payables_overdue"] == "100.00"
+    assert summary["payables_overdue"] == listing["totals"]["payables_overdue"]
+    assert summary["payables_overdue"] == overdue_only["totals"]["payables_overdue"]
+    assert summary["payables_overdue"] == format_money(await metrics_service.payables_overdue(db_session, context))
+    assert summary["invoices_needing_attention"] == listing["totals"]["needing_attention"] == 1
+    assert summary["invoices_needing_attention"] == await metrics_service.invoices_needing_attention(db_session)
+    by_status = listing["totals"]["by_status"]
+    assert by_status["approved"] == approved_only["total"] == 3
+    assert sum(by_status.values()) == listing["total"] == 4

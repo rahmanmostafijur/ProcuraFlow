@@ -2,10 +2,10 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints, model_validator
 from pydantic_core import PydanticCustomError
 
-from app.models.enums import POStatus
+from app.models.enums import POStatus, ReceiptCondition
 from app.schemas.common import Money
 from app.schemas.currency import CurrencyCodeStr
 from app.schemas.supplier import SupplierRead
@@ -106,8 +106,32 @@ class PurchaseOrderRead(BaseModel):
 
 class ReceiveItem(BaseModel):
     product_id: int
+    # Units that arrived. Only the accepted ones (quantity - rejected_quantity) enter stock.
     quantity: int = Field(gt=0)
+    rejected_quantity: int = Field(default=0, ge=0)
+    condition: ReceiptCondition = ReceiptCondition.GOOD
+    note: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)] | None = None
+
+    @model_validator(mode="after")
+    def _rejected_is_part_of_what_arrived(self) -> "ReceiveItem":
+        if self.rejected_quantity > self.quantity:
+            raise ValueError("The rejected quantity cannot be more than the quantity that arrived")
+        return self
+
+
+def reject_duplicate_receipt_products(items: list[ReceiveItem]) -> list[ReceiveItem]:
+    seen: set[int] = set()
+    for item in items:
+        if item.product_id in seen:
+            raise PydanticCustomError(
+                "duplicate_product",
+                "Product {product_id} is repeated; send one line per product.",
+                {"product_id": item.product_id},
+            )
+        seen.add(item.product_id)
+    return items
 
 
 class ReceivePurchaseOrderRequest(BaseModel):
-    items: list[ReceiveItem] = Field(min_length=1)
+    items: Annotated[list[ReceiveItem], AfterValidator(reject_duplicate_receipt_products)] = Field(min_length=1)
+    note: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1000)] | None = None

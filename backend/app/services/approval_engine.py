@@ -189,7 +189,7 @@ def _with_article(noun: str) -> str:
     return f"{'an' if noun[0] in 'aeiou' else 'a'} {noun}"
 
 
-async def _with_permissions(db: AsyncSession, user: User) -> User:
+async def with_permissions(db: AsyncSession, user: User) -> User:
     """The user with their role and permissions loaded, fetching them only if they are not already there.
 
     The signed-in user always arrives loaded; this keeps the engine correct for a user object that did not.
@@ -256,7 +256,7 @@ async def evaluate_actor(
 
     Used by both the decision endpoints and the approvals queue, so the queue lists exactly what can be decided.
     """
-    actor = await _with_permissions(db, actor)
+    actor = await with_permissions(db, actor)
     own_reason = await _why_not(db, actor, step, subject, earlier_steps, base_currency)
     if own_reason is None:
         return Verdict(allowed=True)

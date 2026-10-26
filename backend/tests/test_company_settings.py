@@ -229,3 +229,54 @@ async def test_removing_the_logo(client: AsyncClient, auth_headers: AuthHeaders)
     assert response.status_code == 200
     assert response.json()["logo_url"] is None
     assert (await client.get(f"{SETTINGS_URL}/logo")).status_code == 404
+
+
+async def test_invoice_matching_defaults_to_three_way(client: AsyncClient, auth_headers: AuthHeaders) -> None:
+    headers = await auth_headers("viewer")
+
+    body = (await client.get(SETTINGS_URL, headers=headers)).json()
+
+    assert body["invoice_matching"] == "three_way"
+
+
+async def test_admin_switches_invoice_matching_and_it_is_audited(
+    client: AsyncClient, auth_headers: AuthHeaders, db_session: AsyncSession
+) -> None:
+    headers = await auth_headers("admin")
+
+    response = await client.patch(SETTINGS_URL, json={"invoice_matching": "two_way"}, headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["invoice_matching"] == "two_way"
+    audit = await db_session.scalar(select(AuditLog).where(AuditLog.action == "company_settings_updated"))
+    assert audit is not None
+    assert audit.extra_data is not None
+    assert audit.extra_data["changes"]["invoice_matching"] == {"from": "three_way", "to": "two_way"}
+
+
+@pytest.mark.parametrize("value", ["four_way", "THREE_WAY", "", 3])
+async def test_an_unknown_invoice_matching_mode_is_refused(
+    client: AsyncClient, auth_headers: AuthHeaders, value: Any
+) -> None:
+    headers = await auth_headers("admin")
+
+    response = await client.patch(SETTINGS_URL, json={"invoice_matching": value}, headers=headers)
+
+    assert response.status_code == 422
+
+
+async def test_invoice_matching_cannot_be_cleared(client: AsyncClient, auth_headers: AuthHeaders) -> None:
+    headers = await auth_headers("admin")
+
+    response = await client.patch(SETTINGS_URL, json={"invoice_matching": None}, headers=headers)
+
+    assert response.status_code == 422
+    assert "invoice_matching" in response.text
+
+
+async def test_only_settings_managers_change_invoice_matching(client: AsyncClient, auth_headers: AuthHeaders) -> None:
+    headers = await auth_headers("finance")
+
+    response = await client.patch(SETTINGS_URL, json={"invoice_matching": "two_way"}, headers=headers)
+
+    assert response.status_code == 403

@@ -13,6 +13,11 @@ class DashboardSummary(BaseModel):
     inventory_value: Money
     low_stock_products: int
     upcoming_deliveries: int
+    # Base currency; approved supplier invoices, converted at the rate locked at approval.
+    payables_outstanding: Money
+    payables_overdue: Money
+    # Matched plus exception invoices.
+    invoices_needing_attention: int
 
 
 class MonthlyTrendPoint(BaseModel):

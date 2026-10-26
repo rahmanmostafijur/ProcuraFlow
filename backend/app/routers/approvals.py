@@ -5,10 +5,12 @@ from app.core.deps import CurrentUser, DbSession
 from app.models.enums import ApprovalDocumentType
 from app.models.po_version import PurchaseOrderVersion
 from app.models.purchase_order import PurchaseOrder
+from app.models.supplier_invoice import SupplierInvoice
 from app.schemas.approval import ApprovalTimelineStep, QueuePage
 from app.services import approval_adapters  # noqa: F401 - registers the document adapters
 from app.services.approval_engine import all_steps
 from app.services.approval_queue_service import queue_for, timeline
+from app.services.invoice_access import can_view
 from app.services.purchase_request_service import get_request
 
 router = APIRouter(prefix="/approvals", tags=["approvals"])
@@ -42,6 +44,10 @@ async def _ensure_can_see(
             raise not_found
     elif document_type == ApprovalDocumentType.PURCHASE_ORDER_AMENDMENT:
         if await db.scalar(select(PurchaseOrderVersion.id).where(PurchaseOrderVersion.id == document_id)) is None:
+            raise not_found
+    elif document_type == ApprovalDocumentType.INVOICE_EXCEPTION:
+        invoice = await db.get(SupplierInvoice, document_id)
+        if invoice is None or not await can_view(db, invoice, user):
             raise not_found
     else:
         raise not_found

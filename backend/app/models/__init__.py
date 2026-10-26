@@ -8,9 +8,11 @@ from app.models.company_settings import CompanySettings
 from app.models.currency import Currency, ExchangeRate
 from app.models.delivery import Delivery
 from app.models.enums import DeliveryStatus, InventoryTransactionType, POStatus
+from app.models.goods_receipt import GoodsReceipt, GoodsReceiptLine, SupplierReturn
 from app.models.inventory import InventoryTransaction
 from app.models.login_failure import LoginFailure
 from app.models.notification import Notification
+from app.models.payment import Payment, PaymentRun, PaymentRunItem
 from app.models.permission import Permission, role_permissions
 from app.models.po_version import PurchaseOrderVersion
 from app.models.product import Product
@@ -20,6 +22,7 @@ from app.models.purchase_request import PurchaseRequest, PurchaseRequestLine
 from app.models.refresh_token import RefreshToken
 from app.models.role import Role
 from app.models.supplier import Supplier
+from app.models.supplier_invoice import SupplierInvoice, SupplierInvoiceLine
 from app.models.tax_rate import TaxRate
 from app.models.user import User
 
@@ -42,11 +45,16 @@ __all__ = [
     "Delivery",
     "DeliveryStatus",
     "ExchangeRate",
+    "GoodsReceipt",
+    "GoodsReceiptLine",
     "InventoryTransaction",
     "InventoryTransactionType",
     "LoginFailure",
     "Notification",
     "POStatus",
+    "Payment",
+    "PaymentRun",
+    "PaymentRunItem",
     "Permission",
     "Product",
     "PurchaseOrder",
@@ -57,6 +65,9 @@ __all__ = [
     "RefreshToken",
     "Role",
     "Supplier",
+    "SupplierInvoice",
+    "SupplierInvoiceLine",
+    "SupplierReturn",
     "TaxRate",
     "User",
     "role_permissions",

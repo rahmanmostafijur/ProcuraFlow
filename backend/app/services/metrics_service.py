@@ -12,21 +12,24 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
-from sqlalchemy import Date, Row, case, cast, func, select
+from sqlalchemy import ColumnElement, Date, Row, case, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.clock import today_in
 from app.core.fiscal import fiscal_year_bounds, fiscal_year_of
 from app.models.budget import Budget, CostCentre
 from app.models.company_settings import CompanySettings
+from app.models.currency import Currency
 from app.models.delivery import Delivery
-from app.models.enums import COMMITTED_PO_STATUSES, DeliveryStatus, POStatus
+from app.models.enums import COMMITTED_PO_STATUSES, DeliveryStatus, InvoiceStatus, POStatus
 from app.models.product import Product
 from app.models.purchase_order import PurchaseOrder
 from app.models.supplier import Supplier
+from app.models.supplier_invoice import SupplierInvoice
 from app.models.user import User
 from app.schemas.dashboard import DashboardSummary
 from app.services.company_settings_service import get_company_settings
+from app.services.invoice_queries import InvoiceFilter
 
 # Orders still moving through the process: not yet received and not cancelled.
 PENDING_PO_STATUSES = (
@@ -37,6 +40,8 @@ PENDING_PO_STATUSES = (
     POStatus.PARTIALLY_RECEIVED,
 )
 COMPLETED_PO_STATUSES = (POStatus.RECEIVED,)
+# Invoices that wait for a person: matched ones for approval, exceptions for a decision.
+ATTENTION_INVOICE_STATUSES = (InvoiceStatus.MATCHED, InvoiceStatus.EXCEPTION)
 # A month of trend data is looked back over this many days, so a partial current month is always included.
 DAYS_PER_TREND_MONTH = 31
 HUNDRED = Decimal(100)
@@ -282,6 +287,55 @@ async def pending_approval_count(db: AsyncSession, user: User) -> int:
     return len(await queue_for(db, user))
 
 
+async def invoice_counts_by_status(db: AsyncSession, flt: InvoiceFilter | None = None) -> dict[InvoiceStatus, int]:
+    """Number of supplier invoices per status (every status present, zero when none), narrowed by the filter."""
+    stmt = select(SupplierInvoice.status, func.count()).group_by(SupplierInvoice.status)
+    for condition in (flt or InvoiceFilter()).conditions():
+        stmt = stmt.where(condition)
+    counts = {invoice_status: 0 for invoice_status in InvoiceStatus}
+    for invoice_status, count in (await db.execute(stmt)).all():
+        counts[invoice_status] = count
+    return counts
+
+
+def needing_attention_from(counts: dict[InvoiceStatus, int]) -> int:
+    return sum(counts[invoice_status] for invoice_status in ATTENTION_INVOICE_STATUSES)
+
+
+async def invoices_needing_attention(db: AsyncSession, flt: InvoiceFilter | None = None) -> int:
+    """Matched plus exception invoices: the ones someone still has to approve or decide."""
+    return needing_attention_from(await invoice_counts_by_status(db, flt))
+
+
+async def _payables(
+    db: AsyncSession, context: MetricsContext, flt: InvoiceFilter | None, *extra: ColumnElement[bool]
+) -> Decimal:
+    base_units = await db.scalar(select(Currency.minor_units).where(Currency.code == context.base_currency_code))
+    open_base = func.round(
+        (SupplierInvoice.grand_total - SupplierInvoice.paid_total) * SupplierInvoice.exchange_rate, base_units
+    )
+    stmt = select(func.coalesce(func.sum(open_base), 0)).where(
+        SupplierInvoice.status == InvoiceStatus.APPROVED, SupplierInvoice.exchange_rate.is_not(None), *extra
+    )
+    for condition in (flt or InvoiceFilter()).conditions():
+        stmt = stmt.where(condition)
+    return Decimal((await db.execute(stmt)).scalar_one())
+
+
+async def payables_outstanding(db: AsyncSession, context: MetricsContext, flt: InvoiceFilter | None = None) -> Decimal:
+    """What is still owed on approved, non-void invoices, in the base currency.
+
+    Each invoice's open amount (total - paid) is converted at the rate it locked at approval and rounded to the base
+    currency's minor units, then summed. Invoices on hold, void, paid or not yet approved are not counted.
+    """
+    return await _payables(db, context, flt)
+
+
+async def payables_overdue(db: AsyncSession, context: MetricsContext, flt: InvoiceFilter | None = None) -> Decimal:
+    """Payables outstanding restricted to invoices whose due date is before today in the company time zone."""
+    return await _payables(db, context, flt, SupplierInvoice.due_date < context.today)
+
+
 async def dashboard_summary(db: AsyncSession) -> DashboardSummary:
     context = await get_context(db)
     return DashboardSummary(
@@ -292,4 +346,7 @@ async def dashboard_summary(db: AsyncSession) -> DashboardSummary:
         inventory_value=await inventory_value(db),
         low_stock_products=await low_stock_product_count(db),
         upcoming_deliveries=await upcoming_delivery_count(db, context),
+        payables_outstanding=await payables_outstanding(db, context),
+        payables_overdue=await payables_overdue(db, context),
+        invoices_needing_attention=await invoices_needing_attention(db),
     )
