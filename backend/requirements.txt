@@ -17,3 +17,6 @@ python-multipart==0.0.32
 pillow==13.0.0
 # IANA time zone data for zoneinfo; Windows and slim images ship none.
 tzdata==2026.5
+# Branded purchase order PDFs and sandboxed email templates.
+reportlab==4.4.4
+jinja2==3.1.6

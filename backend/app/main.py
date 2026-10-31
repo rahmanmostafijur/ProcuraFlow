@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from app.core.config import get_settings
 from app.core.proxy import TrustedProxyMiddleware
 from app.routers import (
+    account,
     approval_admin,
     approvals,
     attachments,
@@ -19,6 +20,7 @@ from app.routers import (
     deliveries,
     health,
     inventory,
+    notifications,
     payment_runs,
     po_amendments,
     products,
@@ -69,6 +71,8 @@ app.include_router(health.router, prefix="/api")
 
 API_PREFIX = "/api/v1"
 app.include_router(auth.router, prefix=API_PREFIX)
+app.include_router(account.router, prefix=API_PREFIX)
+app.include_router(notifications.router, prefix=API_PREFIX)
 app.include_router(roles.router, prefix=API_PREFIX)
 app.include_router(users.router, prefix=API_PREFIX)
 app.include_router(suppliers.router, prefix=API_PREFIX)

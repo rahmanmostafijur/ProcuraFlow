@@ -15,6 +15,10 @@ class UserCreate(UserBase):
     role_id: int
 
 
+class UserInvite(UserBase):
+    role_id: int
+
+
 class UserUpdate(BaseModel):
     full_name: str | None = Field(default=None, min_length=1, max_length=255)
     role_id: int | None = None

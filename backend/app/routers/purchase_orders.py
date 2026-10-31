@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 
 from app.core.deps import CurrentUser, DbSession, require_permission
@@ -22,15 +22,20 @@ from app.schemas.purchase_order import (
 from app.services import approval_engine, po_amendment_service, po_draft_service
 from app.services import purchase_order_service as po_service
 from app.services.audit_service import record_audit_event
+from app.services.company_settings_service import get_company_settings
+from app.services.email_service import queue_email
 from app.services.goods_receipt_service import ReceiptInput, receive_goods
 from app.services.goods_receipt_service import list_receipts as list_goods_receipts
+from app.services.po_document_service import render_purchase_order_pdf
 from app.services.po_version_reads import to_version_read, to_version_reads
+from app.storage import StorageBackend, get_storage
 
 router = APIRouter(prefix="/purchase-orders", tags=["purchase-orders"])
 
 RequirePOCreate = Annotated[User, Depends(require_permission("po:create"))]
 RequirePOTransition = Annotated[User, Depends(require_permission("po:transition"))]
 RequireInventoryWrite = Annotated[User, Depends(require_permission("inventory:write"))]
+Storage = Annotated[StorageBackend, Depends(get_storage)]
 
 
 async def _get_po_or_404(db: DbSession, po_id: int) -> PurchaseOrder:
@@ -162,6 +167,49 @@ async def cancel_purchase_order(po_id: int, db: DbSession, current_user: Require
     )
     await db.commit()
     return await _get_po_or_404(db, po_id)
+
+
+@router.get("/{po_id}/pdf")
+async def download_purchase_order_pdf(po_id: int, db: DbSession, storage: Storage, _: CurrentUser) -> Response:
+    po = await _get_po_or_404(db, po_id)
+    pdf = await render_purchase_order_pdf(db, storage, po)
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{po.po_number}.pdf"'},
+    )
+
+
+@router.post("/{po_id}/send", status_code=status.HTTP_202_ACCEPTED)
+async def send_purchase_order_to_supplier(
+    po_id: int, db: DbSession, current_user: RequirePOTransition
+) -> dict[str, str]:
+    """Queue the order email to the supplier. Only an ordered purchase order can be sent."""
+    po = await _get_po_or_404(db, po_id)
+    if po.status != POStatus.ORDERED:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Only an ordered purchase order can be sent")
+    if not po.supplier.email:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="The supplier has no email address"
+        )
+    company = await get_company_settings(db)
+    await queue_email(
+        db,
+        po.supplier.email,
+        "po_to_supplier",
+        {
+            "supplier_name": po.supplier.name,
+            "po_number": po.po_number,
+            "company_name": company.company_name,
+            "total": f"{po.currency_code} {po.grand_total:,.2f}",
+            "delivery_date": po.expected_delivery_date.isoformat() if po.expected_delivery_date else "to be agreed",
+        },
+    )
+    await record_audit_event(
+        db, user_id=current_user.id, action="po_sent", entity_type="purchase_order", entity_id=po.id
+    )
+    await db.commit()
+    return {"status": "queued"}
 
 
 @router.get("/{po_id}/versions", response_model=list[PurchaseOrderVersionRead])

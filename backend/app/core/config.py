@@ -63,6 +63,17 @@ class Settings(BaseSettings):
     # backend directory; containers mount a volume here.
     storage_local_path: str = "var/uploads"
 
+    # Outgoing email. Without SMTP_HOST (always the case in development and test) messages are logged, not sent.
+    smtp_host: str | None = None
+    smtp_port: int = Field(default=587, ge=1, le=65535)
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_starttls: bool = True
+    email_from: str = "ProcuraFlow <no-reply@procuraflow.local>"
+    # Base URL of the web app, used for links in emails (password reset, invitations).
+    app_base_url: str = "http://localhost:5173"
+    email_max_attempts: int = Field(default=5, ge=1)
+
     # Demo suppliers and products: seeded by default only in local environments. A deployment that
     # wants them (a public demo) must say so; a real one never gets them by accident.
     seed_demo_data: bool | None = None

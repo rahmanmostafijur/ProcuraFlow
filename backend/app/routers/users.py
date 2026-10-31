@@ -1,3 +1,4 @@
+import secrets
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -10,8 +11,10 @@ from app.core.security import hash_password
 from app.models.role import Role
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
-from app.schemas.user import UserCreate, UserRead, UserUpdate
+from app.schemas.user import UserCreate, UserInvite, UserRead, UserUpdate
+from app.services import user_token_service
 from app.services.audit_service import current_values, field_changes, record_audit_event
+from app.services.company_settings_service import get_company_settings
 from app.services.refresh_token_service import revoke_all_sessions
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -55,6 +58,31 @@ async def create_user(payload: UserCreate, db: DbSession, current_user: RequireU
     db.add(user)
     await db.flush()
     await record_audit_event(db, user_id=current_user.id, action="user_created", entity_type="user", entity_id=user.id)
+    await db.commit()
+
+    result = await db.execute(select(User).options(*_LOAD_OPTIONS).where(User.id == user.id))
+    return result.scalar_one()
+
+
+@router.post("/invite", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+async def invite_user(payload: UserInvite, db: DbSession, current_user: RequireUserManage) -> User:
+    """Create the account with a password nobody knows and email a single-use link to choose one."""
+    if (await db.execute(select(User).where(User.email == payload.email))).scalar_one_or_none() is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="A user with this email already exists")
+    if (await db.execute(select(Role).where(Role.id == payload.role_id))).scalar_one_or_none() is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Role not found")
+
+    user = User(
+        email=payload.email,
+        full_name=payload.full_name,
+        hashed_password=hash_password(secrets.token_urlsafe(32)),
+        role_id=payload.role_id,
+    )
+    db.add(user)
+    await db.flush()
+    company = await get_company_settings(db)
+    await user_token_service.invite_user(db, user, company.company_name)
+    await record_audit_event(db, user_id=current_user.id, action="user_invited", entity_type="user", entity_id=user.id)
     await db.commit()
 
     result = await db.execute(select(User).options(*_LOAD_OPTIONS).where(User.id == user.id))

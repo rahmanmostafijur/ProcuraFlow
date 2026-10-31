@@ -7,6 +7,7 @@ from app.models.category import Category
 from app.models.company_settings import CompanySettings
 from app.models.currency import Currency, ExchangeRate
 from app.models.delivery import Delivery
+from app.models.email import EmailOutbox, EmailTemplate, UserToken
 from app.models.enums import DeliveryStatus, InventoryTransactionType, POStatus
 from app.models.goods_receipt import GoodsReceipt, GoodsReceiptLine, SupplierReturn
 from app.models.inventory import InventoryTransaction
@@ -44,6 +45,8 @@ __all__ = [
     "Currency",
     "Delivery",
     "DeliveryStatus",
+    "EmailOutbox",
+    "EmailTemplate",
     "ExchangeRate",
     "GoodsReceipt",
     "GoodsReceiptLine",
@@ -70,5 +73,6 @@ __all__ = [
     "SupplierReturn",
     "TaxRate",
     "User",
+    "UserToken",
     "role_permissions",
 ]
