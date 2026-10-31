@@ -36,7 +36,7 @@ async def _po(
 async def test_pdf_download_returns_a_pdf(
     client: AsyncClient, auth_headers: AuthHeaders, db_session: AsyncSession, supplier: Supplier, product: Product
 ) -> None:
-    headers = await auth_headers("purchasing")
+    headers = await auth_headers("purchasing_officer")
     po = await _po(db_session, supplier, product)
     response = await client.get(f"{BASE}/{po.id}/pdf", headers=headers)
     assert response.status_code == 200
@@ -50,14 +50,14 @@ async def test_pdf_needs_sign_in_and_a_real_order(
 ) -> None:
     po = await _po(db_session, supplier, product)
     assert (await client.get(f"{BASE}/{po.id}/pdf")).status_code == 401
-    headers = await auth_headers("purchasing")
+    headers = await auth_headers("purchasing_officer")
     assert (await client.get(f"{BASE}/999999/pdf", headers=headers)).status_code == 404
 
 
 async def test_send_queues_one_email_to_the_supplier(
     client: AsyncClient, auth_headers: AuthHeaders, db_session: AsyncSession, supplier: Supplier, product: Product
 ) -> None:
-    headers = await auth_headers("purchasing")
+    headers = await auth_headers("purchasing_officer")
     po = await _po(db_session, supplier, product)
     response = await client.post(f"{BASE}/{po.id}/send", headers=headers)
     assert response.status_code == 202
@@ -70,7 +70,7 @@ async def test_send_queues_one_email_to_the_supplier(
 async def test_send_refuses_an_order_that_is_not_ordered(
     client: AsyncClient, auth_headers: AuthHeaders, db_session: AsyncSession, supplier: Supplier, product: Product
 ) -> None:
-    headers = await auth_headers("purchasing")
+    headers = await auth_headers("purchasing_officer")
     po = await _po(db_session, supplier, product, POStatus.DRAFT)
     assert (await client.post(f"{BASE}/{po.id}/send", headers=headers)).status_code == 409
 
@@ -78,7 +78,7 @@ async def test_send_refuses_an_order_that_is_not_ordered(
 async def test_send_refuses_a_supplier_without_email(
     client: AsyncClient, auth_headers: AuthHeaders, db_session: AsyncSession, supplier: Supplier, product: Product
 ) -> None:
-    headers = await auth_headers("purchasing")
+    headers = await auth_headers("purchasing_officer")
     supplier.email = None
     po = await _po(db_session, supplier, product)
     assert (await client.post(f"{BASE}/{po.id}/send", headers=headers)).status_code == 422

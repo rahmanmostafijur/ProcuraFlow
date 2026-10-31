@@ -65,6 +65,10 @@ def _money(order: PdfOrder, value: Decimal) -> str:
     return f"{order.currency_code} {text}"
 
 
+def _percent(value: Decimal) -> str:
+    return f"{value.normalize():f}%"
+
+
 def tax_breakdown(lines: tuple[PdfLine, ...]) -> list[tuple[str, Decimal, Decimal]]:
     """Net and tax per tax name and rate, so a mixed-rate order shows each rate on its own row."""
     buckets: dict[tuple[str, Decimal], list[Decimal]] = defaultdict(lambda: [Decimal(0), Decimal(0)])
@@ -73,7 +77,7 @@ def tax_breakdown(lines: tuple[PdfLine, ...]) -> list[tuple[str, Decimal, Decima
         bucket[0] += line.net
         bucket[1] += line.tax
     return [
-        (f"{name} {trim_money(percent)}%" if percent else name, net, tax)
+        (f"{name} {_percent(percent)}" if percent else name, net, tax)
         for (name, percent), (net, tax) in sorted(buckets.items(), key=lambda item: (item[0][0], item[0][1]))
     ]
 
@@ -143,7 +147,7 @@ def _lines_table(order: PdfOrder, brand: colors.Color, styles: dict[str, Paragra
                 _paragraph(line.description, styles["body"]),
                 str(line.quantity),
                 f"{trim_money(line.unit_price):,}",
-                f"{trim_money(line.tax_percent)}%" if line.tax_percent else "-",
+                _percent(line.tax_percent) if line.tax_percent else "-",
                 f"{line.total:,.{order.minor_units}f}",
             ]
         )

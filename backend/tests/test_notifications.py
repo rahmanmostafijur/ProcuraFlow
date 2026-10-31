@@ -23,11 +23,11 @@ async def _user_id(db: AsyncSession, email: str) -> int:
 async def test_users_see_only_their_own_notifications(
     client: AsyncClient, auth_headers: AuthHeaders, make_user: MakeUser, db_session: AsyncSession
 ) -> None:
-    mine = await auth_headers("purchasing")
-    await make_user("other@example.com", "purchasing")
+    mine = await auth_headers("purchasing_officer")
+    await make_user("other@example.com", "purchasing_officer")
     db_session.add_all(
         [
-            Notification(user_id=await _user_id(db_session, "purchasing@example.com"), message="for me"),
+            Notification(user_id=await _user_id(db_session, "purchasing_officer@example.com"), message="for me"),
             Notification(user_id=await _user_id(db_session, "other@example.com"), message="for someone else"),
         ]
     )
@@ -41,10 +41,10 @@ async def test_users_see_only_their_own_notifications(
 async def test_marking_read_updates_the_count_and_is_scoped_to_the_owner(
     client: AsyncClient, auth_headers: AuthHeaders, make_user: MakeUser, db_session: AsyncSession
 ) -> None:
-    mine = await auth_headers("purchasing")
-    other = await make_user("other@example.com", "purchasing")
+    mine = await auth_headers("purchasing_officer")
+    other = await make_user("other@example.com", "purchasing_officer")
     theirs = Notification(user_id=other.id, message="theirs")
-    own = Notification(user_id=await _user_id(db_session, "purchasing@example.com"), message="own")
+    own = Notification(user_id=await _user_id(db_session, "purchasing_officer@example.com"), message="own")
     db_session.add_all([theirs, own])
     await db_session.commit()
 
@@ -58,9 +58,9 @@ async def test_marking_read_updates_the_count_and_is_scoped_to_the_owner(
 async def test_read_all_only_touches_the_callers_notifications(
     client: AsyncClient, auth_headers: AuthHeaders, make_user: MakeUser, db_session: AsyncSession
 ) -> None:
-    mine = await auth_headers("purchasing")
-    other = await make_user("other@example.com", "purchasing")
-    me = await _user_id(db_session, "purchasing@example.com")
+    mine = await auth_headers("purchasing_officer")
+    other = await make_user("other@example.com", "purchasing_officer")
+    me = await _user_id(db_session, "purchasing_officer@example.com")
     db_session.add_all([Notification(user_id=me, message="a"), Notification(user_id=other.id, message="b")])
     await db_session.commit()
 

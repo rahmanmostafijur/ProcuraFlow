@@ -31,7 +31,7 @@ async def queue_email(db: AsyncSession, to_address: str, template_key: str, cont
     subject_source, body_source = await _template_text(db, template_key)
     subject, body = render_template(template_key, subject_source, body_source, context)
     message = EmailOutbox(
-        to_address=to_address, subject=subject, body=body, template_key=template_key, status=OUTBOX_QUEUED
+        to_address=to_address, subject=subject, body=body, template_key=template_key, status=OUTBOX_QUEUED, attempts=0
     )
     db.add(message)
     return message
