@@ -18,6 +18,7 @@ from app.routers import (
     currencies,
     dashboard,
     deliveries,
+    email_templates,
     health,
     inventory,
     notifications,
@@ -72,6 +73,7 @@ app.include_router(health.router, prefix="/api")
 API_PREFIX = "/api/v1"
 app.include_router(auth.router, prefix=API_PREFIX)
 app.include_router(account.router, prefix=API_PREFIX)
+app.include_router(email_templates.router, prefix=API_PREFIX)
 app.include_router(notifications.router, prefix=API_PREFIX)
 app.include_router(roles.router, prefix=API_PREFIX)
 app.include_router(users.router, prefix=API_PREFIX)
