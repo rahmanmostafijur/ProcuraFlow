@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 
-from app.core.deps import CurrentUser, DbSession
+from app.core.deps import AnyUser, DbSession
 from app.core.security import hash_password, verify_password
 from app.schemas.auth import ChangePasswordRequest, PasswordResetRequest, TokenPasswordRequest
 from app.services.audit_service import record_audit_event
@@ -41,7 +41,7 @@ async def accept_invitation(payload: TokenPasswordRequest, db: DbSession) -> Non
 
 
 @router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
-async def change_password(payload: ChangePasswordRequest, db: DbSession, current_user: CurrentUser) -> None:
+async def change_password(payload: ChangePasswordRequest, db: DbSession, current_user: AnyUser) -> None:
     if not verify_password(payload.current_password, current_user.hashed_password):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
     current_user.hashed_password = hash_password(payload.new_password)

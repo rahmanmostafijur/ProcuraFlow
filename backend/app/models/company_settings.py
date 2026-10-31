@@ -69,6 +69,13 @@ class CompanySettings(Base):
     budget_block_over_budget: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     budget_warn_percent: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False, default=Decimal(80))
 
+    # The company's own bank account: the payer in SEPA files and the originator in ACH files.
+    payer_iban: Mapped[str | None] = mapped_column(String(34))
+    payer_bic: Mapped[str | None] = mapped_column(String(11))
+    payer_routing_number: Mapped[str | None] = mapped_column(String(9))
+    payer_account_number: Mapped[str | None] = mapped_column(String(34))
+    ach_company_id: Mapped[str | None] = mapped_column(String(10))
+
     updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

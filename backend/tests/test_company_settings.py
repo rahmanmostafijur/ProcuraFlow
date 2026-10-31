@@ -280,3 +280,43 @@ async def test_only_settings_managers_change_invoice_matching(client: AsyncClien
     response = await client.patch(SETTINGS_URL, json={"invoice_matching": "two_way"}, headers=headers)
 
     assert response.status_code == 403
+
+
+async def test_payer_bank_details_are_validated_normalised_and_clearable(
+    client: AsyncClient, auth_headers: AuthHeaders
+) -> None:
+    admin = await auth_headers("admin")
+    body = {
+        "payer_iban": "nl91 abna 0417 1643 00",
+        "payer_bic": "abnanl2a",
+        "payer_routing_number": "011000015",
+        "payer_account_number": "1234 5678",
+        "ach_company_id": "ab12345678",
+    }
+
+    saved = await client.patch(SETTINGS_URL, json=body, headers=admin)
+    cleared = await client.patch(SETTINGS_URL, json={"payer_iban": "", "ach_company_id": None}, headers=admin)
+
+    assert saved.status_code == 200
+    assert saved.json()["payer_iban"] == "NL91ABNA0417164300"
+    assert (saved.json()["payer_bic"], saved.json()["payer_account_number"]) == ("ABNANL2A", "12345678")
+    assert saved.json()["ach_company_id"] == "AB12345678"
+    assert (cleared.json()["payer_iban"], cleared.json()["ach_company_id"]) == (None, None)
+    assert cleared.json()["payer_routing_number"] == "011000015"
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"payer_iban": "NL91ABNA0417164301"},
+        {"payer_bic": "NOPE"},
+        {"payer_routing_number": "011000016"},
+        {"ach_company_id": "WAY-TOO-LONG-ID"},
+    ],
+)
+async def test_invalid_payer_bank_details_are_refused(
+    client: AsyncClient, auth_headers: AuthHeaders, bad: dict[str, str]
+) -> None:
+    admin = await auth_headers("admin")
+
+    assert (await client.patch(SETTINGS_URL, json=bad, headers=admin)).status_code == 422

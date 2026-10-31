@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.deps import DbSession, require_permission
 from app.core.pagination import paginate
+from app.core.permissions import SUPPLIER_ROLE
 from app.core.security import hash_password
 from app.models.role import Role
 from app.models.user import User
@@ -22,6 +23,14 @@ router = APIRouter(prefix="/users", tags=["users"])
 RequireUserManage = Annotated[User, Depends(require_permission("user:manage"))]
 
 _LOAD_OPTIONS = (selectinload(User.role).selectinload(Role.permissions),)
+SUPPLIER_ACCOUNT_MESSAGE = "Supplier accounts are created by inviting a contact from the supplier's page"
+
+
+async def _ensure_internal_role(db: DbSession, role_id: int) -> None:
+    """Supplier accounts are tied to one supplier, which only the portal invitation can set up."""
+    role = await db.get(Role, role_id)
+    if role is not None and role.name == SUPPLIER_ROLE:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=SUPPLIER_ACCOUNT_MESSAGE)
 
 
 @router.get("", response_model=PaginatedResponse[UserRead])
@@ -48,6 +57,7 @@ async def create_user(payload: UserCreate, db: DbSession, current_user: RequireU
     role = (await db.execute(select(Role).where(Role.id == payload.role_id))).scalar_one_or_none()
     if role is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Role not found")
+    await _ensure_internal_role(db, payload.role_id)
 
     user = User(
         email=payload.email,
@@ -71,6 +81,7 @@ async def invite_user(payload: UserInvite, db: DbSession, current_user: RequireU
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="A user with this email already exists")
     if (await db.execute(select(Role).where(Role.id == payload.role_id))).scalar_one_or_none() is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Role not found")
+    await _ensure_internal_role(db, payload.role_id)
 
     user = User(
         email=payload.email,
@@ -97,6 +108,10 @@ async def update_user(user_id: int, payload: UserUpdate, db: DbSession, current_
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     update_data = payload.model_dump(exclude_unset=True)
+    if update_data.get("role_id") is not None:
+        await _ensure_internal_role(db, update_data["role_id"])
+        if user.supplier_id is not None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A supplier account keeps its role")
     password = update_data.pop("password", None)
     changes = field_changes(current_values(user, update_data), update_data)
     if password:

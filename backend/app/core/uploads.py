@@ -1,7 +1,8 @@
 import io
 from dataclasses import dataclass
+from urllib.parse import quote
 
-from fastapi import HTTPException, UploadFile, status
+from fastapi import HTTPException, Response, UploadFile, status
 from PIL import Image, UnidentifiedImageError
 
 READ_CHUNK_BYTES = 64 * 1024
@@ -59,3 +60,17 @@ def validate_image(data: bytes, allowed_formats: frozenset[str] = frozenset(IMAG
         )
     content_type, extension = IMAGE_FORMATS[image_format]
     return ValidatedFile(data=data, content_type=content_type, extension=extension)
+
+
+def download_response(content: bytes, content_type: str, filename: str) -> Response:
+    """A stored file as a download: never rendered or sniffed by the browser, never cached."""
+    return Response(
+        content=content,
+        media_type=content_type,
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "default-src 'none'; sandbox",
+            "Cache-Control": "private, no-store",
+        },
+    )

@@ -22,12 +22,22 @@ PERMISSIONS: dict[str, str] = {
     "invoice:approve": "Approve matched and exception invoices, and put invoices on hold",
     "payment:write": "Record payments and create payment runs",
     "payment:release": "Release payment runs (a second person from the one who created them)",
+    "payment:export": "Download the bank file of a released payment run",
+    "export:read": "Download accounting and record exports (CSV)",
+    "gdpr:manage": "Export and anonymise personal data",
+    "supplier:bank_details": "Request and approve changes to a supplier's bank details",
+    "portal:access": "Use the supplier portal (supplier accounts only)",
 }
 
+# Held only by supplier accounts. Internal roles, admin included, never get it: the portal is a separate area.
+PORTAL_PERMISSIONS = frozenset({"portal:access"})
+SUPPLIER_ROLE = "supplier"
+
 ROLE_PERMISSIONS: dict[str, list[str]] = {
-    "admin": list(PERMISSIONS.keys()),
+    "admin": [code for code in PERMISSIONS if code not in PORTAL_PERMISSIONS],
     "procurement_manager": [
         "supplier:write",
+        "supplier:bank_details",
         "product:write",
         "po:create",
         "po:approve",
@@ -65,10 +75,14 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "invoice:approve",
         "payment:write",
         "payment:release",
+        "payment:export",
+        "export:read",
+        "supplier:bank_details",
     ],
     "department_manager": ["request:create", "request:approve", "budget:read", "budget:request_transfer"],
     "employee": ["request:create"],
     "viewer": [],
+    SUPPLIER_ROLE: ["portal:access"],
 }
 
 ROLE_DESCRIPTIONS: dict[str, str] = {
@@ -80,4 +94,5 @@ ROLE_DESCRIPTIONS: dict[str, str] = {
     "department_manager": "Approves their team's purchase requests and asks to move budget.",
     "employee": "Raises purchase requests.",
     "viewer": "Read-only access across the platform.",
+    SUPPLIER_ROLE: "A supplier's own account: sees its orders, invoices and documents in the supplier portal only.",
 }

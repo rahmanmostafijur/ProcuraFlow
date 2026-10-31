@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
 
-from app.core.deps import CurrentUser, DbSession, require_permission
+from app.core.deps import CurrentUser, DbSession, has_permission, require_permission
 from app.core.uploads import read_upload, validate_image
 from app.models.user import User
 from app.schemas.company_settings import BrandingRead, CompanySettingsRead, CompanySettingsUpdate
@@ -14,6 +14,7 @@ router = APIRouter(prefix="/company-settings", tags=["company-settings"])
 RequireSettingsManage = Annotated[User, Depends(require_permission("settings:manage"))]
 Storage = Annotated[StorageBackend, Depends(get_storage)]
 
+PAYER_FIELDS = ("payer_iban", "payer_bic", "payer_routing_number", "payer_account_number", "ach_company_id")
 MAX_LOGO_BYTES = 1024 * 1024
 LOGO_CACHE_SECONDS = 24 * 60 * 60
 
@@ -46,8 +47,12 @@ async def get_logo(db: DbSession, storage: Storage) -> Response:
 
 
 @router.get("", response_model=CompanySettingsRead)
-async def get_company_settings(db: DbSession, _: CurrentUser) -> CompanySettingsRead:
-    return settings_service.to_read(await settings_service.get_company_settings(db))
+async def get_company_settings(db: DbSession, current_user: CurrentUser) -> CompanySettingsRead:
+    read = settings_service.to_read(await settings_service.get_company_settings(db))
+    if has_permission(current_user, "settings:manage"):
+        return read
+    # The company's own bank account is for the people who manage settings, not every signed-in user.
+    return read.model_copy(update=dict.fromkeys(PAYER_FIELDS))
 
 
 @router.patch("", response_model=CompanySettingsRead)

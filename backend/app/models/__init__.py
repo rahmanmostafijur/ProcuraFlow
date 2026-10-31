@@ -14,6 +14,7 @@ from app.models.inventory import InventoryTransaction
 from app.models.login_failure import LoginFailure
 from app.models.notification import Notification
 from app.models.payment import Payment, PaymentRun, PaymentRunItem
+from app.models.payment_file import PaymentRunFile
 from app.models.permission import Permission, role_permissions
 from app.models.po_version import PurchaseOrderVersion
 from app.models.product import Product
@@ -23,6 +24,8 @@ from app.models.purchase_request import PurchaseRequest, PurchaseRequestLine
 from app.models.refresh_token import RefreshToken
 from app.models.role import Role
 from app.models.supplier import Supplier
+from app.models.supplier_bank import SupplierBankDetails
+from app.models.supplier_document import SupplierDocument
 from app.models.supplier_invoice import SupplierInvoice, SupplierInvoiceLine
 from app.models.tax_rate import TaxRate
 from app.models.user import User
@@ -57,6 +60,7 @@ __all__ = [
     "POStatus",
     "Payment",
     "PaymentRun",
+    "PaymentRunFile",
     "PaymentRunItem",
     "Permission",
     "Product",
@@ -68,6 +72,8 @@ __all__ = [
     "RefreshToken",
     "Role",
     "Supplier",
+    "SupplierBankDetails",
+    "SupplierDocument",
     "SupplierInvoice",
     "SupplierInvoiceLine",
     "SupplierReturn",

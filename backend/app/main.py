@@ -19,17 +19,24 @@ from app.routers import (
     dashboard,
     deliveries,
     email_templates,
+    exports,
+    gdpr,
     health,
     inventory,
     notifications,
+    payment_files,
     payment_runs,
     po_amendments,
+    portal,
     products,
     purchase_orders,
     purchase_requests,
     reports,
     roles,
+    supplier_bank,
+    supplier_documents,
     supplier_invoices,
+    supplier_portal_admin,
     supplier_returns,
     suppliers,
     tax_rates,
@@ -78,6 +85,10 @@ app.include_router(notifications.router, prefix=API_PREFIX)
 app.include_router(roles.router, prefix=API_PREFIX)
 app.include_router(users.router, prefix=API_PREFIX)
 app.include_router(suppliers.router, prefix=API_PREFIX)
+app.include_router(supplier_documents.router, prefix=API_PREFIX)
+app.include_router(supplier_bank.router, prefix=API_PREFIX)
+app.include_router(supplier_portal_admin.router, prefix=API_PREFIX)
+app.include_router(portal.router, prefix=API_PREFIX)
 app.include_router(categories.router, prefix=API_PREFIX)
 app.include_router(products.router, prefix=API_PREFIX)
 app.include_router(purchase_orders.router, prefix=API_PREFIX)
@@ -99,3 +110,6 @@ app.include_router(attachments.router, prefix=API_PREFIX)
 app.include_router(supplier_returns.router, prefix=API_PREFIX)
 app.include_router(supplier_invoices.router, prefix=API_PREFIX)
 app.include_router(payment_runs.router, prefix=API_PREFIX)
+app.include_router(payment_files.router, prefix=API_PREFIX)
+app.include_router(exports.router, prefix=API_PREFIX)
+app.include_router(gdpr.router, prefix=API_PREFIX)

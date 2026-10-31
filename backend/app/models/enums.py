@@ -146,3 +146,31 @@ class MatchReasonCode(enum.StrEnum):
     TOTAL_EXCEEDS_ORDER = "TOTAL_EXCEEDS_ORDER"
     DUPLICATE_INVOICE = "DUPLICATE_INVOICE"
     UNKNOWN_LINE = "UNKNOWN_LINE"
+
+
+class SupplierDocumentType(enum.StrEnum):
+    W9 = "w9"
+    VAT_CERTIFICATE = "vat_certificate"
+    INSURANCE = "insurance"
+    ISO_CERTIFICATE = "iso_certificate"
+    BANK_LETTER = "bank_letter"
+
+
+class SupplierDocumentStatus(enum.StrEnum):
+    # Computed from the expiry date and today's date whenever it is read; never stored.
+    VALID = "valid"
+    EXPIRING_SOON = "expiring_soon"
+    EXPIRED = "expired"
+
+
+class BankDetailsStatus(enum.StrEnum):
+    # A change waiting for a second person; it changes nothing until approved.
+    PENDING = "pending"
+    CURRENT = "current"
+    SUPERSEDED = "superseded"
+    REJECTED = "rejected"
+
+
+class PaymentFileFormat(enum.StrEnum):
+    SEPA_PAIN001 = "sepa_pain001"
+    NACHA_ACH = "nacha_ach"

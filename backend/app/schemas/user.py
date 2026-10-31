@@ -31,5 +31,7 @@ class UserRead(UserBase):
 
     id: int
     is_active: bool
+    # Only supplier-portal accounts have one.
+    supplier_id: int | None = None
     role: RoleRead
     created_at: datetime

@@ -1,7 +1,12 @@
+import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.permissions import PERMISSIONS, ROLE_PERMISSIONS, SUPPLIER_ROLE
 from app.models.product import Product
 from app.models.supplier import Supplier
+from app.models.user import User
 from tests.fixture_types import AuthHeaders
 
 
@@ -74,3 +79,56 @@ async def test_unauthenticated_request_is_rejected(client: AsyncClient) -> None:
     response = await client.get("/api/v1/suppliers")
 
     assert response.status_code == 401
+
+
+PHASE_6_PERMISSIONS = {
+    "export:read": {"admin", "finance"},
+    "gdpr:manage": {"admin"},
+    "payment:export": {"admin", "finance"},
+    "supplier:bank_details": {"admin", "finance", "procurement_manager"},
+    "portal:access": {"supplier"},
+}
+
+
+@pytest.mark.parametrize(("code", "holders"), sorted(PHASE_6_PERMISSIONS.items()))
+def test_phase_6_permissions_are_held_by_exactly_the_intended_roles(code: str, holders: set[str]) -> None:
+    assert {role for role, codes in ROLE_PERMISSIONS.items() if code in codes} == holders
+    assert code in PERMISSIONS
+
+
+def test_the_supplier_role_has_only_the_portal_permission() -> None:
+    assert ROLE_PERMISSIONS[SUPPLIER_ROLE] == ["portal:access"]
+
+
+async def test_the_roles_screen_lists_the_supplier_role_with_its_single_permission(
+    client: AsyncClient, auth_headers: AuthHeaders
+) -> None:
+    headers = await auth_headers("admin")
+
+    response = await client.get("/api/v1/roles", headers=headers)
+
+    supplier_role = next(role for role in response.json() if role["name"] == "supplier")
+    assert [permission["code"] for permission in supplier_role["permissions"]] == ["portal:access"]
+
+
+@pytest.mark.parametrize("role_name", ["admin", "finance", "procurement_manager", "viewer"])
+async def test_internal_roles_cannot_use_the_portal(
+    client: AsyncClient, auth_headers: AuthHeaders, role_name: str
+) -> None:
+    headers = await auth_headers(role_name)
+
+    assert (await client.get("/api/v1/portal/orders", headers=headers)).status_code == 403
+    assert (await client.get("/api/v1/portal/me", headers=headers)).status_code == 403
+
+
+async def test_a_supplier_account_cannot_read_the_supplier_list(
+    client: AsyncClient, auth_headers: AuthHeaders, db_session: AsyncSession, supplier: Supplier
+) -> None:
+    headers = await auth_headers("supplier")
+    user = await db_session.scalar(select(User).where(User.email == "supplier@example.com"))
+    assert user is not None
+    user.supplier_id = supplier.id
+    await db_session.commit()
+
+    assert (await client.get("/api/v1/suppliers", headers=headers)).status_code == 403
+    assert (await client.get("/api/v1/portal/me", headers=headers)).status_code == 200

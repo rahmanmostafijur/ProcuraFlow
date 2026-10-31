@@ -91,6 +91,8 @@ class PurchaseOrderRead(BaseModel):
     creator: UserRead
     approver: UserRead | None
     approved_at: datetime | None
+    # When the supplier confirmed the order in the portal.
+    acknowledged_at: datetime | None
     created_at: datetime
     updated_at: datetime
     subtotal: Money

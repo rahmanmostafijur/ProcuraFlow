@@ -45,6 +45,9 @@ class PurchaseOrder(Base):
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     expected_delivery_date: Mapped[date | None] = mapped_column(Date)
     notes: Mapped[str | None] = mapped_column(Text)
+    # Set when the supplier confirmed the order in the portal.
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    acknowledged_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True)
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True)
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -62,6 +65,7 @@ class PurchaseOrder(Base):
     )
     creator: Mapped["User"] = relationship(foreign_keys=[created_by])
     approver: Mapped["User | None"] = relationship(foreign_keys=[approved_by])
+    acknowledger: Mapped["User | None"] = relationship(foreign_keys=[acknowledged_by])
 
     @property
     def total(self) -> Decimal:

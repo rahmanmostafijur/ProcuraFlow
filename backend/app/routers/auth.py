@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.auth_cookie import REFRESH_COOKIE_NAME, refresh_cookie_options
 from app.core.config import get_settings
-from app.core.deps import CurrentUser, DbSession
+from app.core.deps import AnyUser, DbSession
 from app.core.security import create_access_token, verify_password
 from app.models.role import Role
 from app.models.user import User
@@ -114,5 +114,5 @@ async def logout(db: DbSession, refresh_token: RefreshCookie = None) -> Response
 
 
 @router.get("/me", response_model=UserRead)
-async def read_current_user(current_user: CurrentUser) -> User:
+async def read_current_user(current_user: AnyUser) -> User:
     return current_user

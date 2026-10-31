@@ -19,6 +19,8 @@ class User(Base):
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"), nullable=False, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Set only on supplier-portal accounts: the one supplier this account belongs to. Internal users have none.
+    supplier_id: Mapped[int | None] = mapped_column(ForeignKey("suppliers.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

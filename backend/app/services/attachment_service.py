@@ -12,6 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import has_permission
+from app.core.file_types import ATTACHMENT_KINDS, detect_file_type
 from app.models.attachment import Attachment
 from app.models.enums import AttachmentParentType, InvoiceStatus, PurchaseRequestStatus
 from app.models.purchase_order import PurchaseOrder
@@ -29,21 +30,15 @@ MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 MAX_ATTACHMENTS_PER_RECORD = 20
 MAX_FILENAME_LENGTH = 255
 
-# What a file must start with to count as one of these types; the client's declared type is never trusted.
-SIGNATURES: tuple[tuple[bytes, str, str], ...] = (
-    (b"%PDF-", "application/pdf", "pdf"),
-    (b"\x89PNG\r\n\x1a\n", "image/png", "png"),
-    (b"\xff\xd8\xff", "image/jpeg", "jpg"),
-)
 _UNSAFE_FILENAME = re.compile(r"[\x00-\x1f\x7f/\\]")
 
 
-def detect_type(data: bytes) -> tuple[str, str] | None:
-    """(content type, extension) if the bytes start like a PDF, PNG or JPEG; otherwise ``None``."""
-    for signature, content_type, extension in SIGNATURES:
-        if data.startswith(signature):
-            return content_type, extension
-    return None
+def _unsupported_message(allowed_kinds: frozenset[str]) -> str:
+    labels = {"pdf": "PDF", "png": "PNG", "jpg": "JPEG", "xlsx": "Excel (.xlsx)", "csv": "CSV"}
+    names = [label for kind, label in labels.items() if kind in allowed_kinds]
+    if len(names) == 1:
+        return f"Attach a {names[0]} file."
+    return f"Attach a {', '.join(names[:-1])} or {names[-1]} file."
 
 
 def clean_filename(name: str | None) -> str:
@@ -123,7 +118,7 @@ async def _ensure_readable(db: AsyncSession, user: User, parent_type: Attachment
         raise _not_found()
 
 
-def _to_read(attachment: Attachment, uploader: User) -> AttachmentRead:
+def to_read(attachment: Attachment, uploader: User) -> AttachmentRead:
     return AttachmentRead(
         id=attachment.id,
         parent_type=attachment.parent_type,
@@ -148,7 +143,7 @@ async def list_attachments(
             .order_by(Attachment.id)
         )
     ).all()
-    return [_to_read(attachment, uploader) for attachment, uploader in rows]
+    return [to_read(attachment, uploader) for attachment, uploader in rows]
 
 
 async def upload_attachment(
@@ -163,10 +158,24 @@ async def upload_attachment(
     await _ensure_readable(db, actor, parent_type, parent_id)
     if not await POLICIES[parent_type].can_write(db, actor, parent_id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You cannot attach files to this record")
-    detected = detect_type(data)
+    return await store_attachment(db, storage, actor, parent_type, parent_id, filename, data, ATTACHMENT_KINDS)
+
+
+async def store_attachment(
+    db: AsyncSession,
+    storage: StorageBackend,
+    actor: User,
+    parent_type: AttachmentParentType,
+    parent_id: int,
+    filename: str | None,
+    data: bytes,
+    allowed_kinds: frozenset[str],
+) -> AttachmentRead:
+    """Validate the bytes by content, store the file and record it. The caller has already checked access."""
+    detected = detect_file_type(data, allowed_kinds)
     if detected is None:
         raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail="Attach a PDF, PNG or JPEG file."
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=_unsupported_message(allowed_kinds)
         )
     count = await db.scalar(
         select(func.count())
@@ -208,7 +217,7 @@ async def upload_attachment(
         await storage.delete(storage_key)
         raise
     await db.refresh(attachment)
-    return _to_read(attachment, actor)
+    return to_read(attachment, actor)
 
 
 async def _get_visible(db: AsyncSession, viewer: User, attachment_id: int) -> Attachment:

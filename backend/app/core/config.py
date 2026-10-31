@@ -17,6 +17,7 @@ PLACEHOLDER_JWT_SECRETS = frozenset(
     }
 )
 Environment = Literal["development", "test", "staging", "production"]
+StorageBackendName = Literal["local", "s3"]
 SECRET_HINT = 'generate one with: python -c "import secrets; print(secrets.token_urlsafe(48))"'  # noqa: S105 - help text
 
 
@@ -62,6 +63,14 @@ class Settings(BaseSettings):
     # Uploaded files (logo, attachments) when STORAGE_BACKEND is local. Relative paths are resolved from the
     # backend directory; containers mount a volume here.
     storage_local_path: str = "var/uploads"
+    # "s3" stores files in any S3-compatible bucket (AWS S3, MinIO, Cloudflare R2, Backblaze B2) and needs the
+    # S3_* settings below; they are checked at startup so a half-configured deployment fails immediately.
+    storage_backend: StorageBackendName = "local"
+    s3_endpoint_url: str | None = None
+    s3_bucket: str | None = None
+    s3_region: str | None = None
+    s3_access_key_id: str | None = None
+    s3_secret_access_key: str | None = None
 
     # Outgoing email. Without SMTP_HOST (always the case in development and test) messages are logged, not sent.
     smtp_host: str | None = None
@@ -105,6 +114,24 @@ class Settings(BaseSettings):
         if raw is None:
             raw = LOCAL_CORS_ORIGINS if self.is_local else ""
         return [origin.strip() for origin in raw.split(",") if origin.strip()]
+
+    @model_validator(mode="after")
+    def _require_s3_settings_when_selected(self) -> "Settings":
+        if self.storage_backend != "s3":
+            return self
+        required = {
+            "S3_ENDPOINT_URL": self.s3_endpoint_url,
+            "S3_BUCKET": self.s3_bucket,
+            "S3_REGION": self.s3_region,
+            "S3_ACCESS_KEY_ID": self.s3_access_key_id,
+            "S3_SECRET_ACCESS_KEY": self.s3_secret_access_key,
+        }
+        missing = [name for name, value in required.items() if not value or not value.strip()]
+        if missing:
+            raise ValueError(f"STORAGE_BACKEND=s3 needs these settings: {', '.join(missing)}")
+        if not (self.s3_endpoint_url or "").startswith(("https://", "http://")):
+            raise ValueError("S3_ENDPOINT_URL must start with https:// (or http:// for a local MinIO)")
+        return self
 
     @model_validator(mode="after")
     def _require_strong_secret_outside_local(self) -> "Settings":

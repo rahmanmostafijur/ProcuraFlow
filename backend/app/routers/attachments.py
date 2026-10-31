@@ -1,10 +1,9 @@
 from typing import Annotated
-from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, Query, Response, UploadFile, status
 
 from app.core.deps import CurrentUser, DbSession
-from app.core.uploads import read_upload
+from app.core.uploads import download_response, read_upload
 from app.models.enums import AttachmentParentType
 from app.schemas.attachment import AttachmentRead
 from app.services import attachment_service
@@ -39,16 +38,7 @@ async def upload_attachment(
 async def download_attachment(attachment_id: int, db: DbSession, storage: Storage, user: CurrentUser) -> Response:
     """Served only to someone who can see the record the file is attached to, and never rendered by the browser."""
     attachment, data = await attachment_service.read_attachment(db, storage, user, attachment_id)
-    return Response(
-        content=data,
-        media_type=attachment.content_type,
-        headers={
-            "Content-Disposition": f"attachment; filename*=UTF-8''{quote(attachment.filename)}",
-            "X-Content-Type-Options": "nosniff",
-            "Content-Security-Policy": "default-src 'none'; sandbox",
-            "Cache-Control": "private, no-store",
-        },
-    )
+    return download_response(data, attachment.content_type, attachment.filename)
 
 
 @router.delete("/{attachment_id}", status_code=status.HTTP_204_NO_CONTENT)

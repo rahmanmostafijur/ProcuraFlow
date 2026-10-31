@@ -14,6 +14,7 @@ from pydantic import (
     model_validator,
 )
 
+from app.core.bank_validation import BIC_PATTERN, compact, is_valid_iban, is_valid_routing_number
 from app.models.enums import InvoiceMatchMode
 
 DateFormat = Literal["YYYY-MM-DD", "MM/DD/YYYY", "DD/MM/YYYY", "DD.MM.YYYY"]
@@ -35,7 +36,29 @@ def _upper(value: object) -> object:
     return value.strip().upper() if isinstance(value, str) else value
 
 
+def _compact_identifier(value: object) -> object:
+    return compact(value) if isinstance(value, str) else value
+
+
+def _valid_iban(value: str) -> str:
+    if not is_valid_iban(value):
+        raise ValueError("The IBAN is not valid (check the digits)")
+    return value
+
+
+def _valid_routing_number(value: str) -> str:
+    if not is_valid_routing_number(value):
+        raise ValueError("The routing number is not a valid 9-digit ABA number")
+    return value
+
+
 BlankIsNone = BeforeValidator(_blank_to_none)
+# Bank identifiers: spaces and dashes dropped, capitals, and checked so a typo is refused when it is typed.
+PayerIban = Annotated[str, BeforeValidator(_compact_identifier), AfterValidator(_valid_iban)]
+PayerBic = Annotated[str, BeforeValidator(_compact_identifier), StringConstraints(pattern=BIC_PATTERN.pattern)]
+PayerRouting = Annotated[str, BeforeValidator(_compact_identifier), AfterValidator(_valid_routing_number)]
+PayerAccount = Annotated[str, BeforeValidator(_compact_identifier), StringConstraints(pattern=r"^[A-Z0-9]{1,34}$")]
+AchCompanyId = Annotated[str, BeforeValidator(_compact_identifier), StringConstraints(pattern=r"^[A-Z0-9]{1,10}$")]
 Text200 = Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)]
 Text100 = Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)]
 Text50 = Annotated[str, StringConstraints(strip_whitespace=True, max_length=50)]
@@ -90,6 +113,12 @@ class CompanySettingsUpdate(BaseModel):
     invoice_matching: InvoiceMatchMode | None = None
     budget_block_over_budget: bool | None = None
     budget_warn_percent: Decimal | None = Field(default=None, ge=0, le=100, decimal_places=2)
+    # The company's own bank account, used as the payer in payment files.
+    payer_iban: Annotated[PayerIban | None, BlankIsNone] = None
+    payer_bic: Annotated[PayerBic | None, BlankIsNone] = None
+    payer_routing_number: Annotated[PayerRouting | None, BlankIsNone] = None
+    payer_account_number: Annotated[PayerAccount | None, BlankIsNone] = None
+    ach_company_id: Annotated[AchCompanyId | None, BlankIsNone] = None
 
     @model_validator(mode="after")
     def _required_fields_are_not_cleared(self) -> "CompanySettingsUpdate":
@@ -130,4 +159,9 @@ class CompanySettingsRead(BrandingRead):
     invoice_matching: InvoiceMatchMode
     budget_block_over_budget: bool
     budget_warn_percent: Decimal
+    payer_iban: str | None
+    payer_bic: str | None
+    payer_routing_number: str | None
+    payer_account_number: str | None
+    ach_company_id: str | None
     updated_at: datetime

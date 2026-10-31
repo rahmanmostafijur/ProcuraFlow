@@ -1,14 +1,16 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.approval import ApprovalStep
-from app.models.enums import ApprovalStepStatus
+from app.models.enums import ApprovalStepStatus, SupplierDocumentStatus
 from app.models.notification import Notification
 from app.models.permission import Permission, role_permissions
 from app.models.user import User
+from app.services.supplier_document_service import DOCUMENT_LABELS, documents_needing_attention
 
+SUPPLIER_MANAGEMENT_PERMISSION = "supplier:write"
 OVERDUE_AFTER = timedelta(days=3)
 REMINDER_EVERY = timedelta(days=7)
 MAX_MESSAGE_LENGTH = 500
@@ -108,6 +110,47 @@ async def notify_overdue_approvals(db: AsyncSession, now: datetime | None = None
             if await _already_reminded(db, user_id, prefix, now):
                 continue
             message = f"{prefix} has been waiting {days} days"
+            db.add(Notification(user_id=user_id, message=message[:MAX_MESSAGE_LENGTH]))
+            created += 1
+    await db.commit()
+    return created
+
+
+async def users_with_permission(db: AsyncSession, permission_code: str) -> list[int]:
+    """Active internal users whose role grants the permission."""
+    stmt = select(User.id).where(
+        User.is_active.is_(True),
+        User.supplier_id.is_(None),
+        User.role_id.in_(
+            select(role_permissions.c.role_id)
+            .join(Permission, Permission.id == role_permissions.c.permission_id)
+            .where(Permission.code == permission_code)
+        ),
+    )
+    return list((await db.execute(stmt.order_by(User.id))).scalars().all())
+
+
+async def notify_expiring_supplier_documents(db: AsyncSession, today: date, now: datetime | None = None) -> int:
+    """Tell supplier managers about documents that are expiring soon or have expired.
+
+    The message starts with a prefix that names the document and its state, so each state is announced at most once
+    per REMINDER_EVERY per person; a document that goes from expiring to expired is announced again at once.
+    """
+    now = now or _now()
+    documents = await documents_needing_attention(
+        db, today, frozenset({SupplierDocumentStatus.EXPIRING_SOON, SupplierDocumentStatus.EXPIRED})
+    )
+    recipients = await users_with_permission(db, SUPPLIER_MANAGEMENT_PERMISSION)
+    created = 0
+    for document in documents:
+        expired = document.status == SupplierDocumentStatus.EXPIRED
+        prefix = f"Supplier document {'expired' if expired else 'expiring soon'} (#{document.id})"
+        label = DOCUMENT_LABELS[document.document_type]
+        verb = "expired on" if expired else "expires on"
+        message = f"{prefix}: {document.supplier_name} {label} {verb} {document.expiry_date}"
+        for user_id in recipients:
+            if await _already_reminded(db, user_id, prefix, now):
+                continue
             db.add(Notification(user_id=user_id, message=message[:MAX_MESSAGE_LENGTH]))
             created += 1
     await db.commit()
