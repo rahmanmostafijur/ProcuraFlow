@@ -76,6 +76,20 @@ export function usePurchaseOrderTransition(transition: Transition) {
   });
 }
 
+/** The PDF endpoint needs the bearer token, so it is fetched through the client rather than linked to. */
+export async function fetchPurchaseOrderPdf(id: number): Promise<Blob> {
+  const { data } = await apiClient.get<Blob>(`/purchase-orders/${id}/pdf`, { responseType: "blob" });
+  return data;
+}
+
+export function useSendPurchaseOrder() {
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await apiClient.post(`/purchase-orders/${id}/send`);
+    },
+  });
+}
+
 export function useRejectPurchaseOrder() {
   const queryClient = useQueryClient();
   return useMutation({

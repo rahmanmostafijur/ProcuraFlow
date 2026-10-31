@@ -8,6 +8,7 @@ import {
   Coins,
   History,
   LayoutDashboard,
+  Mail,
   Package,
   PiggyBank,
   Settings,
@@ -57,7 +58,11 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/approval-settings", label: "Approval settings", icon: SlidersHorizontal, permission: "approval:manage" },
   { to: "/users", label: "Users", icon: Users, permission: "user:manage" },
   { to: "/settings", label: "Settings", icon: Settings, permission: "settings:manage" },
+  { to: "/settings/email-templates", label: "Email templates", icon: Mail, permission: "settings:manage" },
 ];
+
+// Routes that are a prefix of another item's route, so only an exact match may highlight them.
+const EXACT_MATCH_ROUTES = ["/", "/settings"];
 
 const isVisible = (hasPermission: (code: string) => boolean) => (item: NavItem) =>
   (!item.permission || hasPermission(item.permission)) &&
@@ -79,7 +84,7 @@ export function Sidebar() {
           <NavLink
             key={item.to}
             to={item.to}
-            end={item.to === "/"}
+            end={EXACT_MATCH_ROUTES.includes(item.to)}
             className={({ isActive }) =>
               cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",

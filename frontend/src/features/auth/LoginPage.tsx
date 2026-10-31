@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
 import { extractErrorMessage } from "@/api/client";
@@ -33,6 +33,8 @@ const SUBMIT_LABELS: Record<BackendStatus, string> = {
 export function LoginPage() {
   const { login, user, isLoading } = useAuth();
   const navigate = useNavigate();
+  // Set by the reset, invitation and change-password flows when they send the user here.
+  const notice = (useLocation().state as { notice?: string } | null)?.notice;
   const [formError, setFormError] = useState<string | null>(null);
   const backend = useBackendReadiness();
   // Only asked once the API answers, so a sleeping backend shows the waking notice instead of a failed request.
@@ -70,6 +72,12 @@ export function LoginPage() {
           <h1 className="text-xl font-semibold text-slate-900">Sign in to {companyName}</h1>
           <p className="text-sm text-slate-500">Procurement, inventory &amp; delivery management</p>
         </div>
+
+        {notice && (
+          <div role="status" className="mb-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">
+            {notice}
+          </div>
+        )}
 
         <BackendStatusNotice status={backend.status} elapsedMs={backend.elapsedMs} onRetry={backend.retry} />
 
@@ -109,6 +117,11 @@ export function LoginPage() {
           <Button type="submit" className="w-full" disabled={isSubmitting || !isBackendReady}>
             {isSubmitting ? "Signing in…" : SUBMIT_LABELS[backend.status]}
           </Button>
+          <p className="text-center text-sm">
+            <Link to="/forgot-password" className="text-brand-600 hover:underline">
+              Forgot password?
+            </Link>
+          </p>
         </form>
       </div>
     </div>

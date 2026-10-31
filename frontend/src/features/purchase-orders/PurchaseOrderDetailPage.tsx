@@ -28,6 +28,7 @@ import { formatDate, formatDateTime } from "@/lib/utils";
 
 import { canDecidePurchaseOrder, needsAnotherApprover } from "./approval";
 import { AmendPurchaseOrderModal } from "./AmendPurchaseOrderModal";
+import { PurchaseOrderDocumentActions } from "./PurchaseOrderDocumentActions";
 import { PurchaseOrderLines } from "./PurchaseOrderLines";
 import { ReceivePurchaseOrderModal } from "./ReceivePurchaseOrderModal";
 import { VersionsPanel } from "./VersionsPanel";
@@ -164,6 +165,11 @@ export function PurchaseOrderDetailPage() {
           <p className="text-sm text-slate-500">Supplier: {po.supplier.name}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <PurchaseOrderDocumentActions
+            poId={po.id}
+            poNumber={po.po_number}
+            canSend={po.status === "ordered" && canTransition}
+          />
           {actions
             .filter((a) => a.visible)
             .map((a) => (

@@ -89,6 +89,18 @@ describe("LoginPage backend readiness", () => {
     expect(login).toHaveBeenCalledWith("ada@example.com", "wrong-password");
   });
 
+  it("links to password reset and shows a notice passed from another page", () => {
+    vi.mocked(useBackendReadiness).mockReturnValue({ status: "ready", elapsedMs: 0, retry });
+    render(
+      <MemoryRouter initialEntries={[{ pathname: "/login", state: { notice: "Your password was reset." } }]}>
+        <LoginPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent("Your password was reset.");
+    expect(screen.getByRole("link", { name: "Forgot password?" })).toHaveAttribute("href", "/forgot-password");
+  });
+
   it("caps the progress readout at the budget", () => {
     renderLogin("waking", 250_000);
 

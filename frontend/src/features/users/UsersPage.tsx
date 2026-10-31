@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Mail, Plus } from "lucide-react";
 import { useState } from "react";
 
 import { extractErrorMessage } from "@/api/client";
@@ -11,14 +11,18 @@ import { DataTable, type Column } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
 import { useToast } from "@/components/ui/toast-context";
+import { useAuth } from "@/lib/auth-context";
 import { formatDate } from "@/lib/utils";
 
+import { InviteUserModal } from "./InviteUserModal";
 import { UserFormModal } from "./UserFormModal";
 
 const PAGE_SIZE = 15;
 
 export function UsersPage() {
   const { showToast } = useToast();
+  const { hasPermission } = useAuth();
+  const [isInviteOpen, setInviteOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -90,9 +94,16 @@ export function UsersPage() {
           <h1 className="text-2xl font-semibold text-slate-900">Users</h1>
           <p className="text-sm text-slate-500">Manage team access and roles.</p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" /> New User
-        </Button>
+        <div className="flex gap-2">
+          {hasPermission("user:manage") && (
+            <Button variant="secondary" onClick={() => setInviteOpen(true)}>
+              <Mail className="h-4 w-4" /> Invite user
+            </Button>
+          )}
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4" /> New User
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -128,6 +139,7 @@ export function UsersPage() {
         )}
       </Card>
 
+      <InviteUserModal isOpen={isInviteOpen} onClose={() => setInviteOpen(false)} />
       <UserFormModal
         isOpen={isModalOpen}
         onClose={() => setModalOpen(false)}

@@ -49,6 +49,17 @@ describe("Sidebar", () => {
     expect(screen.queryByRole("link", { name: "Approval settings" })).not.toBeInTheDocument();
   });
 
+  it("lists email templates next to settings for people who manage settings only", () => {
+    serve(0);
+    const { unmount } = renderWithProviders(<Sidebar />);
+    expect(screen.queryByRole("link", { name: "Email templates" })).not.toBeInTheDocument();
+    unmount();
+
+    serve(0);
+    renderWithProviders(<Sidebar />, { permissions: ["settings:manage"] });
+    expect(screen.getByRole("link", { name: "Email templates" })).toHaveAttribute("href", "/settings/email-templates");
+  });
+
   it("shows Requests for an approver, Budgets for a reader and settings for an approval manager", () => {
     serve(0);
     renderWithProviders(<Sidebar />, { permissions: ["request:approve", "budget:read", "approval:manage"] });

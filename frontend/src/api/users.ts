@@ -33,6 +33,23 @@ export function useCreateUser() {
   });
 }
 
+export interface InviteInput {
+  email: string;
+  full_name: string;
+  role_id: number;
+}
+
+export function useInviteUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: InviteInput) => {
+      const { data } = await apiClient.post<User>("/users/invite", input);
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["users"] }),
+  });
+}
+
 export function useUpdateUser() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -4,7 +4,12 @@ import { AppShell } from "@/components/layout/AppShell";
 import { ApprovalSettingsPage } from "@/features/approval-settings/ApprovalSettingsPage";
 import { ApprovalsPage } from "@/features/approvals/ApprovalsPage";
 import { AuditLogPage } from "@/features/audit/AuditLogPage";
+import { AcceptInvitationPage } from "@/features/auth/AcceptInvitationPage";
+import { ForgotPasswordPage } from "@/features/auth/ForgotPasswordPage";
 import { LoginPage } from "@/features/auth/LoginPage";
+import { ResetPasswordPage } from "@/features/auth/ResetPasswordPage";
+import { EmailTemplatesPage } from "@/features/email-templates/EmailTemplatesPage";
+import { ProfilePage } from "@/features/profile/ProfilePage";
 import { BudgetsPage } from "@/features/budgets/BudgetsPage";
 import { CatalogPage } from "@/features/catalog/CatalogPage";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
@@ -28,6 +33,9 @@ export function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
       <Route element={<ProtectedRoute />}>
         <Route
           element={
@@ -54,6 +62,7 @@ export function App() {
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/deliveries" element={<DeliveriesPage />} />
           <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route element={<PermissionRoute permission="audit:read" />}>
             <Route path="/audit-log" element={<AuditLogPage />} />
           </Route>
@@ -62,6 +71,7 @@ export function App() {
           </Route>
           <Route element={<PermissionRoute permission="settings:manage" />}>
             <Route path="/settings" element={<CompanySettingsPage />} />
+            <Route path="/settings/email-templates" element={<EmailTemplatesPage />} />
           </Route>
           <Route element={<PermissionRoute permission="finance:manage" />}>
             <Route path="/finance" element={<FinancePage />} />
