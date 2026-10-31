@@ -124,8 +124,9 @@
   --info-fg: var(--blue-800);
 }
 
-/* Explicit dark theme */
+/* Explicit dark theme. .theme-dark scopes dark to a subtree (the design-system side-by-side preview). */
 :root.dark,
+.theme-dark,
 :root[data-theme="dark"] {
   color-scheme: dark;
   --bg: var(--ink-950);

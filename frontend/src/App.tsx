@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { Route, Routes } from "react-router-dom";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -40,6 +41,12 @@ import { PermissionRoute } from "@/routes/PermissionRoute";
 import { PortalRoute } from "@/routes/PortalRoute";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
 
+// Development only. Vite replaces import.meta.env.DEV with a literal, so in a production build this is `null`,
+// the dynamic import is dead code and the design-system chunk is never emitted.
+const DesignSystemPage = import.meta.env.DEV
+  ? lazy(() => import("@/features/design-system/DesignSystemPage").then((m) => ({ default: m.DesignSystemPage })))
+  : null;
+
 export function App() {
   return (
     <Routes>
@@ -47,6 +54,16 @@ export function App() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
+      {DesignSystemPage && (
+        <Route
+          path="/design-system"
+          element={
+            <Suspense fallback={null}>
+              <DesignSystemPage />
+            </Suspense>
+          }
+        />
+      )}
       <Route element={<ProtectedRoute />}>
         <Route element={<PortalRoute />}>
           <Route path="/portal" element={<PortalShell />}>

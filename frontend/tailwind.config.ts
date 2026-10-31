@@ -66,6 +66,24 @@ export default {
       boxShadow: { "elev-1": token("shadow-1"), "elev-2": token("shadow-2"), "elev-3": token("shadow-3") },
       transitionDuration: { fast: token("duration-fast"), base: token("duration-base"), slow: token("duration-slow") },
       transitionTimingFunction: { standard: token("ease-standard") },
+      // Opacity and transform only; the global reduced-motion rule in index.css shortens them to an instant change.
+      keyframes: {
+        "fade-in": { from: { opacity: "0" }, to: { opacity: "1" } },
+        "pop-in": { from: { opacity: "0", transform: "scale(0.97)" }, to: { opacity: "1", transform: "scale(1)" } },
+        "slide-in-right": { from: { transform: "translateX(100%)" }, to: { transform: "translateX(0)" } },
+        "slide-in-left": { from: { transform: "translateX(-100%)" }, to: { transform: "translateX(0)" } },
+        "toast-in": {
+          from: { opacity: "0", transform: "translateY(8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+      },
+      animation: {
+        "fade-in": "fade-in var(--duration-base) var(--ease-standard)",
+        "pop-in": "pop-in var(--duration-slow) var(--ease-standard)",
+        "slide-in-right": "slide-in-right var(--duration-slow) var(--ease-standard)",
+        "slide-in-left": "slide-in-left var(--duration-slow) var(--ease-standard)",
+        "toast-in": "toast-in var(--duration-base) var(--ease-standard)",
+      },
     },
   },
   plugins: [],

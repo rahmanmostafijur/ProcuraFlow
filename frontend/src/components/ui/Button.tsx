@@ -1,39 +1,47 @@
-import { type ButtonHTMLAttributes, forwardRef } from "react";
+import { type ButtonHTMLAttributes, type ReactNode, forwardRef } from "react";
 
 import { cn } from "@/lib/utils";
 
-type Variant = "primary" | "secondary" | "danger" | "ghost";
-type Size = "sm" | "md";
+import { FOCUS_RING } from "./focus";
+import { sizeStyles, variantStyles } from "./button-styles";
+import { Spinner } from "./Spinner";
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: Variant;
-  size?: Size;
+export type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
+export type ButtonSize = "sm" | "md" | "lg";
+
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  /** Shows a spinner, sets aria-busy and blocks clicks. The label stays so the width does not jump. */
+  loading?: boolean;
+  leadingIcon?: ReactNode;
 }
 
-const variantStyles: Record<Variant, string> = {
-  primary: "bg-brand-600 text-white hover:bg-brand-700 focus-visible:ring-brand-500",
-  secondary: "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 focus-visible:ring-slate-400",
-  danger: "bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500",
-  ghost: "bg-transparent text-slate-600 hover:bg-slate-100 focus-visible:ring-slate-400",
-};
-
-const sizeStyles: Record<Size, string> = {
-  sm: "px-2.5 py-1.5 text-sm",
-  md: "px-4 py-2 text-sm",
-};
+// 44 px touch targets on narrow screens (WCAG 2.5.8 and the design doc); desktop keeps the compact size.
+const TOUCH = "max-sm:min-h-11";
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", size = "md", ...props }, ref) => (
+  (
+    { className, variant = "primary", size = "md", loading = false, leadingIcon, disabled, children, ...props },
+    ref,
+  ) => (
     <button
       ref={ref}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+        "inline-flex items-center justify-center gap-2 rounded-control font-medium transition-colors duration-fast ease-standard disabled:cursor-not-allowed disabled:opacity-50",
+        FOCUS_RING,
+        TOUCH,
         variantStyles[variant],
         sizeStyles[size],
         className,
       )}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       {...props}
-    />
+    >
+      {loading ? <Spinner /> : leadingIcon}
+      {children}
+    </button>
   ),
 );
 Button.displayName = "Button";

@@ -1,7 +1,10 @@
-import { type ReactNode, useEffect, useId } from "react";
 import { X } from "lucide-react";
+import { type ReactNode, useId, useRef } from "react";
 
 import { cn } from "@/lib/utils";
+
+import { FOCUS_RING } from "./focus";
+import { useOverlay } from "./use-overlay";
 
 interface ModalProps {
   isOpen: boolean;
@@ -9,43 +12,76 @@ interface ModalProps {
   title: string;
   children: ReactNode;
   size?: "sm" | "md" | "lg";
+  description?: string;
+  footer?: ReactNode;
+  /** Pointer users can click outside to close. Turn off for forms with unsaved input. */
+  closeOnBackdrop?: boolean;
 }
 
-export function Modal({ isOpen, onClose, title, children, size = "md" }: ModalProps) {
-  const titleId = useId();
+const SIZES = { sm: "max-w-md", md: "max-w-xl", lg: "max-w-3xl" } as const;
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [isOpen, onClose]);
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
+  size = "md",
+  description,
+  footer,
+  closeOnBackdrop = true,
+}: ModalProps) {
+  const titleId = useId();
+  const descriptionId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  useOverlay({ active: isOpen, onClose, containerRef: panelRef });
 
   if (!isOpen) return null;
 
-  const sizeClass = { sm: "max-w-md", md: "max-w-xl", lg: "max-w-3xl" }[size];
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Clicking the backdrop closes the dialog for pointer users; keyboard users have Escape and the close button. */}
-      <div className="absolute inset-0 bg-slate-900/40" aria-hidden="true" onClick={onClose} />
+      {/* Keyboard users have Escape and the close button, so the backdrop click is a pointer convenience only. */}
       <div
-        className={cn("relative w-full rounded-lg bg-white shadow-xl", sizeClass)}
+        className="scrim absolute inset-0 animate-fade-in"
+        aria-hidden="true"
+        onClick={closeOnBackdrop ? onClose : undefined}
+      />
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        className={cn(
+          "relative w-full animate-pop-in rounded-overlay border border-border bg-surface-raised text-text-primary shadow-elev-3",
+          "focus:outline-none",
+          SIZES[size],
+        )}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        aria-describedby={description ? descriptionId : undefined}
       >
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-          <h2 id={titleId} className="text-lg font-semibold text-slate-900">
-            {title}
-          </h2>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Close">
-            <X className="h-5 w-5" />
+        <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-4">
+          <div>
+            <h2 id={titleId} className="text-title text-text-primary">
+              {title}
+            </h2>
+            {description && (
+              <p id={descriptionId} className="mt-1 text-sm text-text-secondary">
+                {description}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className={cn("rounded-control p-1 text-text-secondary hover:bg-bg hover:text-text-primary", FOCUS_RING)}
+            aria-label="Close"
+          >
+            <X aria-hidden="true" className="h-5 w-5" />
           </button>
         </div>
-        <div className="max-h-[75vh] overflow-y-auto px-6 py-4">{children}</div>
+        <div data-overlay-body className="max-h-[75vh] overflow-y-auto px-6 py-4">
+          {children}
+        </div>
+        {footer && <div className="flex justify-end gap-3 border-t border-border px-6 py-4">{footer}</div>}
       </div>
     </div>
   );
