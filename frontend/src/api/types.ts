@@ -22,6 +22,8 @@ export interface User {
   full_name: string;
   is_active: boolean;
   role: Role;
+  /** Only supplier-portal accounts have one. */
+  supplier_id?: number | null;
   created_at: string;
 }
 
@@ -51,6 +53,12 @@ export interface CompanySettings extends Branding {
   po_number_prefix: string;
   invoice_tolerance_percent: string;
   default_payment_terms_days: number;
+  /** Payer bank details are only sent to people who manage settings. */
+  payer_iban?: string | null;
+  payer_bic?: string | null;
+  payer_routing_number?: string | null;
+  payer_account_number?: string | null;
+  ach_company_id?: string | null;
   updated_at: string;
 }
 

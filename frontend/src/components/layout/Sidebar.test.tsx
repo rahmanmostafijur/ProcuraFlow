@@ -68,4 +68,19 @@ describe("Sidebar", () => {
     expect(screen.getByRole("link", { name: "Budgets" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Approval settings" })).toBeInTheDocument();
   });
+
+  it("lists exports, personal data and payment runs only for people holding their permissions", () => {
+    serve(0);
+    const { unmount } = renderWithProviders(<Sidebar />);
+    for (const name of ["Exports", "Personal data", "Payment runs"]) {
+      expect(screen.queryByRole("link", { name })).not.toBeInTheDocument();
+    }
+    unmount();
+
+    serve(0);
+    renderWithProviders(<Sidebar />, { permissions: ["export:read", "gdpr:manage", "invoice:read"] });
+    expect(screen.getByRole("link", { name: "Exports" })).toHaveAttribute("href", "/exports");
+    expect(screen.getByRole("link", { name: "Personal data" })).toHaveAttribute("href", "/gdpr");
+    expect(screen.getByRole("link", { name: "Payment runs" })).toHaveAttribute("href", "/payment-runs");
+  });
 });

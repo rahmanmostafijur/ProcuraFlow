@@ -61,6 +61,11 @@ export const settingsSchema = z.object({
     .max(100, "100 or less")
     .multipleOf(0.01, "At most two decimals"),
   default_payment_terms_days: z.coerce.number().int("Whole days only").min(0).max(365),
+  payer_iban: optionalText(34),
+  payer_bic: optionalText(11),
+  payer_routing_number: optionalText(9),
+  payer_account_number: optionalText(34),
+  ach_company_id: optionalText(10),
 });
 
 export type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -86,6 +91,11 @@ export function toFormValues(settings: CompanySettings): SettingsFormValues {
     po_number_prefix: settings.po_number_prefix,
     invoice_tolerance_percent: Number(settings.invoice_tolerance_percent),
     default_payment_terms_days: settings.default_payment_terms_days,
+    payer_iban: settings.payer_iban ?? "",
+    payer_bic: settings.payer_bic ?? "",
+    payer_routing_number: settings.payer_routing_number ?? "",
+    payer_account_number: settings.payer_account_number ?? "",
+    ach_company_id: settings.ach_company_id ?? "",
   };
 }
 

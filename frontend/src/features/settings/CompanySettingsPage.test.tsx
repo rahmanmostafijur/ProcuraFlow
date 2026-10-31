@@ -83,4 +83,21 @@ describe("CompanySettingsPage", () => {
     expect(await screen.findByText("Use a hex colour such as #0F766E")).toBeInTheDocument();
     expect(patch).not.toHaveBeenCalled();
   });
+
+  it("saves the payer account details used for payment files", async () => {
+    const patch = vi.spyOn(apiClient, "patch").mockResolvedValue({ data: settings });
+    renderPage();
+    expect(await screen.findByRole("heading", { name: "Payer account (for payment files)" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Payer IBAN"), { target: { value: "DE89370400440532013000" } });
+    fireEvent.change(screen.getByLabelText("ACH company ID"), { target: { value: "1234567890" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
+
+    await waitFor(() => expect(patch).toHaveBeenCalledTimes(1));
+    expect(patch.mock.calls[0][1]).toMatchObject({
+      payer_iban: "DE89370400440532013000",
+      ach_company_id: "1234567890",
+      payer_bic: "",
+    });
+  });
 });

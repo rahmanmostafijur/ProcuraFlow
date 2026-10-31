@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 import { useCreateSupplier, useSuppliers, useUpdateSupplier, type SupplierInput } from "@/api/suppliers";
 import type { Supplier } from "@/api/types";
@@ -44,6 +45,23 @@ export function SuppliersPage() {
       ),
     },
     { header: "Added", accessor: (row) => formatDate(row.created_at) },
+    ...(canWrite
+      ? [
+          {
+            header: "Documents & bank",
+            accessor: (row: Supplier) => (
+              <Link
+                to={`/suppliers/${row.id}`}
+                aria-label={`Manage ${row.name}`}
+                className="text-brand-700 hover:underline"
+                onClick={(event) => event.stopPropagation()}
+              >
+                Manage
+              </Link>
+            ),
+          },
+        ]
+      : []),
   ];
 
   const openCreate = () => {
@@ -80,9 +98,14 @@ export function SuppliersPage() {
           <p className="text-sm text-slate-500">Manage supplier records and their purchasing history.</p>
         </div>
         {canWrite && (
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" /> New Supplier
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link to="/suppliers/expiring-documents">
+              <Button variant="secondary">Documents expiring soon</Button>
+            </Link>
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4" /> New Supplier
+            </Button>
+          </div>
         )}
       </div>
 

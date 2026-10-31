@@ -24,6 +24,10 @@ const STATUS_COLORS: Record<string, string> = {
   over: "bg-red-100 text-red-700",
   applied: "bg-green-100 text-green-800",
   pending_approval: "bg-amber-100 text-amber-800",
+  valid: "bg-green-100 text-green-800",
+  expiring_soon: "bg-amber-100 text-amber-800",
+  expired: "bg-red-100 text-red-700",
+  released: "bg-green-100 text-green-800",
 };
 
 export function Badge({ status, children }: { status?: string; children: ReactNode }) {

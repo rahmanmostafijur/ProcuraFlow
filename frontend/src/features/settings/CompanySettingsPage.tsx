@@ -148,6 +148,17 @@ function SettingsForm({ settings }: { settings: CompanySettings }) {
         {text("invoice_tolerance_percent", "Invoice match tolerance (%)")}
       </Section>
 
+      <Section
+        title="Payer account (for payment files)"
+        description="Your own bank details, written into the SEPA and ACH files. Suppliers' details are kept on each supplier."
+      >
+        {text("payer_iban", "Payer IBAN")}
+        {text("payer_bic", "Payer BIC")}
+        {text("payer_routing_number", "Payer routing number")}
+        {text("payer_account_number", "Payer account number")}
+        {text("ach_company_id", "ACH company ID")}
+      </Section>
+
       <div className="flex justify-end gap-2">
         <Button type="button" variant="secondary" disabled={!isDirty} onClick={() => reset(toFormValues(settings))}>
           Discard changes
