@@ -1,0 +1,200 @@
+/*
+ * Design tokens. Raw scales are theme-independent; semantic tokens map them per theme.
+ * scripts/check-contrast.mjs parses this file, so keep one declaration per line and keep the two dark blocks
+ * (explicit and prefers-color-scheme) identical; the script fails if they drift.
+ */
+:root {
+  /* Ink: navy neutrals */
+  --ink-50: #f4f6fa;
+  --ink-100: #e8ecf3;
+  --ink-200: #d2d9e6;
+  --ink-300: #b0bbd0;
+  --ink-400: #8795b1;
+  --ink-500: #647394;
+  --ink-600: #4b5878;
+  --ink-700: #3a4561;
+  --ink-800: #283048;
+  --ink-900: #1a2036;
+  --ink-950: #0f1424;
+  /* Emerald: brand. 600 is darkened so white on 600 still reaches AA for legacy brand-600 buttons. */
+  --emerald-50: #ecfdf8;
+  --emerald-100: #d1faee;
+  --emerald-200: #a5f3dd;
+  --emerald-300: #6fe6c7;
+  --emerald-400: #34d0ab;
+  --emerald-500: #14b592;
+  --emerald-600: #087d67;
+  --emerald-700: #0b7762;
+  --emerald-800: #0e5e4e;
+  --emerald-900: #0f4d41;
+  --emerald-950: #042f29;
+  /* Amber: accent */
+  --amber-50: #fffbeb;
+  --amber-100: #fef3c7;
+  --amber-200: #fde68a;
+  --amber-300: #fcd34d;
+  --amber-400: #fbbf24;
+  --amber-500: #f59e0b;
+  --amber-600: #d97706;
+  --amber-700: #b45309;
+  --amber-800: #92400e;
+  --amber-900: #78350f;
+  --amber-950: #451a03;
+  /* Red: danger */
+  --red-50: #fef2f2;
+  --red-100: #fee2e2;
+  --red-200: #fecaca;
+  --red-300: #fca5a5;
+  --red-400: #f87171;
+  --red-500: #ef4444;
+  --red-600: #dc2626;
+  --red-700: #b91c1c;
+  --red-800: #991b1b;
+  --red-900: #7f1d1d;
+  --red-950: #450a0a;
+  /* Orange: attention */
+  --orange-50: #fff7ed;
+  --orange-100: #ffedd5;
+  --orange-200: #fed7aa;
+  --orange-300: #fdba74;
+  --orange-400: #fb923c;
+  --orange-500: #f97316;
+  --orange-600: #ea580c;
+  --orange-700: #c2410c;
+  --orange-800: #9a3412;
+  --orange-900: #7c2d12;
+  --orange-950: #431407;
+  /* Blue: information */
+  --blue-50: #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-200: #bfdbfe;
+  --blue-300: #93c5fd;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+  --blue-800: #1e40af;
+  --blue-900: #1e3a8a;
+  --blue-950: #172554;
+
+  /* Shape, depth, motion (theme-independent) */
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-overlay: 16px;
+  --radius-hero: 20px;
+  --shadow-1: 0 1px 2px rgb(15 20 36 / 0.06), 0 1px 3px rgb(15 20 36 / 0.08);
+  --shadow-2: 0 4px 8px rgb(15 20 36 / 0.06), 0 8px 24px rgb(15 20 36 / 0.1);
+  --shadow-3: 0 8px 16px rgb(15 20 36 / 0.08), 0 24px 56px rgb(15 20 36 / 0.18);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  /* Semantic, light */
+  color-scheme: light;
+  --bg: var(--ink-50);
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --border: var(--ink-200);
+  --border-strong: var(--ink-500);
+  --text-primary: var(--ink-900);
+  --text-secondary: var(--ink-600);
+  --text-muted: var(--ink-600);
+  --brand: var(--emerald-700);
+  --brand-hover: var(--emerald-800);
+  --on-brand: #ffffff;
+  --brand-subtle: var(--emerald-50);
+  --brand-subtle-fg: var(--emerald-800);
+  --accent: var(--amber-400);
+  --on-accent: var(--ink-950);
+  --focus: var(--emerald-600);
+  --success-bg: var(--emerald-100);
+  --success-fg: var(--emerald-800);
+  --warning-bg: var(--amber-100);
+  --warning-fg: var(--amber-800);
+  --danger-bg: var(--red-100);
+  --danger-fg: var(--red-800);
+  --danger-solid: var(--red-600);
+  --on-danger-solid: #ffffff;
+  --attention-bg: var(--orange-100);
+  --attention-fg: var(--orange-800);
+  --info-bg: var(--blue-100);
+  --info-fg: var(--blue-800);
+}
+
+/* Explicit dark theme */
+:root.dark,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: var(--ink-950);
+  --surface: var(--ink-900);
+  --surface-raised: var(--ink-800);
+  --border: var(--ink-700);
+  --border-strong: var(--ink-400);
+  --text-primary: var(--ink-50);
+  --text-secondary: var(--ink-200);
+  --text-muted: var(--ink-300);
+  --brand: var(--emerald-400);
+  --brand-hover: var(--emerald-300);
+  --on-brand: var(--ink-950);
+  --brand-subtle: var(--emerald-900);
+  --brand-subtle-fg: var(--emerald-200);
+  --accent: var(--amber-400);
+  --on-accent: var(--ink-950);
+  --focus: var(--emerald-300);
+  --success-bg: var(--emerald-900);
+  --success-fg: var(--emerald-100);
+  --warning-bg: var(--amber-900);
+  --warning-fg: var(--amber-100);
+  --danger-bg: var(--red-900);
+  --danger-fg: var(--red-100);
+  --danger-solid: var(--red-400);
+  --on-danger-solid: var(--ink-950);
+  --attention-bg: var(--orange-900);
+  --attention-fg: var(--orange-100);
+  --info-bg: var(--blue-900);
+  --info-fg: var(--blue-100);
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px rgb(0 0 0 / 0.4);
+  --shadow-2: 0 4px 8px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.45);
+  --shadow-3: 0 8px 16px rgb(0 0 0 / 0.35), 0 24px 56px rgb(0 0 0 / 0.6);
+}
+
+/* Follow the OS only when the user (or the pre-paint script) has not picked a theme explicitly */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --bg: var(--ink-950);
+    --surface: var(--ink-900);
+    --surface-raised: var(--ink-800);
+    --border: var(--ink-700);
+    --border-strong: var(--ink-400);
+    --text-primary: var(--ink-50);
+    --text-secondary: var(--ink-200);
+    --text-muted: var(--ink-300);
+    --brand: var(--emerald-400);
+    --brand-hover: var(--emerald-300);
+    --on-brand: var(--ink-950);
+    --brand-subtle: var(--emerald-900);
+    --brand-subtle-fg: var(--emerald-200);
+    --accent: var(--amber-400);
+    --on-accent: var(--ink-950);
+    --focus: var(--emerald-300);
+    --success-bg: var(--emerald-900);
+    --success-fg: var(--emerald-100);
+    --warning-bg: var(--amber-900);
+    --warning-fg: var(--amber-100);
+    --danger-bg: var(--red-900);
+    --danger-fg: var(--red-100);
+    --danger-solid: var(--red-400);
+    --on-danger-solid: var(--ink-950);
+    --attention-bg: var(--orange-900);
+    --attention-fg: var(--orange-100);
+    --info-bg: var(--blue-900);
+    --info-fg: var(--blue-100);
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px rgb(0 0 0 / 0.4);
+    --shadow-2: 0 4px 8px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.45);
+    --shadow-3: 0 8px 16px rgb(0 0 0 / 0.35), 0 24px 56px rgb(0 0 0 / 0.6);
+  }
+}

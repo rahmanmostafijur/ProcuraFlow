@@ -5,4 +5,13 @@ export function cn(...inputs: ClassValue[]): string {
 }
 
 // Formatting follows the company settings; kept importable from here so existing call sites stay unchanged.
-export { formatCurrency, formatDate, formatDateTime } from "./formatting";
+export {
+  formatCurrency,
+  formatDate,
+  formatDateTime,
+  formatMoney,
+  formatCompactMoney,
+  formatNumber,
+  formatPercent,
+  formatRelative,
+} from "./formatting";

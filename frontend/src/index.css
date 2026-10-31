@@ -1,3 +1,5 @@
+@import "./styles/tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,6 +10,40 @@ body,
   height: 100%;
 }
 
-body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+@layer base {
+  body {
+    @apply bg-bg font-sans text-text-primary antialiased;
+  }
+
+  /* Figures must line up in columns, so every table cell, KPI and amount uses tabular numerals. */
+  td,
+  th,
+  .tabular,
+  .amount,
+  [data-kpi] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .amount {
+    text-align: right;
+  }
+}
+
+@layer components {
+  /* Document numbers (PO-2026-00042) are the only text set in the mono face. */
+  .doc-number {
+    @apply font-mono text-[0.95em] tabular-nums;
+  }
+}
+
+/* Users who ask the OS for less motion get none: transitions and animations collapse to an instant change. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

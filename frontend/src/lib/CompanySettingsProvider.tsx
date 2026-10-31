@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { useCompanySettings } from "@/api/companySettings";
 import { LoadingState } from "@/components/ui/LoadingState";
 
-import { configureFormatting } from "./formatting";
+import { configureFormatting, deriveLocale } from "./formatting";
 import { useApplyBrandColor } from "./use-brand-color";
 
 /**
@@ -28,6 +28,7 @@ export function CompanySettingsProvider({ children }: { children: ReactNode }) {
       dateFormat: settings.date_format,
       timeZone: settings.timezone,
       currency: settings.base_currency_code,
+      locale: deriveLocale(settings.country_code),
     });
   }
 

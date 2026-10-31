@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatPercent } from "@/lib/utils";
 
 import { HistoryDrawer } from "./HistoryDrawer";
 
@@ -40,7 +40,7 @@ export function PositionsSection({ positions, isLoading, isError }: PositionsSec
     { header: "Remaining", accessor: (row) => money(row.remaining) },
     {
       header: "Used",
-      accessor: (row) => (row.utilisation_percent === null ? "—" : `${Number(row.utilisation_percent).toFixed(1)}%`),
+      accessor: (row) => formatPercent(row.utilisation_percent),
     },
     { header: "Health", accessor: (row) => <Badge status={row.health}>{HEALTH_LABELS[row.health]}</Badge> },
     {
