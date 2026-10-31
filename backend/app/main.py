@@ -33,6 +33,7 @@ from app.routers import (
     purchase_requests,
     reports,
     roles,
+    search,
     supplier_bank,
     supplier_documents,
     supplier_invoices,
@@ -113,3 +114,4 @@ app.include_router(payment_runs.router, prefix=API_PREFIX)
 app.include_router(payment_files.router, prefix=API_PREFIX)
 app.include_router(exports.router, prefix=API_PREFIX)
 app.include_router(gdpr.router, prefix=API_PREFIX)
+app.include_router(search.router, prefix=API_PREFIX)
