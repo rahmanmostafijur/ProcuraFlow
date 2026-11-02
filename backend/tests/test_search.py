@@ -139,7 +139,7 @@ async def test_response_shape_and_urls(client: AsyncClient, auth_headers: AuthHe
         "url": f"/purchase-orders/{seed.po_id}",
     }
     assert by_type["purchase_request"]["items"][0]["url"] == f"/requests/{seed.request_id}"
-    assert by_type["supplier_invoice"]["items"][0]["url"] == f"/purchase-orders/{seed.po_id}"
+    assert by_type["supplier_invoice"]["items"][0]["url"] == f"/invoices/{seed.invoice_id}"
     assert by_type["product"]["items"][0]["url"] == "/products?search=SKU-QX1"
     assert by_type["product"]["items"][0]["status"] is None
     assert by_type["payment_run"]["items"][0]["url"] == "/payment-runs"

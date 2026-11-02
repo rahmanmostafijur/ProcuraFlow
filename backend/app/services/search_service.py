@@ -136,8 +136,8 @@ def _request_item(row: Row[Any], user: User) -> SearchItem:
 
 
 def _invoice_item(row: Row[Any], user: User) -> SearchItem:
-    # There is no invoice page of its own: invoices are handled on their purchase order.
-    return SearchItem(id=row[0], title=row[1], subtitle=row[2], status=str(row[3]), url=f"/purchase-orders/{row[4]}")
+    # The invoice page needs invoice:read, the same permission that lets the search return invoices at all.
+    return SearchItem(id=row[0], title=row[1], subtitle=row[2], status=str(row[3]), url=f"/invoices/{row[0]}")
 
 
 def _supplier_item(row: Row[Any], user: User) -> SearchItem:
