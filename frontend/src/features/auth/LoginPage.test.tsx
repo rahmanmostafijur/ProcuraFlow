@@ -14,6 +14,9 @@ vi.mock("@/api/companySettings", async (importOriginal) => ({
   useBranding: () => ({ data: { company_name: "Northbeam Instruments", brand_color: "#0F766E", logo_url: null } }),
 }));
 
+// Demo mode is off in these tests; the demo panel has its own test file.
+vi.mock("@/api/demo", () => ({ useDemoAccounts: () => ({ data: undefined }) }));
+
 const retry = vi.fn();
 
 function renderLogin(status: BackendStatus, elapsedMs = 0) {

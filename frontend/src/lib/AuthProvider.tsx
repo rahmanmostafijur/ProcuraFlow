@@ -45,6 +45,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [fetchCurrentUser],
   );
 
+  const demoLogin = useCallback(
+    async (role: string) => {
+      const { data } = await apiClient.post<AccessTokenResponse>("/auth/demo-login", { role });
+      setAccessToken(data.access_token);
+      setSessionHint(true);
+      await fetchCurrentUser();
+    },
+    [fetchCurrentUser],
+  );
+
   const logout = useCallback(() => {
     setAccessToken(null);
     setSessionHint(false);
@@ -59,6 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, hasPermission }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, isLoading, login, demoLogin, logout, hasPermission }}>
+      {children}
+    </AuthContext.Provider>
   );
 }

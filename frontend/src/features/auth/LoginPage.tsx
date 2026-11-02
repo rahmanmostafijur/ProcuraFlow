@@ -16,6 +16,7 @@ import { useApplyBrandColor } from "@/lib/use-brand-color";
 import { type BackendStatus, useBackendReadiness } from "@/lib/use-backend-readiness";
 
 import { BackendStatusNotice } from "./BackendStatusNotice";
+import { DemoAccounts } from "./DemoAccounts";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -138,6 +139,8 @@ export function LoginPage() {
               </Link>
             </p>
           </form>
+
+          <DemoAccounts enabled={isBackendReady} />
         </div>
       </main>
     </div>
