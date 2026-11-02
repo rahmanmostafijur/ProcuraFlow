@@ -10,6 +10,7 @@ import { ResetPasswordPage } from "@/features/auth/ResetPasswordPage";
 import { CompanySettingsProvider } from "@/lib/CompanySettingsProvider";
 import { InternalRoute } from "@/routes/InternalRoute";
 import { PermissionRoute } from "@/routes/PermissionRoute";
+import { LandingRoute } from "@/routes/LandingRoute";
 import { PortalRoute } from "@/routes/PortalRoute";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
 
@@ -91,6 +92,7 @@ export function App() {
   return (
     <Suspense fallback={<LoadingState />}>
       <Routes>
+        <Route path="/" element={<LandingRoute />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -122,7 +124,7 @@ export function App() {
                 </CompanySettingsProvider>
               }
             >
-              <Route path="/" element={<DashboardPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/suppliers" element={<SuppliersPage />} />
               <Route element={<PermissionRoute permission="supplier:write" />}>
                 <Route path="/suppliers/expiring-documents" element={<ExpiringDocumentsPage />} />

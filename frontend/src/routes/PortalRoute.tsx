@@ -8,7 +8,7 @@ export function PortalRoute() {
   const { user } = useAuth();
 
   if (!isSupplierUser(user)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <Outlet />;

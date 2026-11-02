@@ -6,7 +6,7 @@ export function PermissionRoute({ permission }: { permission: string }) {
   const { hasPermission } = useAuth();
 
   if (!hasPermission(permission)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <Outlet />;

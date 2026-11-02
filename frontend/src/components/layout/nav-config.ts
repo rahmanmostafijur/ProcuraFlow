@@ -44,7 +44,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     id: "overview",
     label: "Overview",
-    items: [{ to: "/", label: "Dashboard", icon: LayoutDashboard }],
+    items: [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
   },
   {
     id: "buy",
@@ -104,7 +104,7 @@ export const NAV_GROUPS: NavGroup[] = [
 ];
 
 // Routes that are a prefix of another item's route, so only an exact match may highlight them.
-export const EXACT_MATCH_ROUTES = ["/", "/settings"];
+export const EXACT_MATCH_ROUTES = ["/dashboard", "/settings"];
 
 export const isNavItemVisible = (hasPermission: (code: string) => boolean) => (item: NavItem) =>
   (!item.permission || hasPermission(item.permission)) &&

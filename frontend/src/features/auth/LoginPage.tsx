@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { useAuth } from "@/lib/auth-context";
+import { homePathFor } from "@/lib/portal";
 import { useApplyBrandColor } from "@/lib/use-brand-color";
 import { type BackendStatus, useBackendReadiness } from "@/lib/use-backend-readiness";
 
@@ -49,13 +50,14 @@ export function LoginPage() {
   } = useForm<LoginFormValues>({ resolver: zodResolver(loginSchema) });
 
   if (!isLoading && user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={homePathFor(user)} replace />;
   }
 
   const onSubmit = async (values: LoginFormValues) => {
     setFormError(null);
     try {
       await login(values.email, values.password);
+      // The landing page at "/" sends the signed-in user to the right home.
       void navigate("/");
     } catch (error) {
       setFormError(extractErrorMessage(error));
