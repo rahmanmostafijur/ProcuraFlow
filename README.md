@@ -3,499 +3,218 @@
 [![CI](https://github.com/rahmanmostafijur/ProcuraFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/rahmanmostafijur/ProcuraFlow/actions/workflows/ci.yml)
 [![Dependency audit](https://github.com/rahmanmostafijur/ProcuraFlow/actions/workflows/audit.yml/badge.svg)](https://github.com/rahmanmostafijur/ProcuraFlow/actions/workflows/audit.yml)
 
-A B2B procurement, inventory, and delivery management platform for small and
-medium sized businesses. ProcuraFlow tracks the full purchasing lifecycle —
-from supplier and product catalog management, through purchase order approval
-workflows, to inventory receiving and delivery performance reporting — behind
-role-based access control and a full audit trail.
+A lean, self-hosted procure-to-pay application for small and mid-size companies. ProcuraFlow takes a purchase from the
+first request, through approval, ordering, receiving and the supplier's invoice, to payment, with role-based access,
+an audit trail on every write and numbers that agree on every screen.
 
-## Problem Statement
+It runs as one installation for one company: your server, your database, your data. The plan positions it as a
+one-time licence with no monthly fee and full source code (see [Licence](#licence)).
 
-Small and mid-sized businesses that buy physical goods from multiple suppliers
-tend to manage purchasing in spreadsheets and email threads: purchase orders
-with no enforced approval process, inventory counts that drift from reality
-because stock changes aren't tracked consistently, and no way to answer "which
-suppliers deliver on time?" or "what did we spend last month?" without manual
-reconciliation. ProcuraFlow centralizes that workflow behind a single
-application with enforced business rules, a real audit trail, and live
-analytics computed from actual transactional data.
+## Contents
+
+[Features](#features) - [Architecture](#architecture) - [Technology stack](#technology-stack) -
+[Quick start](#quick-start) - [Configuration](#configuration) - [Screenshots](#screenshots) -
+[Security](#security) - [Testing](#testing) - [Documentation](#documentation) - [Licence](#licence)
 
 ## Features
 
-- **Dashboard** — purchase order counts by state, inventory value, low-stock
-  alerts, upcoming deliveries, a monthly purchasing trend chart, and a live
-  recent-activity feed — all computed from the database, not hardcoded.
-- **Supplier management** — CRUD, active/inactive status, search, sort, and
-  pagination.
-- **Product catalog** — SKU, category, unit, cost, stock thresholds, supplier
-  linkage, low-stock filtering.
-- **Purchase orders** — a full state machine
-  (`draft → submitted → approved → ordered → partially_received → received`,
-  with `cancelled` reachable from any pre-received state), enforced
-  server-side with a guarded transition table. Multi-line-item orders with a
-  dynamic item builder in the UI.
-- **Inventory** — every stock change (manual adjustment or PO receipt) is
-  recorded as an append-only ledger entry (`inventory_transactions`); the
-  product's `current_stock` is only ever mutated alongside a ledger row in the
-  same DB transaction.
-- **Deliveries** — auto-created when a PO is marked ordered; tracks expected
-  vs. actual date and computes on-time/delayed/partial status from real
-  receiving data.
-- **Reports** — supplier performance (spend and order count), delayed
-  deliveries with variance in days, on-time delivery rate, and a CSV export of
-  current inventory status.
-- **Audit log** — every mutating action (login, supplier/product changes, PO
-  transitions, inventory adjustments, user management) is recorded with actor,
-  entity, and a JSON payload of relevant details.
-- **RBAC** — five roles (Admin, Procurement Manager, Purchasing Officer,
-  Warehouse Manager, Viewer) with a data-driven permission matrix, enforced on
-  every mutating endpoint server-side. The frontend also hides actions the
-  current user can't perform, but that's a UX convenience — the API rejects
-  unauthorized requests regardless of what the client sends.
+**Buying**
+- Purchase requests by any employee, with approval rules by document type and amount band, ordered approval steps,
+  delegation while away, per-user approval limits and separation of duties (nobody approves their own document).
+- Conversion of an approved request into one draft purchase order per chosen supplier.
+- Purchase orders with a guarded state machine (`draft`, `submitted`, `approved`, `ordered`, `partially_received`,
+  `received`, `cancelled`), multi-currency totals, per-line tax, branded PDF, amendments with versions and a readable diff.
+- Budgets per cost centre and fiscal year (spent, committed, remaining), optional blocking of over-budget approvals,
+  warnings at a set percentage, transfers with approval and history.
+- Catalog items with contract price, supplier and lead time.
+
+**Receiving and paying**
+- Goods receipts with accepted and rejected quantities, returns to supplier, an append-only inventory ledger and
+  delivery tracking (on time, delayed, partial).
+- Supplier invoices matched two-way (price) and three-way (price and received quantity), duplicate detection,
+  exceptions routed through the approval rules, manual and partial payments.
+- Payment runs that a second person must release, with SEPA (EUR) and NACHA/ACH (USD) payment files.
+
+**Suppliers**
+- Supplier records, documents with expiry tracking (valid, expiring soon, expired), bank details changed only with a
+  second approver, and a lite supplier portal where invited suppliers see only their own orders, acknowledge them,
+  upload invoices and keep their documents current.
+
+**Control and compliance**
+- Single company settings: currencies, exchange rates, tax rates, fiscal year, time zone, number prefixes, tolerances.
+- Roles: admin, procurement manager, purchasing officer, warehouse manager, finance, department manager, employee,
+  viewer, and a supplier account for the portal. Permissions are data (`app/core/permissions.py`), not scattered checks.
+- Audit log, GDPR export and anonymisation that keep financial records intact, accounting CSV exports (QuickBooks Online
+  and Xero bill layouts), email outbox with editable templates, notification centre.
+
+**Numbers you can trust**
+- One service computes every business figure; the dashboard, reports and badges call the same functions and tests prove
+  they agree. See [docs/metrics.md](docs/metrics.md).
+
+Features of the landing page and the one-click demo mode belong to phase 8 of [PLAN.md](PLAN.md); check
+[HANDOFF.md](HANDOFF.md) and [CHANGELOG.md](CHANGELOG.md) for whether they are in the build you are running.
 
 ## Architecture
 
-```
-React (Vite, TypeScript)
-        │  REST + JWT
-        ▼
-FastAPI routers  →  Pydantic schemas (request/response validation)
-        │
-        ▼
-Service layer (business logic: PO state machine, inventory ledger, delivery calc)
-        │
-        ▼
-SQLAlchemy 2.0 (async ORM)
-        │
-        ▼
-PostgreSQL 16
+```mermaid
+flowchart LR
+    Browser["Browser<br/>React 18 SPA"] -->|"HTTPS"| Caddy["Caddy<br/>static files, TLS, /api proxy"]
+    Caddy -->|"/api/*"| API["FastAPI<br/>routers, services"]
+    API --> DB[("PostgreSQL 16")]
+    API --> Files["File storage<br/>local volume or S3-compatible"]
+    API -->|"SMTP (optional)"| Mail["Mail server"]
+    Cron["cron: daily jobs,<br/>email retry, backups"] --> API
+    Cron --> DB
 ```
 
-Each layer has one job. Routers handle HTTP concerns (auth, status codes,
-pagination params) and delegate business rules to the service layer, which is
-the only place that mutates domain state — this is what makes the PO state
-machine and inventory ledger enforceable and testable independent of the web
-framework.
+Inside the API each layer has one job:
 
-## Technology Stack
+```mermaid
+flowchart TD
+    R["Routers: HTTP, authentication, permission and scope checks"] --> S["Services: business rules, transactions, metrics"]
+    S --> M["SQLAlchemy 2 async models"]
+    M --> P[("PostgreSQL")]
+    S --> St["Storage interface"]
+    S --> E["Email outbox"]
+```
 
-**Backend:** Python, FastAPI, SQLAlchemy 2.0 (async, `asyncpg`), Pydantic v2,
-Alembic, PyJWT, passlib/bcrypt, pytest + pytest-asyncio + httpx.
+Routers handle HTTP and delegate to services, the only place that changes business state. A record outside the
+caller's scope answers 404, so identifiers cannot be probed.
 
-**Frontend:** React 18, TypeScript, Vite, Tailwind CSS, TanStack Query, React
-Router v6, React Hook Form + Zod, Recharts, Vitest + Testing Library.
+## Technology stack
 
-**Infrastructure:** Docker Compose for local development (PostgreSQL 16,
-backend, frontend, Adminer); a production container image, Render blueprint
-and Vercel config for deployment (see [Deployment](#deployment)).
-
-## Database Architecture
-
-Normalized PostgreSQL schema, managed entirely through Alembic migrations
-(`backend/alembic/versions/`) — the schema is reproducible from an empty
-database via `alembic upgrade head`.
-
-| Table | Purpose |
+| Layer | Technology |
 |---|---|
-| `users`, `roles`, `permissions`, `role_permissions` | Auth and a data-driven RBAC matrix (roles map to permission codes, not hardcoded checks) |
-| `suppliers` | Supplier records with active/inactive status |
-| `categories`, `products` | Product catalog with stock thresholds and cost, `CHECK` constraints preventing negative stock/cost |
-| `purchase_orders`, `purchase_order_items` | Orders and line items; status is a Postgres enum with server-enforced transitions |
-| `inventory_transactions` | Append-only stock movement ledger (manual adjustment or PO receipt) |
-| `deliveries` | Auto-created per ordered PO; tracks expected/actual dates and computed status |
-| `audit_logs` | Append-only record of every significant action, with a JSONB payload |
-| `notifications` | Per-user notification records |
+| API | Python 3.12, FastAPI, async SQLAlchemy 2 with asyncpg, Pydantic v2, Alembic, PyJWT, passlib/bcrypt, ReportLab, Pillow, Jinja2 (sandboxed email templates) |
+| Database | PostgreSQL 16 (money as `Numeric`, `Decimal` in code) |
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS 3 with design tokens, TanStack Query, React Router, React Hook Form with Zod, Recharts |
+| Tests and checks | pytest, pytest-asyncio, httpx; Vitest and Testing Library; ruff, strict mypy, ESLint, Prettier, `tsc` |
+| Deployment | Docker Compose with Caddy (automatic HTTPS), or Render + Neon + Vercel |
 
-Indexes exist on every foreign key, plus `products.sku`,
-`purchase_orders.status`/`po_number`, `inventory_transactions.product_id`, and
-`audit_logs.entity_type`/`entity_id` — the columns actually filtered or
-joined on in the query patterns above.
+Exact versions are pinned in `backend/requirements.txt` and `frontend/package.json`.
 
-## Authentication
+## Quick start
 
-JWT access tokens (30 min) + refresh tokens (7 days), issued from
-`POST /api/v1/auth/login`. Passwords are hashed with bcrypt
-(`passlib`). The frontend keeps the access token in memory only. The refresh
-token is an `HttpOnly`, `SameSite=Lax` cookie (`Secure` outside local
-development) scoped to `/api/v1/auth`, so page scripts can never read it and
-browsers don't send it on cross-site POSTs. Refresh tokens rotate: each
-`POST /api/v1/auth/refresh` marks the presented token used and issues one
-successor from the same login (`refresh_tokens` table: random token id, family
-id, expiry, used/revoked timestamps). React StrictMode or two tabs can
-legitimately send the same cookie twice at once, so a used token presented
-again within a 10-second grace window still gets a fresh access token but **no
-new refresh token**: the first request already minted the one successor, which
-the browser stores, so a replay can never start a second live chain. A used
-token presented after the window is treated as stolen: its whole login family
-is revoked and a `refresh_token_reuse` event is written to the audit log
-before the 401 is returned. `POST /api/v1/auth/logout` revokes the session
-server-side (whichever token of the chain is presented) and clears the cookie,
-leaving the user's other devices signed in. Changing a user's password or
-deactivating them revokes all of that user's sessions in the same transaction
-(audited as `user_sessions_revoked`), so a stolen refresh token does not
-survive a password reset and a reactivated account does not revive old logins;
-`PATCH /api/v1/users/{id}` is the only credential-change path today, so a
-future self-service change or reset endpoint must call `revoke_all_sessions`.
-Tokens issued before rotation existed, or with no stored row, are rejected.
-Every refresh family also records when its login happened, and a refresh more
-than `SESSION_ABSOLUTE_DAYS` (default 30) after that revokes the family and
-returns 401, so no session outlives the limit however actively it is
-refreshed; a legitimate user signs in at least monthly.
-An axios response interceptor transparently refreshes an expired access
-token and retries the original request once. The only thing in `localStorage`
-is a non-secret flag that tells the app whether a session probably exists.
-
-### Sign-in throttling
-
-Failed logins are counted per account (the dependable control) and per client
-address (a weaker second layer against spraying many accounts). Past the limit,
-`POST /api/v1/auth/login` answers `429` with a `Retry-After` header — even for
-the correct password — until the window passes; a successful login clears that
-account's count. The counts live in Postgres (`login_failures`), so they
-survive restarts and are shared by every instance; keys are HMAC hashes, so
-typed emails and addresses are never stored. A blocked request only reads, so
-hammering a locked account cannot grow the table, and expired rows are purged
-as new failures arrive. Known limits:
-
-- It is a rate control, not an exact counter: attempts racing each other can
-  slip a few past the limit before their failures are recorded. No
-  per-account lock is taken, because that would let an attacker park database
-  connections on a victim's lock.
-- Locking an account lets someone who knows an email keep it locked out for the
-  window (15 minutes by default).
-- The client address is only as trustworthy as the proxy setup; see
-  [Reverse proxy and client addresses](#reverse-proxy-and-client-addresses).
-
-## Authorization (RBAC)
-
-Permissions are rows in the database (`permissions` table), assigned to roles
-via `role_permissions`. A FastAPI dependency,
-`require_permission("supplier:write")`, loads the current user's role and
-permission codes and returns `403` if the required code isn't present — see
-`backend/app/core/deps.py` and `backend/app/core/permissions.py` for the full
-matrix. This means authorization is never a hardcoded `if role == "admin"`
-check scattered across routers; it's centralized and testable
-(`backend/tests/test_rbac.py`).
-
-## API Documentation
-
-Interactive OpenAPI docs are served by FastAPI at `/docs` (Swagger UI) and
-`/redoc` once the backend is running. All endpoints live under `/api/v1`.
-
-## Local Setup
-
-### Prerequisites
-
-- Python 3.12+
-- Node.js 20+
-- PostgreSQL 16 (or use Docker — see below)
-
-### Backend
+Prerequisites: Python 3.12, Node.js 20 or newer (CI uses 22), PostgreSQL 16 (or Docker). Full instructions for
+Windows, macOS and Linux are in [HowToSetup.md](HowToSetup.md).
 
 ```bash
+# 1. Database (skip if you already run PostgreSQL 16)
+docker run -d --name procuraflow-db -e POSTGRES_USER=procuraflow -e POSTGRES_PASSWORD=procuraflow \
+  -e POSTGRES_DB=procuraflow -p 127.0.0.1:5432:5432 postgres:16-alpine
+
+# 2. Backend
 cd backend
-python -m venv .venv
-.venv/Scripts/activate   # Windows; use `source .venv/bin/activate` on macOS/Linux
-pip install -r requirements-dev.txt   # runtime + test dependencies
-cp .env.example .env     # adjust DATABASE_URL if not using the default port
+python -m venv .venv && . .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install -r requirements-dev.txt
+cp ../.env.example .env                           # development defaults work as they are
 alembic upgrade head
-python -m app.seeds.seed
-uvicorn app.main:app --reload
-```
+python -m app.seeds.seed                          # roles, permissions, first admin, sample data
+uvicorn app.main:app --reload                     # http://localhost:8000, docs at /docs
 
-The API is now at `http://localhost:8000`, with docs at
-`http://localhost:8000/docs`.
-
-### Frontend
-
-```bash
+# 3. Frontend, in a second terminal
 cd frontend
-npm install
-cp .env.example .env
-npm run dev
+npm ci
+npm run dev                                       # http://localhost:5173
 ```
 
-The app is now at `http://localhost:5173`.
+Sign in with the admin email and password from your `.env` (`DEFAULT_ADMIN_EMAIL`, `DEFAULT_ADMIN_PASSWORD`). The
+placeholder password is accepted only in development and test.
 
-### Default login (from the seed script)
-
-- Email: whatever `DEFAULT_ADMIN_EMAIL` resolves to (see `.env.example`)
-- Password: whatever `DEFAULT_ADMIN_PASSWORD` resolves to
-
-**Change these in production** — they're seeded from environment variables
-specifically so the defaults are never hardcoded into the app.
-
-## Docker Setup
+Production with Docker Compose and Caddy, in short:
 
 ```bash
-docker compose up -d --build
+cp .env.example .env     # set SITE_ADDRESS, JWT_SECRET_KEY, POSTGRES_PASSWORD, admin email and password
+docker compose --env-file .env -f deploy/docker-compose.yml up -d --build
 ```
 
-This starts Postgres, runs migrations and the seed script, and brings up the
-backend (`:8000`) and frontend (`:5173`), plus Adminer (`:8080`) for
-inspecting the database. Postgres itself is exposed on host port `5433` (not
-the default `5432`) to avoid colliding with a locally installed PostgreSQL
-instance — the services talk to each other over the Docker network on the
-standard port regardless.
+The step-by-step version, backups, upgrades and troubleshooting are in [HowToSetup.md](HowToSetup.md).
 
-> **Windows/macOS note:** the frontend's Vite dev server uses polling for its
-> file watcher (`vite.config.ts`) because Docker's bind-mounted filesystem on
-> those platforms doesn't emit native change events that Vite's default
-> watcher relies on.
+## Configuration
 
-## Deployment
+Every setting is listed, with comments and safe placeholders, in [.env.example](.env.example). The rules that matter:
 
-Target: **Neon** (PostgreSQL) + **Render** (API container) + **Vercel**
-(static frontend). Vercel proxies `/api/*` to Render, so the browser only ever
-talks to one origin — no CORS configuration and no third-party-cookie problems.
-
-1. **Database (Neon).** Create a project and copy its connection string. Either
-   the direct or the `-pooler` host works: provider-style URLs
-   (`postgresql://…?sslmode=require&channel_binding=require`) are rewritten for
-   asyncpg automatically, and the statement cache is disabled behind a pooler.
-2. **API (Render).** New → Blueprint, pointing at this repo (`render.yaml`).
-   When prompted, set `DATABASE_URL`, `DEFAULT_ADMIN_EMAIL` and
-   `DEFAULT_ADMIN_PASSWORD` (unique, 12+ characters). `JWT_SECRET_KEY` is
-   generated for you. On every start the container runs `alembic upgrade head`,
-   seeds roles/permissions and the first admin, then serves; the app refuses to
-   boot in production with a placeholder or short JWT secret. `render.yaml`
-   also sets `SEED_DEMO_DATA=true` so the public demo gets sample suppliers and
-   products; delete that variable for a real deployment, which then receives
-   only the roles, permissions and first admin.
-3. **Frontend (Vercel).** Import the repo with **Root Directory** `frontend`
-   (the Vite preset is detected). Before deploying, edit the `destination` in
-   `frontend/vercel.json` to your Render service URL. No environment variables
-   are needed.
-4. **Verify.** Work through [Post-deployment verification](#post-deployment-verification).
-
-Render's free tier sleeps after 15 minutes idle and takes about a minute to
-wake. The login page handles this: it polls `/api/ready` for up to 100 seconds,
-explains the cold start with a progress bar after 3 seconds, treats Render's
-HTML placeholder page and 502/503/504 as "still waking", and shows an error
-with a **Try again** button if the server never answers. Sign-in is enabled
-only once the database is reachable.
-
-### Reverse proxy and client addresses
-
-Uvicorn runs with its own forwarded-header handling **off**: with a wildcard
-it would take the leftmost `X-Forwarded-For` entry, which the client controls.
-Instead the app trusts a number of proxy hops, `TRUSTED_PROXY_HOPS`
-(`app/core/proxy.py`):
-
-- `0` (the default, and local development) ignores `X-Forwarded-*`; the client
-  is the direct peer.
-- `N` accepts the chain only if it has **exactly N valid IP entries** and takes
-  the first as the client. Any other length (a spoofed prefix, or a count that
-  does not match the hosting) resolves to an *unknown* client, for which the
-  login throttle skips its address check, so a wrong value degrades to
-  per-account limiting instead of making unrelated users share one address.
-- The scheme comes from the last `X-Forwarded-Proto` value, so HTTPS detection
-  keeps working.
-
-`render.yaml` sets `2` for the chain client → Vercel → Render, on the
-assumption that Vercel sets the client address and Render's proxy appends the
-address it received the request from. **That assumption is unverified until
-the first deploy.** Check it: fail a sign-in once from your browser through the
-Vercel URL and read the Render log line
-`failed sign-in client_ip=<address> forwarded_entries=<n>`. `client_ip` should
-be your public address with `forwarded_entries=2`. If it is `None` with another
-count, set `TRUSTED_PROXY_HOPS` to that count. If it is a Vercel or Render
-address, do not raise the count; the chain is not what is assumed.
-
-Residual risk: someone who reaches the Render URL directly can send a chain of
-exactly N entries and choose their own address, which can evade or frame an
-address in the per-address check. Only restricting direct access (a paid Render
-feature) closes that; the per-account limit is unaffected.
-
-### Migrations and scaling
-
-One instance works as shipped: `start.sh` migrates, seeds, then serves.
-Instances that boot together are also safe: migrations hold a session-level
-Postgres advisory lock and the seed holds a transaction-level one, so they take
-turns and the second finds nothing to do (tested with three concurrent
-`alembic` processes and three concurrent seeds).
-
-- A session lock is not reliable through a transaction-pooling PgBouncer, so
-  with Neon set `MIGRATION_DATABASE_URL` to the **direct** (non-`-pooler`)
-  connection string; the app itself can keep using the pooled one.
-- To scale out, run `alembic upgrade head` once as a pre-deploy step (a paid
-  Render feature) and set `RUN_MIGRATIONS_ON_START=false` on the instances. The
-  login throttle already lives in Postgres, so nothing else is per-process.
-
-### Post-deployment verification
-
-None of these has been run against a real Render, Neon or Vercel environment
-yet; the automated tests cover the logic behind each one, not the hosting.
-Most of items 3-9 were also exercised in real Chrome against the built frontend,
-served with the headers read from `frontend/vercel.json`, in front of a
-production-configured backend; what stays unverified is the real hosting path
-(Vercel's rewrite, Render's proxy headers, real TLS).
-
-1. `https://<render-service>/health` and `/api/ready` return 200, and so does
-   `https://<vercel-app>/api/ready` (proves the rewrite).
-2. After 15+ minutes idle, the login page shows the waking notice after about
-   3 seconds and enables sign-in once ready; it never spins forever.
-3. After signing in, DevTools shows a `refresh_token` cookie that is `HttpOnly`,
-   `Secure`, `SameSite=Lax`, path `/api/v1/auth`, on the Vercel domain. The
-   login response body contains no refresh token, and `localStorage` holds only
-   `procuraflow_has_session`.
-4. A hard reload keeps you signed in (`POST /api/v1/auth/refresh` 200, then
-   `/auth/me`), and the cookie value changes on each reload (rotation).
-5. Reloading two tabs at once, or firing two refreshes from the console, gives
-   200 for both and keeps you signed in; only one response sets a cookie.
-6. Reuse: copy the cookie, wait over 10 seconds, let the app refresh, then
-   `curl -X POST https://<vercel-app>/api/v1/auth/refresh --cookie "refresh_token=<old>"`
-   returns 401 and the app is signed out at its next refresh; an admin sees
-   `refresh_token_reuse` in the audit log.
-7. Logout clears the cookie and a later refresh returns 401, while a second
-   browser stays signed in. Changing that user's password (as admin) signs the
-   second browser out too.
-8. On a throwaway account (not the admin), five wrong passwords produce a 429
-   with a minutes message, and the right password is refused for 15 minutes.
-9. A deep link such as `/suppliers` loads the app, security headers are present
-   (`curl -I`), and Reports → Export Inventory CSV downloads a file.
-10. Render's logs show the migrations reaching the latest revision, and
-    `refresh_tokens` and `login_failures` exist in Neon.
-11. Proxy trust: the check in
-    [Reverse proxy and client addresses](#reverse-proxy-and-client-addresses)
-    shows your own address with `forwarded_entries=2`.
-12. Content Security Policy: with DevTools open on the Vercel URL, the console
-    shows no `Content-Security-Policy` violations while you sign in and visit
-    the dashboard, Reports and a purchase order (Vercel *preview* deployments
-    inject a feedback toolbar script this policy blocks; production does not).
-13. The throttle persists: after a lockout (item 8), restart the Render service;
-    the account is still locked.
-
-### Security notes
-
-- The interactive API docs (`/docs`, `/openapi.json`) stay public on the Render
-  host so reviewers can read them; Vercel only forwards `/api/*`.
-- `frontend/vercel.json` sets a `Content-Security-Policy`: scripts and
-  stylesheets only from the app's own origin, inline style *attributes* allowed
-  (React and Recharts use them, never `<style>` elements), `connect-src 'self'`
-  because every API call goes through the same-origin `/api` proxy, no objects,
-  and `frame-ancestors 'none'`. It was validated in real Chrome with the built
-  app and the headers from this file: sign-in, session restore, all pages, the
-  chart and the CSV download produce no violations, and an injected inline
-  script or style element is blocked. If you later add a third-party script,
-  font or API host, extend the policy deliberately. `X-Frame-Options`,
-  `nosniff`, HSTS, `Referrer-Policy` and `Permissions-Policy` are set too.
-- Forwarded headers are only trusted by hop count; see
-  [Reverse proxy and client addresses](#reverse-proxy-and-client-addresses).
-- The seed re-syncs each role's permissions from `app/core/permissions.py` on
-  every start, so permission edits made directly in the database are
-  overwritten by design.
-- Report endpoints, including the CSV export, are available to any signed-in
-  user, like the other read endpoints; changing that means changing the RBAC
-  matrix.
-- Migrations run on every start, serialised by an advisory lock; see
-  [Migrations and scaling](#migrations-and-scaling) for the direct-connection
-  requirement and the scale-out path.
-
-To build and run the production image locally:
-
-```bash
-docker build -t procuraflow-api backend
-docker run --rm -p 8000:8000 -e ENVIRONMENT=production \
-  -e DATABASE_URL=postgresql://user:pass@host/db \
-  -e JWT_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')" \
-  -e DEFAULT_ADMIN_EMAIL=admin@example.com -e DEFAULT_ADMIN_PASSWORD='a-unique-12+char-password' \
-  procuraflow-api
-```
-
-## Environment Variables
-
-See `backend/.env.example` and `frontend/.env.example`. Notable ones:
-
-| Variable | Purpose |
-|---|---|
-| `DATABASE_URL` | Async Postgres connection string |
-| `JWT_SECRET_KEY` | Signing key for access/refresh tokens — **must** be overridden outside local dev |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` / `REFRESH_TOKEN_EXPIRE_DAYS` | Token lifetimes |
-| `LOGIN_MAX_FAILURES_PER_ACCOUNT` / `LOGIN_MAX_FAILURES_PER_IP` / `LOGIN_LOCKOUT_SECONDS` | Sign-in throttling: failures tolerated per account (default 5) and per client address (20) within the window (900 s) |
-| `SESSION_ABSOLUTE_DAYS` | Hard ceiling on a session however actively it is refreshed (default 30) |
-| `TRUSTED_PROXY_HOPS` | Reverse proxies to trust for the client address (default 0 = ignore `X-Forwarded-*`; `render.yaml` sets 2) |
-| `MIGRATION_DATABASE_URL` | Optional direct (non-pooler) URL used only by migrations; falls back to `DATABASE_URL` |
-| `RUN_MIGRATIONS_ON_START` | Production container only: `false` leaves migrations to a pre-deploy step (default `true`) |
-| `CORS_ORIGINS` | Comma-separated list of allowed frontend origins. Unset: local origins in development/test, none in production |
-| `DEFAULT_ADMIN_EMAIL` / `DEFAULT_ADMIN_PASSWORD` | Seeded admin credentials (a unique password of 12+ characters is enforced outside local dev) |
-| `SEED_ON_START` | Production container only: `false` skips the seed step on boot (default `true`) |
-| `SEED_DEMO_DATA` | Seed sample suppliers/products. Unset: yes in development/test, no in staging/production; `render.yaml` sets it for the public demo |
-| `PORT` | Production container only: listen port (set by the host; default `8000`) |
-| `VITE_API_BASE_URL` | Frontend's base URL for the API. Unset in production builds, which use same-origin `/api/v1` |
-
-## Testing
-
-Backend (242 tests covering auth, refresh-token rotation, revocation and the
-absolute session limit, the Postgres-backed sign-in throttle (including
-concurrent attempts and a second instance), proxy-header trust, RBAC allow/deny
-per role, PO state machine valid/invalid transitions, inventory ledger
-correctness including the negative-stock guard, delivery on-time/delayed
-classification, the audit trail, seed safety, a migration
-upgrade/downgrade/upgrade round trip on a fresh database, and several
-instances migrating or seeding at once):
-
-```bash
-cd backend
-createdb procuraflow_test   # or: docker exec <postgres-container> psql -U procuraflow -c "CREATE DATABASE procuraflow_test;"
-pytest
-```
-
-Frontend (58 component, utility, session and cold-start tests with Vitest +
-Testing Library; `npm run build` also type-checks):
-
-```bash
-cd frontend
-npm test
-```
-
-### Static checks
-
-CI runs these on every push and pull request
-([`.github/workflows/ci.yml`](.github/workflows/ci.yml)), and they can be run
-locally:
-
-```bash
-cd backend
-ruff check . && ruff format --check . && mypy   # lint, formatting, strict typing (pyproject.toml)
-```
-
-```bash
-cd frontend
-npm run lint && npm run format:check && npm run typecheck   # ESLint, Prettier, tsc
-```
-
-`ruff format .` and `npm run format` apply the formatting.
+- `ENVIRONMENT` defaults to `production`. In production and staging the API **refuses to start** with a placeholder,
+  short or repetitive `JWT_SECRET_KEY` (under 32 characters or fewer than 10 different ones), with a missing, default
+  or very short database password, or with `DEMO_MODE=true` unless `ALLOW_DEMO_IN_PRODUCTION=true` is also set; the
+  seed refuses a default or short (under 12 characters) admin password.
+- Never commit a real `.env`. Generate secrets with `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
+- Demo sample data (`SEED_DEMO_DATA`) is for demonstrations; a real installation does not need it.
 
 ## Screenshots
 
-_Add screenshots of the dashboard, purchase order detail view, and reports
-page here before sharing this project publicly._
+Screenshots are captured by a script at 1920x1080 and stored in `docs/screenshots/`. They are added when the
+documentation phase is finished; the folder is empty until then. Planned set (file names are the intended ones, not
+yet present):
 
-## Future Improvements
+| Screen | File |
+|---|---|
+| Landing page | `docs/screenshots/landing.png` |
+| Dashboard | `docs/screenshots/dashboard.png` |
+| Purchase request and approvals | `docs/screenshots/requests.png`, `docs/screenshots/approvals.png` |
+| Purchase order | `docs/screenshots/purchase-order.png` |
+| Supplier invoice with matching | `docs/screenshots/invoice.png` |
+| Payment run | `docs/screenshots/payment-run.png` |
+| Budgets | `docs/screenshots/budgets.png` |
+| Reports | `docs/screenshots/reports.png` |
+| Supplier portal | `docs/screenshots/supplier-portal.png` |
+| Settings | `docs/screenshots/settings.png` |
 
-Honest list of things a production deployment would need that this portfolio
-build doesn't include:
+Once the images exist, reference them here with `![Dashboard](docs/screenshots/dashboard.png)`.
 
-- **Network-level restriction of the API** — the per-address throttle can be
-  evaded or framed by anyone who reaches the Render URL directly; only
-  limiting direct access (a paid Render feature) fully closes that.
-- **Access tokens are short-lived, not revocable** — after logout or a
-  password change, an access token already issued keeps working until it
-  expires (30 minutes), and a token replayed inside the 10-second grace window
-  yields one such access token. Deactivated users are cut off immediately,
-  because every request re-checks the account.
-- **Frontend code-splitting** — the production bundle is a single ~800KB
-  chunk; route-based `React.lazy()` splitting would improve initial load.
-- **Dependency advisories** — `pip-audit` on the runtime requirements and
-  `npm audit --omit=dev` are clean. What remains is development tooling that
-  never ships and never sees untrusted input: the Tailwind 3 build chain
-  (`braces`, `chokidar`, `micromatch`, `fast-glob`, `postcss-*`; denial of
-  service on crafted globs or selectors, fixed by a Tailwind 4 rewrite) and
-  `pytest` 8.3.4 in the test-only requirements (a UNIX shared-`/tmp`
-  directory issue for local users, fixed in pytest 9, which needs a
-  pytest-asyncio major upgrade).
-- **Notifications** — the `notifications` table exists in the schema but
-  isn't yet wired to any UI or background trigger (e.g. low-stock alerts).
-- **E2E test suite** (Playwright) for the critical flows currently verified
-  manually.
+## Security
+
+- Short-lived access tokens held in memory only; rotating refresh tokens in an `HttpOnly`, `SameSite=Lax` cookie
+  (`Secure` outside development) scoped to `/api/v1/auth`. Reuse of a used refresh token after a short grace window
+  revokes the whole login family and is audited. A session never outlives `SESSION_ABSOLUTE_DAYS` (default 30).
+- Sign-in throttling per account and per client address, stored in PostgreSQL so it survives restarts and is shared
+  by every instance; the answer is `429` with `Retry-After`. Keys are HMAC hashes, so typed emails are not stored.
+- Forwarded headers are trusted only by hop count (`TRUSTED_PROXY_HOPS`), never by wildcard.
+- Role and permission checks on every endpoint, record-level scope checks that answer 404, supplier portal isolation
+  enforced in one scoped query layer, an audit log on every write, spreadsheet-formula neutralisation in CSV exports,
+  upload validation by content signature, and a strict Content-Security-Policy on the served frontend.
+- Known limits are listed in [PLAN.md](PLAN.md) ("Decisions to review"), [HANDOFF.md](HANDOFF.md) and
+  [NEXT_STEPS.md](NEXT_STEPS.md): access tokens already issued stay valid until they expire (30 minutes by default)
+  after logout; someone who knows an account's email can keep it locked for the lockout window; account numbers in
+  supplier bank details are stored unencrypted.
+
+Report a vulnerability privately to the repository owner rather than in a public issue.
+
+## Testing
+
+```bash
+# Backend (needs a disposable PostgreSQL database; never use real data)
+cd backend
+export TEST_DATABASE_URL=postgresql+asyncpg://procuraflow:procuraflow@127.0.0.1:5432/procuraflow_test
+python -m pytest -q
+ruff check . && ruff format --check . && mypy
+
+# Frontend
+cd frontend
+npm test && npm run typecheck && npm run lint && npm run format:check && npm run build
+```
+
+The suites cover authentication and refresh-token rotation, the sign-in throttle, proxy-header trust, permissions per
+role, scope (identifier) checks, the purchase order and invoice state machines, matching, budgets, payment runs and
+files, the supplier portal's isolation, the metrics consistency tests, and a migration upgrade, downgrade and upgrade
+round trip. Test counts change with every phase; run the suites for current numbers rather than trusting a figure
+written here. CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs lint, types, migrations, tests and the
+frontend build on every push and pull request.
+
+## Documentation
+
+| File | Content |
+|---|---|
+| [HowToSetup.md](HowToSetup.md) | Local development, configuration, database, production deployment, backups, upgrades, troubleshooting |
+| [.env.example](.env.example) | Every setting with comments and safe placeholders |
+| [docs/metrics.md](docs/metrics.md) | Definition, formula, source tables and screens for every number |
+| [docs/sizing.md](docs/sizing.md) | Server sizing, monthly cost ranges, storage growth |
+| [AGENTS.md](AGENTS.md) | Build, test and convention guide for contributors and automated tools |
+| [CHANGELOG.md](CHANGELOG.md) | Release notes |
+| [PLAN.md](PLAN.md), [HANDOFF.md](HANDOFF.md), [NEXT_STEPS.md](NEXT_STEPS.md) | Plan, current state and older deployment checklist |
+
+## Licence
+
+The plan describes a one-time licence with source code included, but **no `LICENSE` file exists in this repository
+yet**, so no licence is granted by this repository as it stands. Add the licence text you intend to ship before
+distributing the code, and update this section to match. All design, text and names in the project are original.

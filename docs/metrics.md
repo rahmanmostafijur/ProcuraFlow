@@ -92,6 +92,60 @@ equal the dashboard figures for the same filters (with no filters, the dashboard
 Invoice matching compares quantities with the accepted quantity of an order line (units received minus units rejected),
 so a rejected delivery never counts as received for matching or for the order's status.
 
+### Figures computed outside `metrics_service.py`
+
+Five figures are not in `metrics_service.py`. They are single-purpose and each has exactly one implementation, but they
+do not yet carry a cross-screen consistency test, so verify before relying on a second place that shows them.
+
+| Figure | Formula | Where it lives | Shown on |
+|---|---|---|---|
+| On-time delivery rate | deliveries with an actual date that are `on_time`, divided by all deliveries with an actual date, times 100, rounded to one decimal; 0 when there are none | `delivery_service.get_on_time_delivery_rate` | Reports |
+| Delayed deliveries | deliveries with status `delayed`; variance = actual date - expected date in days (empty if either date is missing) | `routers/reports.py` | Reports |
+| Delivery status | set when goods are received: all ordered units received gives `on_time` if the actual date is on or before the expected date (or there is no expected date), else `delayed`; fewer gives `partial` | `goods_receipt_service._update_delivery` | Deliveries page, Reports |
+| Supplier document status | no expiry date: valid; expiry before today: expired; expiry within 30 days from today: expiring soon; otherwise valid. Computed on every read, never stored | `supplier_document_service` | Dashboard card "documents expiring soon", supplier documents |
+| Inventory status CSV | per product: stock, minimum, cost, stock = current stock x cost, low-stock flag (stock at or below the minimum) | `routers/reports.py` | Reports (CSV download) |
+
+The "actual date" of a delivery is the day (UTC) goods were last received.
+
+## Where each figure comes from, and where it is shown
+
+| Metric | Source tables | Screens and endpoints |
+|---|---|---|
+| Total, pending, completed orders | `purchase_orders` | Dashboard (`GET /dashboard/summary`) |
+| Active suppliers | `suppliers` | Dashboard |
+| Inventory value, low-stock products | `products` | Dashboard, Reports CSV |
+| Upcoming deliveries | `deliveries` | Dashboard |
+| Committed spend by month, orders by month | `purchase_orders` (stored `base_grand_total`, `created_at`) | Dashboard chart (`GET /dashboard/monthly-trends`) |
+| Committed spend and orders by supplier | `purchase_orders`, `suppliers` | Reports (`GET /reports/supplier-performance`) |
+| Budget, spent, committed, remaining, utilisation, health | `budgets`, `cost_centres`, `purchase_orders`, `company_settings` | Budgets page and Dashboard "budget health" (`GET /budgets`), the approval check in `budget_service.enforce_budget` |
+| Waiting for me | `approval_steps`, `approval_delegations`, `approval_limits` and the documents they point at | My approvals page, sidebar badge, Dashboard "waiting for you" (`GET /approvals/queue`) |
+| Payables outstanding, overdue payables | `supplier_invoices`, `currencies` (minor units), `company_settings` | Dashboard, invoice list totals (`GET /supplier-invoices`) |
+| Invoices by status, needing attention | `supplier_invoices` | Dashboard, invoice list totals |
+
+The trend window: "last N months" starts at the first day of the current month in the company time zone minus
+N x 31 days, so the current, partial month is always included. N is 6 by default and 1 to 24 on request.
+
+## How reconciliation is guaranteed
+
+1. **One definition, one function.** A screen, report, badge or export calls the function in `metrics_service.py`;
+   routers do not run their own aggregate queries for these figures. The status sets (`COMMITTED_PO_STATUSES`,
+   `PENDING_PO_STATUSES`, `COMPLETED_PO_STATUSES`, `ATTENTION_INVOICE_STATUSES`) are defined once and imported.
+2. **Stored amounts, not recomputed ones.** Orders and invoices store their base-currency totals at approval, with the
+   exchange rate that was in force. Later rate changes never alter past reports.
+3. **Same filters, same functions.** The invoice list and the dashboard call the same payables and count functions
+   with the same filter object, so list totals equal the dashboard figures for the same filters.
+4. **Same list, same badge.** The approvals badge is `len(queue_for(user))`, the list itself.
+5. **Tests.** `backend/tests/test_metrics_consistency.py` reads each metric through every screen's API and asserts
+   equality: spend by supplier and by month sum to the same total; foreign-currency orders count at their locked base
+   amount; the company time zone decides the month; the approvals badge equals the queue length; budget figures agree
+   with the spend report; dashboard counts match the order lists; payables and invoice counts agree between the
+   dashboard, the invoice list and the service. `test_spend_metrics.py`, `test_invoice_metrics.py` and
+   `test_budgets.py` cover the individual definitions.
+
+What the guarantee does **not** cover: the figures in the table "Figures computed outside `metrics_service.py`", and
+any figure you export and edit yourself. After a data import or a manual database change, re-run the backend tests
+`test_metrics_consistency.py` and spot-check the dashboard against an order list.
+
 ## Adding a metric
 
 1. Write one function in `metrics_service.py` and document it in the table above.

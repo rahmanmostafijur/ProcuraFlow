@@ -1,0 +1,101 @@
+# Production stack: Postgres, the API, and Caddy (static frontend + reverse proxy + automatic HTTPS).
+#
+# Run from the repository root so relative paths and the env file resolve the same way every time:
+#
+#   docker compose --env-file .env -f deploy/docker-compose.yml up -d --build
+#
+# See HowToSetup.md ("Production deployment with Docker Compose and Caddy").
+
+name: procuraflow
+
+services:
+  postgres:
+    # Pin the exact tag you tested. Upgrading a major version needs a dump and restore, not a tag change.
+    image: postgres:16.4-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-procuraflow}
+      POSTGRES_DB: ${POSTGRES_DB:-procuraflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    # No ports are published: only the backend, on the private network, reaches the database.
+    networks:
+      - internal
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      # Values here win over env_file. The database URL is built from the Postgres credentials above.
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-procuraflow}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-procuraflow}
+      MIGRATION_DATABASE_URL: ""
+      # One trusted proxy in front of the API: Caddy.
+      TRUSTED_PROXY_HOPS: "1"
+      # The browser reaches the API through Caddy on the same origin, so no CORS origins are needed.
+      CORS_ORIGINS: ""
+      APP_BASE_URL: https://${SITE_ADDRESS:?Set SITE_ADDRESS in .env}
+      STORAGE_LOCAL_PATH: var/uploads
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}
+      DEFAULT_ADMIN_EMAIL: ${DEFAULT_ADMIN_EMAIL:?Set DEFAULT_ADMIN_EMAIL in .env}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:?Set DEFAULT_ADMIN_PASSWORD in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      # Uploaded files when STORAGE_BACKEND=local. Back this volume up together with the database.
+      - uploads:/app/var/uploads
+    # The image runs as the non-root user "app" (uid 1000) and has its own HEALTHCHECK on /health.
+    # No ports are published: Caddy reaches it on the private network.
+    expose:
+      - "8000"
+    networks:
+      - internal
+
+  caddy:
+    build:
+      context: ../frontend
+      dockerfile: ../deploy/frontend.Dockerfile
+      # Gives the Dockerfile access to deploy/Caddyfile as the named context "deploy".
+      additional_contexts:
+        deploy: .
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?Set SITE_ADDRESS in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env}
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      # Certificates and ACME account. Losing this volume only costs a re-issue, but keep it to stay under
+      # Let's Encrypt rate limits.
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - internal
+      - public
+
+networks:
+  internal:
+  public:
+
+volumes:
+  postgres_data:
+  uploads:
+  caddy_data:
+  caddy_config:
