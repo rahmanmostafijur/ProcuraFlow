@@ -4,7 +4,7 @@ import { useCreateDelegation, useDelegations, useRevokeDelegation } from "@/api/
 import { extractErrorMessage } from "@/api/client";
 import type { Delegation } from "@/api/types";
 import { UserPicker } from "@/components/UserPicker";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
@@ -80,7 +80,7 @@ export function DelegationsSection() {
       header: "Status",
       accessor: (row) => {
         const status = statusOf(row, today);
-        return <Badge status={status.key}>{status.label}</Badge>;
+        return <StatusBadge status={status.key} label={status.label} />;
       },
     },
     {
@@ -102,9 +102,9 @@ export function DelegationsSection() {
 
   return (
     <Card>
-      <div className="border-b border-slate-200 p-4">
-        <h2 className="text-base font-semibold text-slate-900">While I&apos;m away</h2>
-        <p className="text-sm text-slate-500">
+      <div className="border-b border-border p-4">
+        <h2 className="text-base font-semibold text-text-primary">While I&apos;m away</h2>
+        <p className="text-sm text-text-secondary">
           Let a colleague decide what is waiting for you between two dates. Every decision they make for you is recorded
           as made on your behalf.
         </p>
@@ -119,7 +119,7 @@ export function DelegationsSection() {
       <form
         onSubmit={(event) => void submit(event)}
         noValidate
-        className="grid gap-3 border-t border-slate-200 p-4 sm:grid-cols-4 sm:items-start"
+        className="grid gap-3 border-t border-border p-4 sm:grid-cols-4 sm:items-start"
       >
         <UserPicker
           id="delegate_id"

@@ -57,9 +57,9 @@ export function SetBudgetSection({ defaultYear }: { defaultYear: number | undefi
 
   return (
     <Card>
-      <div className="border-b border-slate-200 p-4">
-        <h2 className="text-base font-semibold text-slate-900">Set a budget</h2>
-        <p className="text-sm text-slate-500">
+      <div className="border-b border-border p-4">
+        <h2 className="text-base font-semibold text-text-primary">Set a budget</h2>
+        <p className="text-sm text-text-secondary">
           Setting a budget again for the same year replaces the amount and is recorded in its history.
         </p>
       </div>

@@ -1,4 +1,3 @@
-import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
@@ -18,12 +17,16 @@ import { ApprovalTimeline } from "@/components/approvals/ApprovalTimeline";
 import { DecisionDialog } from "@/components/approvals/DecisionDialog";
 import { useIsInQueue } from "@/components/approvals/useIsInQueue";
 import { Attachments } from "@/components/attachments/Attachments";
-import { Badge } from "@/components/ui/Badge";
+import { DocumentActionBar } from "@/components/layout/DocumentActionBar";
+import { SummaryList } from "@/components/layout/SummaryList";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { LifecycleStepper, type LifecycleStep } from "@/components/ui/LifecycleStepper";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useToast } from "@/components/ui/toast-context";
 import { useAuth } from "@/lib/auth-context";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
@@ -33,11 +36,41 @@ import { RequestFormModal } from "./RequestFormModal";
 
 type Dialog = "edit" | "cancel" | "approve" | "reject" | "convert" | null;
 
+const FLOW: Array<{ id: PurchaseRequest["status"]; label: string }> = [
+  { id: "draft", label: "Draft" },
+  { id: "submitted", label: "Submitted" },
+  { id: "approved", label: "Approved" },
+  { id: "converted", label: "Ordered" },
+];
+
+/** Where the request is in draft, submit, approve, order; a rejection marks the step it stopped at. */
+function requestSteps(request: PurchaseRequest): LifecycleStep[] {
+  const reached =
+    request.status === "rejected"
+      ? 1
+      : Math.max(
+          0,
+          FLOW.findIndex((step) => step.id === request.status),
+        );
+  return FLOW.map((step, index) => ({
+    id: step.id,
+    label: step.label,
+    state:
+      request.status === "rejected" && index === reached
+        ? "rejected"
+        : index < reached || (index === reached && request.status === "converted")
+          ? "done"
+          : index === reached
+            ? "current"
+            : "upcoming",
+  }));
+}
+
 function LinesCard({ request }: { request: PurchaseRequest }) {
   return (
     <Card className="overflow-x-auto lg:col-span-2">
-      <table className="min-w-full divide-y divide-slate-200 text-sm">
-        <thead className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+      <table className="min-w-full divide-y divide-border text-sm">
+        <thead className="bg-bg text-left text-caption uppercase text-text-secondary">
           <tr>
             <th className="px-4 py-3">Description</th>
             <th className="px-4 py-3 text-right">Quantity</th>
@@ -46,7 +79,7 @@ function LinesCard({ request }: { request: PurchaseRequest }) {
             <th className="px-4 py-3">Order</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-border">
           {request.lines.map((line) => (
             <tr key={line.id}>
               <td className="px-4 py-3">{line.description}</td>
@@ -61,7 +94,7 @@ function LinesCard({ request }: { request: PurchaseRequest }) {
               </td>
               <td className="px-4 py-3">
                 {line.converted_po_id !== null ? (
-                  <Link to={`/purchase-orders/${line.converted_po_id}`} className="text-brand-700 hover:underline">
+                  <Link to={`/purchase-orders/${line.converted_po_id}`} className="text-brand hover:underline">
                     View order
                   </Link>
                 ) : (
@@ -72,7 +105,7 @@ function LinesCard({ request }: { request: PurchaseRequest }) {
           ))}
         </tbody>
         <tfoot>
-          <tr className="bg-slate-50 font-semibold">
+          <tr className="bg-bg font-semibold">
             <td className="px-4 py-3" colSpan={3}>
               Estimated total
             </td>
@@ -137,104 +170,72 @@ export function RequestDetailPage() {
 
   return (
     <div className="space-y-6">
-      <button
-        onClick={() => void navigate("/requests")}
-        className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
-      >
-        <ArrowLeft className="h-4 w-4" /> Back to requests
-      </button>
+      <PageHeader
+        title={request.request_number}
+        description={request.title}
+        breadcrumbs={[{ label: "Requests", to: "/requests" }, { label: request.request_number }]}
+        secondaryActions={<StatusBadge status={request.status} />}
+      />
 
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold text-slate-900">{request.request_number}</h1>
-            <Badge status={request.status}>{request.status}</Badge>
-          </div>
-          <p className="text-sm text-slate-500">{request.title}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {isOwner && isEditable && (
-            <>
-              <Button variant="secondary" onClick={() => setDialog("edit")}>
-                Edit
-              </Button>
-              <Button
-                disabled={submitAction.isPending}
-                onClick={() =>
-                  void attempt(() => submitAction.mutateAsync({ id: request.id }), "Request submitted", false)
-                }
-              >
-                Submit
-              </Button>
-            </>
-          )}
-          {showDecision && (
-            <>
-              <Button onClick={() => setDialog("approve")}>Approve</Button>
-              <Button variant="danger" onClick={() => setDialog("reject")}>
-                Reject
-              </Button>
-            </>
-          )}
-          {canConvert && <Button onClick={() => setDialog("convert")}>Create purchase orders</Button>}
-          {canCancel && (
-            <Button variant="danger" onClick={() => setDialog("cancel")}>
-              Cancel request
-            </Button>
-          )}
-        </div>
-      </div>
+      <Card padding="md">
+        <LifecycleStepper label="Request progress" steps={requestSteps(request)} />
+      </Card>
 
       {request.status === "rejected" && request.rejection_reason && (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <p role="alert" className="rounded-control bg-danger-bg p-3 text-sm text-danger-fg">
           Rejected: {request.rejection_reason}
         </p>
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <LinesCard request={request} />
-        <Card className="p-5">
-          <h2 className="mb-4 text-sm font-semibold text-slate-900">Details</h2>
-          <dl className="space-y-3 text-sm">
-            <div className="flex justify-between gap-3">
-              <dt className="text-slate-500">Requested by</dt>
-              <dd className="font-medium text-slate-800">{request.requester.full_name}</dd>
-            </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-slate-500">Cost centre</dt>
-              <dd className="text-slate-800">{costCentre ? `${costCentre.code} — ${costCentre.name}` : "—"}</dd>
-            </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-slate-500">Currency</dt>
-              <dd className="text-slate-800">{request.currency_code}</dd>
-            </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-slate-500">Needed by</dt>
-              <dd className="text-slate-800">{formatDate(request.needed_by)}</dd>
-            </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-slate-500">Submitted</dt>
-              <dd className="text-slate-800">{formatDateTime(request.submitted_at)}</dd>
-            </div>
-            {request.base_estimated_total !== null && (
-              <div className="flex justify-between gap-3">
-                <dt className="text-slate-500">In company currency</dt>
-                <dd className="tabular-nums text-slate-800">{formatCurrency(request.base_estimated_total)}</dd>
-              </div>
-            )}
-          </dl>
-          {request.notes && (
-            <p className="mt-4 whitespace-pre-wrap border-t border-slate-100 pt-3 text-sm text-slate-600">
-              {request.notes}
-            </p>
-          )}
-        </Card>
+        <SummaryList
+          rows={[
+            { label: "Requested by", value: request.requester.full_name },
+            { label: "Cost centre", value: costCentre ? `${costCentre.code} — ${costCentre.name}` : "—" },
+            { label: "Currency", value: request.currency_code },
+            { label: "Needed by", value: formatDate(request.needed_by) },
+            { label: "Submitted", value: formatDateTime(request.submitted_at) },
+            ...(request.base_estimated_total !== null
+              ? [{ label: "In company currency", value: formatCurrency(request.base_estimated_total), numeric: true }]
+              : []),
+          ]}
+          footer={request.notes ? <p className="whitespace-pre-wrap">{request.notes}</p> : undefined}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <ApprovalTimeline documentType="purchase_request" documentId={request.id} />
         <Attachments parentType="purchase_request" parentId={request.id} canWrite={canCancel} />
       </div>
+
+      <DocumentActionBar>
+        {isOwner && isEditable && (
+          <Button variant="secondary" onClick={() => setDialog("edit")}>
+            Edit
+          </Button>
+        )}
+        {isOwner && isEditable && (
+          <Button
+            disabled={submitAction.isPending}
+            onClick={() => void attempt(() => submitAction.mutateAsync({ id: request.id }), "Request submitted", false)}
+          >
+            Submit
+          </Button>
+        )}
+        {showDecision && <Button onClick={() => setDialog("approve")}>Approve</Button>}
+        {showDecision && (
+          <Button variant="danger" onClick={() => setDialog("reject")}>
+            Reject
+          </Button>
+        )}
+        {canConvert && <Button onClick={() => setDialog("convert")}>Create purchase orders</Button>}
+        {canCancel && (
+          <Button variant="danger" onClick={() => setDialog("cancel")}>
+            Cancel request
+          </Button>
+        )}
+      </DocumentActionBar>
 
       <RequestFormModal
         isOpen={dialog === "edit"}

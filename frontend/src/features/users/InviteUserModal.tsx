@@ -64,11 +64,11 @@ function InviteForm({ onClose }: { onClose: () => void }) {
 
   return (
     <form onSubmit={(event) => void submit(event)} className="space-y-4">
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-text-secondary">
         We email them a link to choose their own password. You never see or set it.
       </p>
       {formError && (
-        <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div role="alert" className="rounded-control bg-danger-bg px-3 py-2 text-sm text-danger-fg">
           {formError}
         </div>
       )}

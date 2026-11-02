@@ -74,18 +74,20 @@ export function ProfilePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Your profile</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="text-2xl font-semibold text-text-primary">Your profile</h1>
+        <p className="text-sm text-text-secondary">
           {user?.full_name} · {user?.email}
         </p>
       </div>
 
       <Card className="max-w-lg p-6">
-        <h2 className="text-base font-semibold text-slate-900">Change password</h2>
-        <p className="mb-4 text-sm text-slate-500">You will be signed out everywhere and asked to sign in again.</p>
+        <h2 className="text-base font-semibold text-text-primary">Change password</h2>
+        <p className="mb-4 text-sm text-text-secondary">
+          You will be signed out everywhere and asked to sign in again.
+        </p>
         <form onSubmit={(event) => void handleSubmit(onSubmit)(event)} className="space-y-4">
           {formError && (
-            <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+            <div role="alert" className="rounded-control bg-danger-bg px-3 py-2 text-sm text-danger-fg">
               {formError}
             </div>
           )}

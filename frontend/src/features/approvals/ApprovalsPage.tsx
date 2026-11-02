@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { Pagination } from "@/components/ui/Pagination";
 import { useToast } from "@/components/ui/toast-context";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -53,7 +54,7 @@ export function ApprovalsPage() {
       accessor: (row) => {
         const link = documentLink(row.document_type, row.document_id, row.po_id);
         return link ? (
-          <Link to={link} className="font-medium text-brand-700 hover:underline">
+          <Link to={link} className="font-medium text-brand hover:underline">
             {row.label}
           </Link>
         ) : (
@@ -63,7 +64,7 @@ export function ApprovalsPage() {
     },
     { header: "Title", accessor: (row) => row.title },
     { header: "Requester", accessor: (row) => row.requester.full_name },
-    { header: "Amount", accessor: (row) => <span className="tabular-nums">{formatCurrency(row.amount_base)}</span> },
+    { header: "Amount", accessor: (row) => formatCurrency(row.amount_base), isAmount: true },
     {
       header: "Step",
       accessor: (row) => (
@@ -71,7 +72,7 @@ export function ApprovalsPage() {
           <span>
             {row.step_order} of {row.steps_total}
           </span>
-          {row.on_behalf_of && <p className="text-xs text-slate-500">on behalf of {row.on_behalf_of.full_name}</p>}
+          {row.on_behalf_of && <p className="text-xs text-text-secondary">on behalf of {row.on_behalf_of.full_name}</p>}
         </div>
       ),
     },
@@ -102,10 +103,7 @@ export function ApprovalsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">My approvals</h1>
-        <p className="text-sm text-slate-500">Requests, orders and order changes waiting for your decision.</p>
-      </div>
+      <PageHeader title="My approvals" description="Requests, orders and order changes waiting for your decision." />
 
       <Card>
         {isError ? (

@@ -44,7 +44,7 @@ describe("PurchaseOrderDetailPage", () => {
   it("hides Approve and Reject from an approver whose queue does not hold the order", async () => {
     show(purchaseOrder(), ["po:approve"], []);
 
-    await screen.findByText("PO-0007");
+    await screen.findByRole("heading", { name: "PO-0007" });
     await screen.findByText("IT — Information Technology");
     expect(screen.queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reject" })).not.toBeInTheDocument();
@@ -76,14 +76,14 @@ describe("PurchaseOrderDetailPage", () => {
 
   it("does not offer Amend without po:transition or on an order that is not yet approved", async () => {
     show(purchaseOrder({ status: "ordered" }), ["po:create"]);
-    await screen.findByText("PO-0007");
+    await screen.findByRole("heading", { name: "PO-0007" });
     expect(screen.queryByRole("button", { name: "Amend" })).not.toBeInTheDocument();
   });
 
   it("does not offer Amend on a draft", async () => {
     show(purchaseOrder({ status: "draft" }), ["po:transition"]);
 
-    await screen.findByText("PO-0007");
+    await screen.findByRole("heading", { name: "PO-0007" });
     expect(screen.queryByRole("button", { name: "Amend" })).not.toBeInTheDocument();
     expect(screen.queryByText("Versions")).not.toBeInTheDocument();
   });

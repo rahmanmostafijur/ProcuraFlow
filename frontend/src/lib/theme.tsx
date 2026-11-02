@@ -4,8 +4,8 @@ export type ThemeMode = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
 
 export const THEME_STORAGE_KEY = "pf-theme";
-// Light until the screens are fully tokenised (Phase 7 step C); then this becomes "system".
-export const DEFAULT_THEME_MODE: ThemeMode = "light";
+// Follows the operating system until the person picks a theme.
+export const DEFAULT_THEME_MODE: ThemeMode = "system";
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 

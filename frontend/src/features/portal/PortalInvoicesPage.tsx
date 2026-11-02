@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { Pagination } from "@/components/ui/Pagination";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 import { PortalInvoiceFilesModal } from "./PortalInvoiceFilesModal";
@@ -21,7 +22,10 @@ export function PortalInvoicesPage() {
   const { data, isLoading } = usePortalInvoices(page, PAGE_SIZE);
 
   const columns: Column<PortalInvoice>[] = [
-    { header: "Invoice", accessor: (row) => <span className="font-medium text-slate-900">{row.invoice_number}</span> },
+    {
+      header: "Invoice",
+      accessor: (row) => <span className="font-medium text-text-primary">{row.invoice_number}</span>,
+    },
     { header: "Order", accessor: (row) => row.po_number },
     { header: "Date", accessor: (row) => formatDate(row.invoice_date) },
     { header: "Total", accessor: (row) => formatCurrency(row.grand_total, row.currency_code) },
@@ -32,10 +36,7 @@ export function PortalInvoicesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Your invoices</h1>
-          <p className="text-sm text-slate-500">Send an invoice for an order; finance reviews it as a draft.</p>
-        </div>
+        <PageHeader title="Your invoices" description="Send an invoice for an order; finance reviews it as a draft." />
         <Button onClick={() => setCreating(true)}>
           <Plus className="h-4 w-4" /> New invoice
         </Button>

@@ -6,7 +6,7 @@ import { z } from "zod";
 import { extractErrorMessage } from "@/api/client";
 import { useCreateTaxRate, useTaxRates, useUpdateTaxRate } from "@/api/finance";
 import type { TaxRate } from "@/api/types";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
@@ -82,7 +82,7 @@ export function TaxRatesSection() {
   };
 
   const columns: Column<TaxRate>[] = [
-    { header: "Name", accessor: (row) => <span className="font-medium text-slate-900">{row.name}</span> },
+    { header: "Name", accessor: (row) => <span className="font-medium text-text-primary">{row.name}</span> },
     { header: "Rate", accessor: (row) => <span className="tabular-nums">{Number(row.percentage)}%</span> },
     { header: "Type", accessor: (row) => TAX_TYPE_LABELS[row.tax_type] },
     { header: "Treatment", accessor: treatmentLabel },
@@ -90,7 +90,7 @@ export function TaxRatesSection() {
     {
       header: "Status",
       accessor: (row) => (
-        <Badge status={row.is_active ? "active" : "inactive"}>{row.is_active ? "Active" : "Retired"}</Badge>
+        <StatusBadge status={row.is_active ? "active" : "inactive"} label={row.is_active ? "Active" : "Retired"} />
       ),
     },
     {
@@ -111,9 +111,9 @@ export function TaxRatesSection() {
 
   return (
     <Card>
-      <div className="border-b border-slate-200 p-4">
-        <h2 className="text-base font-semibold text-slate-900">Tax rates</h2>
-        <p className="text-sm text-slate-500">
+      <div className="border-b border-border p-4">
+        <h2 className="text-base font-semibold text-text-primary">Tax rates</h2>
+        <p className="text-sm text-text-secondary">
           The examples are starting points, not tax advice. A purchase order line keeps the rate it was priced with, so
           editing or retiring a rate never changes existing orders.
         </p>
@@ -121,7 +121,7 @@ export function TaxRatesSection() {
       <DataTable columns={columns} rows={taxRates ?? []} keyExtractor={(row) => row.id} isLoading={isLoading} />
       <form
         onSubmit={(event) => void handleSubmit(onSubmit)(event)}
-        className="grid gap-3 border-t border-slate-200 p-4 sm:grid-cols-6 sm:items-end"
+        className="grid gap-3 border-t border-border p-4 sm:grid-cols-6 sm:items-end"
       >
         <div className="sm:col-span-2">
           <Label htmlFor="tax_name">Tax rate name</Label>

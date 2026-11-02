@@ -5,12 +5,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { extractErrorMessage } from "@/api/client";
 import { useCreateRequest, useRequests, type PurchaseRequestInput } from "@/api/purchaseRequests";
 import type { PurchaseRequest, PurchaseRequestStatus } from "@/api/types";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Label } from "@/components/ui/Label";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { Pagination } from "@/components/ui/Pagination";
 import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/toast-context";
@@ -56,38 +57,39 @@ export function RequestsPage() {
     {
       header: "Number",
       accessor: (row) => (
-        <Link to={`/requests/${row.id}`} className="font-medium text-brand-700 hover:underline">
+        <Link to={`/requests/${row.id}`} className="font-medium text-brand hover:underline">
           {row.request_number}
         </Link>
       ),
     },
     { header: "Title", accessor: (row) => row.title },
     { header: "Requester", accessor: (row) => row.requester.full_name },
-    { header: "Status", accessor: (row) => <Badge status={row.status}>{row.status}</Badge> },
+    { header: "Status", accessor: (row) => <StatusBadge status={row.status} label={row.status} /> },
     {
       header: "Estimated total",
-      accessor: (row) => <span className="tabular-nums">{formatCurrency(row.estimated_total, row.currency_code)}</span>,
+      accessor: (row) => formatCurrency(row.estimated_total, row.currency_code),
+      isAmount: true,
     },
     { header: "Needed by", accessor: (row) => formatDate(row.needed_by) },
   ];
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Requests</h1>
-          <p className="text-sm text-slate-500">Ask for something to be bought; approved requests become orders.</p>
-        </div>
-        {canCreate && (
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus className="h-4 w-4" /> New request
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Requests"
+        description="Ask for something to be bought; approved requests become orders."
+        primaryAction={
+          canCreate && (
+            <Button onClick={() => setFormOpen(true)}>
+              <Plus className="h-4 w-4" /> New request
+            </Button>
+          )
+        }
+      />
 
       <Card>
-        <div className="flex flex-wrap items-end gap-4 border-b border-slate-200 p-4">
-          <div className="w-48">
+        <div className="flex flex-wrap items-end gap-4 border-b border-border p-4">
+          <div className="w-full sm:w-48">
             <Label htmlFor="request_status_filter">Status</Label>
             <Select
               id="request_status_filter"
@@ -106,7 +108,7 @@ export function RequestsPage() {
             </Select>
           </div>
           {canSeeAll && (
-            <label className="flex items-center gap-2 pb-2 text-sm text-slate-700">
+            <label className="flex items-center gap-2 pb-2 text-sm text-text-secondary">
               <input
                 type="checkbox"
                 checked={mineOnly}

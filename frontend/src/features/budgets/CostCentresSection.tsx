@@ -3,7 +3,7 @@ import { useState, type FormEvent } from "react";
 import { useCostCentres, useSaveCostCentre } from "@/api/budgets";
 import { extractErrorMessage } from "@/api/client";
 import type { CostCentre } from "@/api/types";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
@@ -58,12 +58,12 @@ export function CostCentresSection() {
   };
 
   const columns: Column<CostCentre>[] = [
-    { header: "Code", accessor: (row) => <span className="font-medium text-slate-900">{row.code}</span> },
+    { header: "Code", accessor: (row) => <span className="font-medium text-text-primary">{row.code}</span> },
     { header: "Name", accessor: (row) => row.name },
     {
       header: "Status",
       accessor: (row) => (
-        <Badge status={row.is_active ? "active" : "inactive"}>{row.is_active ? "Active" : "Retired"}</Badge>
+        <StatusBadge status={row.is_active ? "active" : "inactive"} label={row.is_active ? "Active" : "Retired"} />
       ),
     },
     {
@@ -100,9 +100,11 @@ export function CostCentresSection() {
 
   return (
     <Card>
-      <div className="border-b border-slate-200 p-4">
-        <h2 className="text-base font-semibold text-slate-900">Cost centres</h2>
-        <p className="text-sm text-slate-500">A retired cost centre keeps its history but can no longer be chosen.</p>
+      <div className="border-b border-border p-4">
+        <h2 className="text-base font-semibold text-text-primary">Cost centres</h2>
+        <p className="text-sm text-text-secondary">
+          A retired cost centre keeps its history but can no longer be chosen.
+        </p>
       </div>
       <DataTable
         columns={columns}
@@ -114,7 +116,7 @@ export function CostCentresSection() {
       <form
         onSubmit={(event) => void submit(event)}
         noValidate
-        className="grid gap-3 border-t border-slate-200 p-4 sm:grid-cols-3 sm:items-start"
+        className="grid gap-3 border-t border-border p-4 sm:grid-cols-3 sm:items-start"
       >
         <div>
           <Label htmlFor="cost_centre_code">Cost centre code</Label>

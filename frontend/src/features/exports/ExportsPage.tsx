@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Select } from "@/components/ui/Select";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toast-context";
 
 const NO_FILTERS: ExportFilters = { date_from: "", date_to: "", status: "" };
@@ -32,8 +33,8 @@ function ExportCard({ kind }: { kind: ExportKind }) {
 
   return (
     <Card className="p-5">
-      <h2 className="text-base font-semibold text-slate-900">{kind.label}</h2>
-      <p className="mb-4 text-sm text-slate-500">{kind.description}</p>
+      <h2 className="text-base font-semibold text-text-primary">{kind.label}</h2>
+      <p className="mb-4 text-sm text-text-secondary">{kind.description}</p>
       <div className="grid gap-3 sm:grid-cols-3">
         <div>
           <Label htmlFor={`${idPrefix}-from`}>From</Label>
@@ -86,12 +87,10 @@ function ExportCard({ kind }: { kind: ExportKind }) {
 export function ExportsPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Accounting exports</h1>
-        <p className="text-sm text-slate-500">
-          CSV files for your accounting system. Leave a filter empty to include everything.
-        </p>
-      </div>
+      <PageHeader
+        title="Accounting exports"
+        description="CSV files for your accounting system. Leave a filter empty to include everything."
+      />
       <div className="grid gap-4 lg:grid-cols-2">
         {EXPORT_KINDS.map((kind) => (
           <ExportCard key={kind.key} kind={kind} />

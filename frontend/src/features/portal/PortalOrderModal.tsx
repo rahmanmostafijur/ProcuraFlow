@@ -29,11 +29,11 @@ export function PortalOrderModal({ orderId, onClose }: PortalOrderModalProps) {
   return (
     <Modal isOpen={orderId !== null} onClose={onClose} title={order ? `Order ${order.po_number}` : "Order"} size="lg">
       {isLoading && <LoadingState />}
-      {isError && <p className="text-sm text-red-600">The order could not be loaded.</p>}
+      {isError && <p className="text-sm text-danger-fg">The order could not be loaded.</p>}
       {order && (
         <div className="space-y-4">
           <table className="w-full text-left text-sm">
-            <thead className="text-xs uppercase text-slate-500">
+            <thead className="text-xs uppercase text-text-secondary">
               <tr>
                 <th className="py-2 pr-3">Product</th>
                 <th className="py-2 pr-3 text-right">Quantity</th>
@@ -41,11 +41,11 @@ export function PortalOrderModal({ orderId, onClose }: PortalOrderModalProps) {
                 <th className="py-2 text-right">Total</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {order.items.map((line) => (
                 <tr key={line.product_id}>
                   <td className="py-2 pr-3">
-                    {line.product_name} <span className="text-xs text-slate-500">{line.sku}</span>
+                    {line.product_name} <span className="text-xs text-text-secondary">{line.sku}</span>
                   </td>
                   <td className="py-2 pr-3 text-right">{line.quantity}</td>
                   <td className="py-2 pr-3 text-right">{formatCurrency(line.unit_price, order.currency_code)}</td>
@@ -54,11 +54,11 @@ export function PortalOrderModal({ orderId, onClose }: PortalOrderModalProps) {
               ))}
             </tbody>
           </table>
-          <p className="text-right text-sm font-semibold text-slate-900">
+          <p className="text-right text-sm font-semibold text-text-primary">
             Total {formatCurrency(order.grand_total, order.currency_code)}
           </p>
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-text-secondary">
               {order.acknowledged_at
                 ? `Acknowledged on ${formatDateTime(order.acknowledged_at)}`
                 : "You have not acknowledged this order yet."}

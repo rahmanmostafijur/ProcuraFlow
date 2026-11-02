@@ -5,6 +5,7 @@ import type { AuditLog } from "@/api/types";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { Pagination } from "@/components/ui/Pagination";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { formatDateTime } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
@@ -22,10 +23,7 @@ export function AuditLogPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Audit Log</h1>
-        <p className="text-sm text-slate-500">A record of every significant action taken in the system.</p>
-      </div>
+      <PageHeader title="Audit Log" description="A record of every significant action taken in the system." />
 
       <Card>
         <DataTable

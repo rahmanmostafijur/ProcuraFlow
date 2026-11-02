@@ -6,7 +6,7 @@ import { z } from "zod";
 import { extractErrorMessage } from "@/api/client";
 import { useCreateCurrency, useCurrencies, useUpdateCurrency } from "@/api/finance";
 import type { Currency } from "@/api/types";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
@@ -60,7 +60,7 @@ export function CurrenciesSection({ baseCurrency }: { baseCurrency: string }) {
   };
 
   const columns: Column<Currency>[] = [
-    { header: "Code", accessor: (row) => <span className="font-mono font-medium text-slate-900">{row.code}</span> },
+    { header: "Code", accessor: (row) => <span className="font-mono font-medium text-text-primary">{row.code}</span> },
     { header: "Name", accessor: (row) => row.name },
     { header: "Symbol", accessor: (row) => row.symbol },
     { header: "Decimals", accessor: (row) => row.minor_units },
@@ -68,9 +68,9 @@ export function CurrenciesSection({ baseCurrency }: { baseCurrency: string }) {
       header: "Status",
       accessor: (row) =>
         row.code === baseCurrency ? (
-          <Badge status="active">Base currency</Badge>
+          <StatusBadge status="active" label="Base currency" />
         ) : (
-          <Badge status={row.is_active ? "active" : "inactive"}>{row.is_active ? "Active" : "Off"}</Badge>
+          <StatusBadge status={row.is_active ? "active" : "inactive"} label={row.is_active ? "Active" : "Off"} />
         ),
     },
     {
@@ -92,14 +92,16 @@ export function CurrenciesSection({ baseCurrency }: { baseCurrency: string }) {
 
   return (
     <Card>
-      <div className="border-b border-slate-200 p-4">
-        <h2 className="text-base font-semibold text-slate-900">Currencies</h2>
-        <p className="text-sm text-slate-500">Only active currencies can be chosen on purchase orders and suppliers.</p>
+      <div className="border-b border-border p-4">
+        <h2 className="text-base font-semibold text-text-primary">Currencies</h2>
+        <p className="text-sm text-text-secondary">
+          Only active currencies can be chosen on purchase orders and suppliers.
+        </p>
       </div>
       <DataTable columns={columns} rows={currencies ?? []} keyExtractor={(row) => row.code} isLoading={isLoading} />
       <form
         onSubmit={(event) => void handleSubmit(onSubmit)(event)}
-        className="grid gap-3 border-t border-slate-200 p-4 sm:grid-cols-[6rem_1fr_6rem_6rem_auto] sm:items-end"
+        className="grid gap-3 border-t border-border p-4 sm:grid-cols-[6rem_1fr_6rem_6rem_auto] sm:items-end"
       >
         <div>
           <Label htmlFor="currency_code">Code</Label>

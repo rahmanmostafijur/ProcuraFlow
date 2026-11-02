@@ -13,9 +13,12 @@ export function BackendStatusNotice({ status, elapsedMs, onRetry }: BackendStatu
     const percent = Math.min(100, Math.round((elapsedMs / READINESS_BUDGET_MS) * 100));
     const seconds = Math.floor(elapsedMs / 1000);
     return (
-      <div role="status" className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+      <div
+        role="status"
+        className="mb-4 rounded-control border border-warning-fg/30 bg-warning-bg p-3 text-sm text-warning-fg"
+      >
         <p className="font-medium">Waking the demo server…</p>
-        <p className="mt-1 text-amber-800">
+        <p className="mt-1 text-warning-fg">
           The free hosting tier sleeps when idle and takes up to a minute to start. {seconds}s of up to{" "}
           {READINESS_BUDGET_MS / 1000}s.
         </p>
@@ -25,9 +28,9 @@ export function BackendStatusNotice({ status, elapsedMs, onRetry }: BackendStatu
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={percent}
-          className="mt-2 h-1.5 overflow-hidden rounded-full bg-amber-200"
+          className="mt-2 h-1.5 overflow-hidden rounded-full bg-warning-fg/20"
         >
-          <div className="h-full bg-amber-500 transition-[width] duration-500" style={{ width: `${percent}%` }} />
+          <div className="h-full bg-warning-fg transition-[width] duration-500" style={{ width: `${percent}%` }} />
         </div>
       </div>
     );
@@ -35,7 +38,10 @@ export function BackendStatusNotice({ status, elapsedMs, onRetry }: BackendStatu
 
   if (status === "unavailable") {
     return (
-      <div role="alert" className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+      <div
+        role="alert"
+        className="mb-4 rounded-control border border-danger-fg/30 bg-danger-bg p-3 text-sm text-danger-fg"
+      >
         <p className="font-medium">We couldn&apos;t reach the server.</p>
         <p className="mt-1">It didn&apos;t respond in time. Check your connection, then try again.</p>
         <Button type="button" variant="secondary" size="sm" className="mt-3" onClick={onRetry}>

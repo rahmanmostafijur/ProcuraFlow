@@ -160,7 +160,7 @@ export function CatalogFormDrawer({ isOpen, item, onClose }: CatalogFormDrawerPr
           </div>
         </div>
         {item && (
-          <label className="flex items-center gap-2 text-sm text-slate-700">
+          <label className="flex items-center gap-2 text-sm text-text-secondary">
             <input type="checkbox" {...register("is_active")} /> Price is active
           </label>
         )}

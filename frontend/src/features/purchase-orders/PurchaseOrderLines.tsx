@@ -37,12 +37,12 @@ function TotalRow({ label, value, strong = false }: { label: string; value: stri
     <tr>
       <td
         colSpan={5}
-        className={`pt-2 text-right text-sm ${strong ? "font-semibold text-slate-900" : "text-slate-600"}`}
+        className={`pt-2 text-right text-sm ${strong ? "font-semibold text-text-primary" : "text-text-secondary"}`}
       >
         {label}
       </td>
       <td
-        className={`pt-2 text-right text-sm tabular-nums ${strong ? "font-semibold text-slate-900" : "text-slate-700"}`}
+        className={`pt-2 text-right text-sm tabular-nums ${strong ? "font-semibold text-text-primary" : "text-text-secondary"}`}
       >
         {value}
       </td>
@@ -56,11 +56,11 @@ export function PurchaseOrderLines({ po }: { po: PurchaseOrder }) {
 
   return (
     <Card className="p-5 lg:col-span-2">
-      <h2 className="mb-4 text-sm font-semibold text-slate-900">Line Items</h2>
+      <h2 className="mb-4 text-sm font-semibold text-text-primary">Line Items</h2>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
+        <table className="min-w-full divide-y divide-border text-sm">
           <thead>
-            <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <tr className="text-left text-xs font-semibold uppercase tracking-wide text-text-secondary">
               <th className="py-2">Product ID</th>
               <th className="py-2">Quantity</th>
               <th className="py-2">Received</th>
@@ -69,14 +69,14 @@ export function PurchaseOrderLines({ po }: { po: PurchaseOrder }) {
               <th className="py-2 text-right">Line Total</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-border">
             {po.items.map((item) => (
               <tr key={item.id}>
                 <td className="py-2">{item.product_id}</td>
                 <td className="py-2 tabular-nums">{item.quantity}</td>
                 <td className="py-2 tabular-nums">{item.received_quantity}</td>
                 <td className="py-2 text-right tabular-nums">{money(item.unit_price)}</td>
-                <td className="py-2 pl-4 text-slate-600">
+                <td className="py-2 pl-4 text-text-secondary">
                   {item.tax_name === null ? "—" : `${item.tax_name} ${Number(item.tax_percent)}%`}
                 </td>
                 <td className="py-2 text-right tabular-nums">{money(item.line_total)}</td>
@@ -99,8 +99,8 @@ export function PurchaseOrderLines({ po }: { po: PurchaseOrder }) {
         </table>
       </div>
       {po.notes && (
-        <div className="mt-4 rounded-md bg-slate-50 p-3 text-sm text-slate-600">
-          <span className="font-medium text-slate-700">Notes: </span>
+        <div className="mt-4 rounded-control bg-bg p-3 text-sm text-text-secondary">
+          <span className="font-medium text-text-secondary">Notes: </span>
           {po.notes}
         </div>
       )}

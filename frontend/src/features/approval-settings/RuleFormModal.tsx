@@ -98,23 +98,23 @@ export function RuleFormModal({ isOpen, rule, onClose }: RuleFormModalProps) {
             <Label htmlFor="rule_max">Up to amount (blank for no limit)</Label>
             <Input id="rule_max" inputMode="decimal" error={errors.max_amount?.message} {...register("max_amount")} />
           </div>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
+          <label className="flex items-center gap-2 text-sm text-text-secondary">
             <input type="checkbox" {...register("is_active")} /> Rule is active
           </label>
         </div>
 
         <fieldset>
-          <legend className="mb-1 text-sm font-medium text-slate-700">Approval steps, in order</legend>
-          <p className="mb-2 text-xs text-slate-500">
+          <legend className="mb-1 text-sm font-medium text-text-secondary">Approval steps, in order</legend>
+          <p className="mb-2 text-xs text-text-secondary">
             Each step must be approved by someone with the chosen role. Amounts are in the company currency.
           </p>
-          {errors.steps?.message && <p className="mb-2 text-xs text-red-600">{errors.steps.message}</p>}
+          {errors.steps?.message && <p className="mb-2 text-xs text-danger-fg">{errors.steps.message}</p>}
           <ol className="space-y-2">
             {fields.map((field, index) => {
               const n = index + 1;
               return (
                 <li key={field.id} className="flex items-start gap-2">
-                  <span className="w-12 pt-2 text-sm text-slate-500">Step {n}</span>
+                  <span className="w-12 pt-2 text-sm text-text-secondary">Step {n}</span>
                   <Select
                     aria-label={`Role for step ${n}`}
                     error={errors.steps?.[index]?.approver_role_id?.message}
@@ -174,7 +174,7 @@ export function RuleFormModal({ isOpen, rule, onClose }: RuleFormModalProps) {
         </fieldset>
 
         {serverError && (
-          <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <p role="alert" className="rounded-control border border-border bg-danger-bg p-3 text-sm text-danger-fg">
             {serverError}
           </p>
         )}

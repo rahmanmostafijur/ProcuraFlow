@@ -27,17 +27,17 @@ export function CompanyMark({ branding, size = "sm", showName = true }: CompanyM
   return (
     <div className="flex min-w-0 items-center gap-2">
       {logo ? (
-        <img src={logo} alt={`${name} logo`} className={cn("shrink-0 rounded-md object-contain", box)} />
+        <img src={logo} alt={`${name} logo`} className={cn("shrink-0 rounded-control object-contain", box)} />
       ) : (
         <div
           aria-hidden="true"
-          className={cn("flex shrink-0 items-center justify-center rounded-md font-bold text-white", box)}
+          className={cn("flex shrink-0 items-center justify-center rounded-control font-bold text-on-brand", box)}
           style={{ backgroundColor: "var(--company-brand, #0F766E)" }}
         >
           {initials(name)}
         </div>
       )}
-      {showName && <span className="truncate text-lg font-semibold text-slate-900">{name}</span>}
+      {showName && <span className="truncate text-lg font-semibold text-text-primary">{name}</span>}
     </div>
   );
 }

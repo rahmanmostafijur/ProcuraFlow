@@ -44,27 +44,27 @@ export function PaymentFilePanel({ runId }: { runId: number }) {
   };
 
   return (
-    <section aria-label="Payment file" className="space-y-3 rounded-md border border-slate-200 p-4">
-      <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+    <section aria-label="Payment file" className="space-y-3 rounded-control border border-border p-4">
+      <h3 className="flex items-center gap-2 text-sm font-semibold text-text-primary">
         <FileText className="h-4 w-4" /> Payment file
       </h3>
-      {isLoading && <p className="text-sm text-slate-500">Checking for a file…</p>}
+      {isLoading && <p className="text-sm text-text-secondary">Checking for a file…</p>}
       {file && (
         <>
           <dl className="grid gap-1 text-sm sm:grid-cols-2">
-            <dt className="text-slate-500">Format</dt>
+            <dt className="text-text-secondary">Format</dt>
             <dd>{FILE_FORMAT_LABELS[file.file_format]}</dd>
-            <dt className="text-slate-500">File</dt>
+            <dt className="text-text-secondary">File</dt>
             <dd>{file.filename}</dd>
-            <dt className="text-slate-500">Payments</dt>
+            <dt className="text-text-secondary">Payments</dt>
             <dd>
               {file.transaction_count} · {formatCurrency(file.total, file.currency_code)}
             </dd>
-            <dt className="text-slate-500">Generated</dt>
+            <dt className="text-text-secondary">Generated</dt>
             <dd>
               {formatDateTime(file.created_at)} by {file.created_by.full_name}
             </dd>
-            <dt className="text-slate-500">SHA-256</dt>
+            <dt className="text-text-secondary">SHA-256</dt>
             <dd className="break-all font-mono text-xs">{file.sha256}</dd>
           </dl>
           <Button variant="secondary" onClick={() => void handleDownload()}>
@@ -78,7 +78,7 @@ export function PaymentFilePanel({ runId }: { runId: number }) {
         </Button>
       )}
       {problems.length > 0 && (
-        <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div role="alert" className="rounded-control bg-danger-bg px-3 py-2 text-sm text-danger-fg">
           <p className="font-medium">The file cannot be generated until these are fixed:</p>
           <ul className="mt-1 list-disc pl-5">
             {problems.map((problem) => (

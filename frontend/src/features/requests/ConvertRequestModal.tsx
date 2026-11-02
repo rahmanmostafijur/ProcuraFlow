@@ -69,7 +69,7 @@ function ConvertForm({ request, isSubmitting, onClose, onSubmit }: ConvertReques
       }}
       className="space-y-4"
     >
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-text-secondary">
         Lines with the same supplier go on one draft purchase order. A line typed in by hand needs the product to order.
       </p>
       <ul className="space-y-3">
@@ -78,8 +78,8 @@ function ConvertForm({ request, isSubmitting, onClose, onSubmit }: ConvertReques
           const ordered = isOrdered(line);
           const choice = assignments[line.id];
           return (
-            <li key={line.id} className="space-y-2 rounded-md border border-slate-200 p-3">
-              <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
+            <li key={line.id} className="space-y-2 rounded-control border border-border p-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-text-primary">
                 <input
                   type="checkbox"
                   aria-label={`Include line ${n}`}
@@ -88,7 +88,7 @@ function ConvertForm({ request, isSubmitting, onClose, onSubmit }: ConvertReques
                   onChange={(event) => change(line.id, { included: event.target.checked })}
                 />
                 {line.description} · {line.quantity} {line.unit}
-                {ordered && <span className="text-xs font-normal text-slate-500">(already ordered)</span>}
+                {ordered && <span className="text-xs font-normal text-text-secondary">(already ordered)</span>}
               </label>
               {!ordered && choice?.included && (
                 <div className="grid gap-2 sm:grid-cols-2">
@@ -135,7 +135,7 @@ function ConvertForm({ request, isSubmitting, onClose, onSubmit }: ConvertReques
           onChange={(event) => setExpected(event.target.value)}
         />
       </div>
-      {formError && <p className="text-xs text-red-600">{formError}</p>}
+      {formError && <p className="text-xs text-danger-fg">{formError}</p>}
       <div className="flex justify-end gap-3">
         <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
           Cancel

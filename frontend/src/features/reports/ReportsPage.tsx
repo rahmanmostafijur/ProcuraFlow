@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toast-context";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
@@ -36,8 +37,8 @@ export function ReportsPage() {
 
   const performanceColumns: Column<SupplierPerformance>[] = [
     { header: "Supplier", accessor: (row) => row.supplier_name },
-    { header: "Committed Orders", accessor: (row) => row.order_count },
-    { header: "Committed Spend", accessor: (row) => formatCurrency(row.total_spend) },
+    { header: "Committed Orders", accessor: (row) => row.order_count, isAmount: true },
+    { header: "Committed Spend", accessor: (row) => formatCurrency(row.total_spend), isAmount: true },
   ];
 
   const delayedColumns: Column<DelayedDelivery>[] = [
@@ -50,27 +51,27 @@ export function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Reports</h1>
-          <p className="text-sm text-slate-500">Purchasing, supplier, and inventory analytics.</p>
-        </div>
-        <Button variant="secondary" onClick={() => void exportInventoryCsv()} disabled={isExporting}>
-          <Download className="h-4 w-4" /> {isExporting ? "Exporting…" : "Export Inventory CSV"}
-        </Button>
-      </div>
+      <PageHeader
+        title="Reports"
+        description="Purchasing, supplier, and inventory analytics."
+        primaryAction={
+          <Button variant="secondary" onClick={() => void exportInventoryCsv()} disabled={isExporting}>
+            <Download className="h-4 w-4" /> {isExporting ? "Exporting…" : "Export Inventory CSV"}
+          </Button>
+        }
+      />
 
-      <Card className="p-5">
-        <h2 className="mb-1 text-sm font-semibold text-slate-900">On-Time Delivery Rate</h2>
-        <p className="text-3xl font-semibold text-brand-600">
+      <Card padding="lg">
+        <h2 className="mb-1 text-sm font-semibold text-text-primary">On-Time Delivery Rate</h2>
+        <p className="text-3xl font-semibold tabular-nums text-brand">
           {onTimeRate ? `${onTimeRate.on_time_percentage}%` : "—"}
         </p>
-        <p className="text-xs text-slate-500">Calculated from all completed deliveries.</p>
+        <p className="text-xs text-text-secondary">Calculated from all completed deliveries.</p>
       </Card>
 
       <Card>
-        <div className="border-b border-slate-200 px-5 py-4">
-          <h2 className="text-sm font-semibold text-slate-900">Supplier Performance</h2>
+        <div className="border-b border-border px-5 py-4">
+          <h2 className="text-sm font-semibold text-text-primary">Supplier Performance</h2>
         </div>
         {performanceLoading ? (
           <LoadingState />
@@ -85,8 +86,8 @@ export function ReportsPage() {
       </Card>
 
       <Card>
-        <div className="border-b border-slate-200 px-5 py-4">
-          <h2 className="text-sm font-semibold text-slate-900">Delayed Deliveries</h2>
+        <div className="border-b border-border px-5 py-4">
+          <h2 className="text-sm font-semibold text-text-primary">Delayed Deliveries</h2>
         </div>
         {delayedLoading ? (
           <LoadingState />

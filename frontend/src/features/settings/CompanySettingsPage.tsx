@@ -12,7 +12,9 @@ import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { Select } from "@/components/ui/Select";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toast-context";
+import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes";
 
 import { LogoUploader } from "./LogoUploader";
 import {
@@ -29,8 +31,8 @@ function Section({ title, description, children }: { title: string; description:
   return (
     <Card className="p-6">
       <div className="mb-4">
-        <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-        <p className="text-sm text-slate-500">{description}</p>
+        <h2 className="text-base font-semibold text-text-primary">{title}</h2>
+        <p className="text-sm text-text-secondary">{description}</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">{children}</div>
     </Card>
@@ -57,6 +59,7 @@ function SettingsForm({ settings }: { settings: CompanySettings }) {
     control,
     formState: { errors, isDirty },
   } = useForm<SettingsFormValues>({ resolver: zodResolver(settingsSchema), defaultValues: toFormValues(settings) });
+  useUnsavedChangesWarning(isDirty);
   const brandColor = useWatch({ control, name: "brand_color" });
 
   const onSubmit = async (values: SettingsFormValues) => {
@@ -100,7 +103,7 @@ function SettingsForm({ settings }: { settings: CompanySettings }) {
             <input
               type="color"
               aria-label="Pick brand colour"
-              className="h-9 w-12 cursor-pointer rounded border border-slate-300"
+              className="h-9 w-12 cursor-pointer rounded border border-border-strong"
               value={/^#[0-9A-Fa-f]{6}$/.test(brandColor) ? brandColor : "#000000"}
               onChange={(event) =>
                 setValue("brand_color", event.target.value.toUpperCase(), { shouldDirty: true, shouldValidate: true })
@@ -176,10 +179,7 @@ export function CompanySettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Company settings</h1>
-        <p className="text-sm text-slate-500">Branding, regional preferences and purchasing defaults.</p>
-      </div>
+      <PageHeader title="Company settings" description="Branding, regional preferences and purchasing defaults." />
       {isLoading && <LoadingState />}
       {isError && <ErrorState message="The settings could not be loaded. Reload the page to try again." />}
       {settings && <SettingsForm settings={settings} />}

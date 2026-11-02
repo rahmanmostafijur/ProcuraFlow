@@ -116,7 +116,7 @@ export function PortalInvoiceModal({ isOpen, onClose }: { isOpen: boolean; onClo
         </div>
         {order && lines.length > 0 && (
           <div>
-            <p className="mb-1 text-sm font-medium text-slate-700">Lines (set a quantity of 0 to leave one out)</p>
+            <p className="mb-1 text-sm font-medium text-text-secondary">Lines (set a quantity of 0 to leave one out)</p>
             {order.items.map((item) => (
               <div key={item.product_id} className="grid grid-cols-[1fr_6rem_8rem] items-center gap-2 py-1 text-sm">
                 <span>{item.product_name}</span>
@@ -141,7 +141,7 @@ export function PortalInvoiceModal({ isOpen, onClose }: { isOpen: boolean; onClo
           <Input id="inv-notes" value={draft.notes} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} />
         </div>
         {error && (
-          <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p role="alert" className="rounded-control bg-danger-bg px-3 py-2 text-sm text-danger-fg">
             {error}
           </p>
         )}

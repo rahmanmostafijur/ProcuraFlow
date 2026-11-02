@@ -73,7 +73,7 @@ export function InventoryAdjustmentModal({ isOpen, onClose, onSubmit, isSubmitti
             error={errors.quantity_delta?.message}
             {...register("quantity_delta")}
           />
-          <p className="mt-1 text-xs text-slate-500">Use a positive number to add stock, negative to remove.</p>
+          <p className="mt-1 text-xs text-text-secondary">Use a positive number to add stock, negative to remove.</p>
         </div>
         <div>
           <Label htmlFor="reason" required>

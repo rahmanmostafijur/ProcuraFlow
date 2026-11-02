@@ -110,8 +110,8 @@ export function RequestFormModal({ isOpen, request, isSubmitting, onClose, onSub
         </div>
 
         <fieldset>
-          <legend className="mb-2 text-sm font-medium text-slate-700">Lines</legend>
-          {errors.lines?.message && <p className="mb-2 text-xs text-red-600">{errors.lines.message}</p>}
+          <legend className="mb-2 text-sm font-medium text-text-secondary">Lines</legend>
+          {errors.lines?.message && <p className="mb-2 text-xs text-danger-fg">{errors.lines.message}</p>}
           <div className="space-y-3">
             {fields.map((field, index) => {
               const n = index + 1;
@@ -119,7 +119,7 @@ export function RequestFormModal({ isOpen, request, isSubmitting, onClose, onSub
               return (
                 <div
                   key={field.id}
-                  className="grid grid-cols-6 items-start gap-2 rounded-md border border-slate-200 p-3"
+                  className="grid grid-cols-6 items-start gap-2 rounded-control border border-border p-3"
                 >
                   <div className="col-span-6">
                     <Select

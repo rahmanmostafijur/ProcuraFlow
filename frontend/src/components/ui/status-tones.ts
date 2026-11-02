@@ -34,6 +34,10 @@ export const STATUS_TONES: Record<string, StatusTone> = {
   paid: "success",
   unpaid: "warning",
   overdue: "danger",
+  matched: "info",
+  exception: "attention",
+  on_hold: "warning",
+  void: "neutral",
 };
 
 /** "partially_received" becomes "Partially received". */

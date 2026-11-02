@@ -1,7 +1,7 @@
 import { Download, Trash2 } from "lucide-react";
 
 import { DOCUMENT_STATUS_LABELS, DOCUMENT_TYPE_LABELS, type SupplierDocument } from "@/api/supplierDocuments";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { formatDate } from "@/lib/utils";
 
@@ -14,10 +14,10 @@ interface DocumentsTableProps {
 
 /** The status badge shows what the server computed from the expiry date; it is never worked out here. */
 export function DocumentsTable({ documents, onDownload, onDelete, disabled }: DocumentsTableProps) {
-  if (documents.length === 0) return <p className="text-sm text-slate-500">No documents on file.</p>;
+  if (documents.length === 0) return <p className="text-sm text-text-secondary">No documents on file.</p>;
   return (
     <table className="w-full text-left text-sm">
-      <thead className="text-xs uppercase text-slate-500">
+      <thead className="text-xs uppercase text-text-secondary">
         <tr>
           <th className="py-2 pr-3">Type</th>
           <th className="py-2 pr-3">File</th>
@@ -28,14 +28,16 @@ export function DocumentsTable({ documents, onDownload, onDelete, disabled }: Do
           </th>
         </tr>
       </thead>
-      <tbody className="divide-y divide-slate-100">
+      <tbody className="divide-y divide-border">
         {documents.map((doc) => (
           <tr key={doc.id}>
-            <td className="py-2 pr-3 font-medium text-slate-900">{DOCUMENT_TYPE_LABELS[doc.document_type]}</td>
-            <td className="py-2 pr-3 text-slate-600">{doc.filename}</td>
-            <td className="py-2 pr-3 text-slate-600">{doc.expiry_date ? formatDate(doc.expiry_date) : "No expiry"}</td>
+            <td className="py-2 pr-3 font-medium text-text-primary">{DOCUMENT_TYPE_LABELS[doc.document_type]}</td>
+            <td className="py-2 pr-3 text-text-secondary">{doc.filename}</td>
+            <td className="py-2 pr-3 text-text-secondary">
+              {doc.expiry_date ? formatDate(doc.expiry_date) : "No expiry"}
+            </td>
             <td className="py-2 pr-3">
-              <Badge status={doc.status}>{DOCUMENT_STATUS_LABELS[doc.status]}</Badge>
+              <StatusBadge status={doc.status} label={DOCUMENT_STATUS_LABELS[doc.status]} />
             </td>
             <td className="py-2 text-right">
               <Button variant="ghost" size="sm" aria-label={`Download ${doc.filename}`} onClick={() => onDownload(doc)}>

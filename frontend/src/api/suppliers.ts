@@ -32,6 +32,17 @@ export function useSuppliers(params: SupplierListParams) {
   });
 }
 
+export function useSupplier(id: number) {
+  return useQuery({
+    queryKey: ["suppliers", "detail", id],
+    queryFn: async () => {
+      const { data } = await apiClient.get<Supplier>(`/suppliers/${id}`);
+      return data;
+    },
+    enabled: Number.isInteger(id),
+  });
+}
+
 export function useCreateSupplier() {
   const queryClient = useQueryClient();
   return useMutation({

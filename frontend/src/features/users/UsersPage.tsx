@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
 import { Pagination } from "@/components/ui/Pagination";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toast-context";
 import { useAuth } from "@/lib/auth-context";
 import { formatDate } from "@/lib/utils";
@@ -33,7 +34,7 @@ export function UsersPage() {
   const updateUser = useUpdateUser();
 
   const columns: Column<User>[] = [
-    { header: "Name", accessor: (row) => <span className="font-medium text-slate-900">{row.full_name}</span> },
+    { header: "Name", accessor: (row) => <span className="font-medium text-text-primary">{row.full_name}</span> },
     { header: "Email", accessor: (row) => row.email },
     { header: "Role", accessor: (row) => <span className="capitalize">{row.role.name.replace(/_/g, " ")}</span> },
     {
@@ -90,10 +91,7 @@ export function UsersPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Users</h1>
-          <p className="text-sm text-slate-500">Manage team access and roles.</p>
-        </div>
+        <PageHeader title="Users" description="Manage team access and roles." />
         <div className="flex gap-2">
           {hasPermission("user:manage") && (
             <Button variant="secondary" onClick={() => setInviteOpen(true)}>
@@ -107,7 +105,7 @@ export function UsersPage() {
       </div>
 
       <Card>
-        <div className="border-b border-slate-200 p-4">
+        <div className="border-b border-border p-4">
           <Input
             placeholder="Search users…"
             aria-label="Search users"

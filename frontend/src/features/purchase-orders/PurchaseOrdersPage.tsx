@@ -5,10 +5,11 @@ import { useNavigate } from "react-router-dom";
 import { extractErrorMessage } from "@/api/client";
 import { useCreatePurchaseOrder, usePurchaseOrders, type PurchaseOrderInput } from "@/api/purchaseOrders";
 import type { POStatus, PurchaseOrder } from "@/api/types";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { Pagination } from "@/components/ui/Pagination";
 import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/toast-context";
@@ -44,10 +45,14 @@ export function PurchaseOrdersPage() {
   const canCreate = hasPermission("po:create");
 
   const columns: Column<PurchaseOrder>[] = [
-    { header: "PO Number", accessor: (row) => <span className="font-medium text-slate-900">{row.po_number}</span> },
+    { header: "PO Number", accessor: (row) => <span className="font-medium text-text-primary">{row.po_number}</span> },
     { header: "Supplier", accessor: (row) => row.supplier.name },
-    { header: "Status", accessor: (row) => <Badge status={row.status}>{row.status.replace(/_/g, " ")}</Badge> },
-    { header: "Total", accessor: (row) => formatCurrency(row.total, row.currency_code) },
+    { header: "Status", accessor: (row) => <StatusBadge status={row.status} label={row.status.replace(/_/g, " ")} /> },
+    {
+      header: "Total",
+      accessor: (row) => formatCurrency(row.total, row.currency_code),
+      isAmount: true,
+    },
     { header: "Expected Delivery", accessor: (row) => formatDate(row.expected_delivery_date) },
     { header: "Created", accessor: (row) => formatDate(row.created_at) },
   ];
@@ -65,20 +70,20 @@ export function PurchaseOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Purchase Orders</h1>
-          <p className="text-sm text-slate-500">Track orders from draft through delivery.</p>
-        </div>
-        {canCreate && (
-          <Button onClick={() => setModalOpen(true)}>
-            <Plus className="h-4 w-4" /> New Purchase Order
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Purchase Orders"
+        description="Track orders from draft through delivery."
+        primaryAction={
+          canCreate && (
+            <Button onClick={() => setModalOpen(true)}>
+              <Plus className="h-4 w-4" /> New Purchase Order
+            </Button>
+          )
+        }
+      />
 
       <Card>
-        <div className="border-b border-slate-200 p-4">
+        <div className="border-b border-border p-4">
           <Select
             aria-label="Filter by status"
             name="status"

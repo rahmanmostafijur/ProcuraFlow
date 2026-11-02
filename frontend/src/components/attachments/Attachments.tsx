@@ -62,7 +62,7 @@ export function Attachments({ parentType, parentId, canWrite }: AttachmentsProps
   return (
     <Card className="p-5">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-slate-900">Attachments</h2>
+        <h2 className="text-sm font-semibold text-text-primary">Attachments</h2>
         {canWrite && (
           <div>
             <input
@@ -86,16 +86,16 @@ export function Attachments({ parentType, parentId, canWrite }: AttachmentsProps
           </div>
         )}
       </div>
-      {canWrite && <p className="mb-3 text-xs text-slate-500">PDF, PNG or JPEG, up to 10 MB each.</p>}
-      {isLoading && <p className="text-sm text-slate-500">Loading attachments…</p>}
-      {isError && <p className="text-sm text-red-600">The attachments could not be loaded.</p>}
-      {attachments && attachments.length === 0 && <p className="text-sm text-slate-500">No files attached.</p>}
-      <ul className="divide-y divide-slate-100">
+      {canWrite && <p className="mb-3 text-xs text-text-secondary">PDF, PNG or JPEG, up to 10 MB each.</p>}
+      {isLoading && <p className="text-sm text-text-secondary">Loading attachments…</p>}
+      {isError && <p className="text-sm text-danger-fg">The attachments could not be loaded.</p>}
+      {attachments && attachments.length === 0 && <p className="text-sm text-text-secondary">No files attached.</p>}
+      <ul className="divide-y divide-border">
         {attachments?.map((attachment) => (
           <li key={attachment.id} className="flex items-center justify-between gap-3 py-2 text-sm">
             <div className="min-w-0">
-              <p className="truncate font-medium text-slate-800">{attachment.filename}</p>
-              <p className="text-xs text-slate-500">
+              <p className="truncate font-medium text-text-primary">{attachment.filename}</p>
+              <p className="text-xs text-text-secondary">
                 {formatFileSize(attachment.size_bytes)} · {attachment.uploaded_by.full_name} ·{" "}
                 {formatDateTime(attachment.created_at)}
               </p>

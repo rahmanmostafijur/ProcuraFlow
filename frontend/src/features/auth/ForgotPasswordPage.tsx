@@ -39,7 +39,7 @@ export function ForgotPasswordPage() {
 
   const backLink = (
     <p className="mt-4 text-center text-sm">
-      <Link to="/login" className="text-brand-600 hover:underline">
+      <Link to="/login" className="text-brand hover:underline">
         Back to sign in
       </Link>
     </p>
@@ -48,7 +48,7 @@ export function ForgotPasswordPage() {
   if (isSent) {
     return (
       <AuthPageLayout title="Check your email">
-        <div role="status" className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">
+        <div role="status" className="rounded-control bg-success-bg px-3 py-2 text-sm text-success-fg">
           If an account exists for that address, we have sent a link to reset the password. It expires soon, so use it
           promptly.
         </div>
@@ -61,10 +61,10 @@ export function ForgotPasswordPage() {
     <AuthPageLayout title="Forgot your password?" description="Enter your email and we will send you a reset link.">
       <form
         onSubmit={(event) => void handleSubmit(onSubmit)(event)}
-        className="space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
+        className="space-y-4 rounded-card border border-border bg-surface p-6 shadow-sm"
       >
         {formError && (
-          <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div role="alert" className="rounded-control bg-danger-bg px-3 py-2 text-sm text-danger-fg">
             {formError}
           </div>
         )}

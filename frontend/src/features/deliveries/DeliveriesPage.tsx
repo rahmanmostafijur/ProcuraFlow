@@ -2,9 +2,10 @@ import { useState } from "react";
 
 import { useDeliveries } from "@/api/deliveries";
 import type { Delivery } from "@/api/types";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { Pagination } from "@/components/ui/Pagination";
 import { formatDate } from "@/lib/utils";
 
@@ -16,7 +17,7 @@ export function DeliveriesPage() {
 
   const columns: Column<Delivery>[] = [
     { header: "PO ID", accessor: (row) => row.po_id },
-    { header: "Status", accessor: (row) => <Badge status={row.status}>{row.status.replace(/_/g, " ")}</Badge> },
+    { header: "Status", accessor: (row) => <StatusBadge status={row.status} label={row.status.replace(/_/g, " ")} /> },
     { header: "Expected Date", accessor: (row) => formatDate(row.expected_date) },
     { header: "Actual Date", accessor: (row) => formatDate(row.actual_date) },
     { header: "Ordered Qty", accessor: (row) => row.ordered_quantity },
@@ -25,10 +26,7 @@ export function DeliveriesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Deliveries</h1>
-        <p className="text-sm text-slate-500">Track expected vs. actual delivery performance.</p>
-      </div>
+      <PageHeader title="Deliveries" description="Track expected vs. actual delivery performance." />
 
       <Card>
         <DataTable

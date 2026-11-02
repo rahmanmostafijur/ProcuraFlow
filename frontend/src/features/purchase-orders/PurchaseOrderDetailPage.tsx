@@ -1,6 +1,5 @@
-import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 import { useApprovalQueue } from "@/api/approvals";
 import { useCostCentres } from "@/api/budgets";
@@ -16,12 +15,16 @@ import {
 import { ApprovalTimeline } from "@/components/approvals/ApprovalTimeline";
 import { DecisionDialog } from "@/components/approvals/DecisionDialog";
 import { Attachments } from "@/components/attachments/Attachments";
-import { Badge } from "@/components/ui/Badge";
+import { DocumentActionBar } from "@/components/layout/DocumentActionBar";
+import { SummaryList } from "@/components/layout/SummaryList";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { LifecycleStepper, type LifecycleStep } from "@/components/ui/LifecycleStepper";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useToast } from "@/components/ui/toast-context";
 import { useAuth } from "@/lib/auth-context";
 import { formatDate, formatDateTime } from "@/lib/utils";
@@ -39,9 +42,30 @@ const AMENDABLE_STATUSES = ["approved", "ordered", "partially_received"];
 
 type PendingAction = "submit" | "approve" | "order" | "cancel" | null;
 
+const ORDER_FLOW = ["draft", "submitted", "approved", "ordered", "received"] as const;
+const ORDER_FLOW_LABELS = ["Draft", "Submitted", "Approved", "Ordered", "Received"];
+
+/** Position in draft, submit, approve, order, receive; partial receipt keeps "Received" as the current step. */
+function orderSteps(status: string): LifecycleStep[] {
+  const index = status === "partially_received" ? 4 : ORDER_FLOW.indexOf(status as (typeof ORDER_FLOW)[number]);
+  return ORDER_FLOW_LABELS.map((label, position) => ({
+    id: ORDER_FLOW[position],
+    label,
+    state:
+      status === "cancelled" || status === "rejected"
+        ? "upcoming"
+        : status === "received" && position === 4
+          ? "done"
+          : position < index
+            ? "done"
+            : position === index
+              ? "current"
+              : "upcoming",
+  }));
+}
+
 export function PurchaseOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { user, hasPermission } = useAuth();
   const { showToast } = useToast();
   const poId = id ? Number(id) : undefined;
@@ -149,93 +173,35 @@ export function PurchaseOrderDetailPage() {
 
   return (
     <div className="space-y-6">
-      <button
-        onClick={() => void navigate("/purchase-orders")}
-        className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
-      >
-        <ArrowLeft className="h-4 w-4" /> Back to purchase orders
-      </button>
+      <PageHeader
+        title={po.po_number}
+        description={`Supplier: ${po.supplier.name}`}
+        breadcrumbs={[{ label: "Purchase orders", to: "/purchase-orders" }, { label: po.po_number }]}
+        secondaryActions={<StatusBadge status={po.status} />}
+      />
 
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold text-slate-900">{po.po_number}</h1>
-            <Badge status={po.status}>{po.status.replace(/_/g, " ")}</Badge>
-          </div>
-          <p className="text-sm text-slate-500">Supplier: {po.supplier.name}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <PurchaseOrderDocumentActions
-            poId={po.id}
-            poNumber={po.po_number}
-            canSend={po.status === "ordered" && canTransition}
-          />
-          {actions
-            .filter((a) => a.visible)
-            .map((a) => (
-              <Button key={a.action} variant={a.variant ?? "primary"} onClick={() => setPendingAction(a.action)}>
-                {a.label}
-              </Button>
-            ))}
-          {canApprove && (
-            <Button variant="danger" onClick={() => setRejectOpen(true)}>
-              Reject
-            </Button>
-          )}
-          {canAmend && (
-            <Button variant="secondary" onClick={() => setAmendOpen(true)}>
-              Amend
-            </Button>
-          )}
-          {canReceiveNow && <Button onClick={() => setReceiveModalOpen(true)}>Receive Stock</Button>}
-          {showApproverHint && (
-            <p className="self-center text-sm text-slate-500">
-              You created this order, so another approver must approve it.
-            </p>
-          )}
-        </div>
-      </div>
+      <Card padding="md">
+        <LifecycleStepper label="Order progress" steps={orderSteps(po.status)} />
+      </Card>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <PurchaseOrderLines po={po} />
 
-        <Card className="p-5">
-          <h2 className="mb-4 text-sm font-semibold text-slate-900">Details</h2>
-          <dl className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-slate-500">Currency</dt>
-              <dd className="font-medium text-slate-800">{po.currency_code}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-slate-500">Cost centre</dt>
-              <dd className="text-slate-800">{costCentre ? `${costCentre.code} — ${costCentre.name}` : "—"}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-slate-500">Created by</dt>
-              <dd className="font-medium text-slate-800">{po.creator.full_name}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-slate-500">Created</dt>
-              <dd className="text-slate-800">{formatDateTime(po.created_at)}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-slate-500">Expected delivery</dt>
-              <dd className="text-slate-800">{formatDate(po.expected_delivery_date)}</dd>
-            </div>
-            {po.approver && (
-              <>
-                <div className="flex justify-between">
-                  <dt className="text-slate-500">Approved by</dt>
-                  <dd className="font-medium text-slate-800">{po.approver.full_name}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-slate-500">Approved at</dt>
-                  <dd className="text-slate-800">{formatDateTime(po.approved_at)}</dd>
-                </div>
-              </>
-            )}
-          </dl>
-        </Card>
+        <SummaryList
+          rows={[
+            { label: "Currency", value: po.currency_code },
+            { label: "Cost centre", value: costCentre ? `${costCentre.code} — ${costCentre.name}` : "—" },
+            { label: "Created by", value: po.creator.full_name },
+            { label: "Created", value: formatDateTime(po.created_at) },
+            { label: "Expected delivery", value: formatDate(po.expected_delivery_date) },
+            ...(po.approver
+              ? [
+                  { label: "Approved by", value: po.approver.full_name },
+                  { label: "Approved at", value: formatDateTime(po.approved_at) },
+                ]
+              : []),
+          ]}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -243,6 +209,37 @@ export function PurchaseOrderDetailPage() {
         <Attachments parentType="purchase_order" parentId={po.id} canWrite={canCreate} />
       </div>
       {showVersions && <VersionsPanel po={po} />}
+
+      <DocumentActionBar>
+        <PurchaseOrderDocumentActions
+          poId={po.id}
+          poNumber={po.po_number}
+          canSend={po.status === "ordered" && canTransition}
+        />
+        {actions
+          .filter((a) => a.visible)
+          .map((a) => (
+            <Button key={a.action} variant={a.variant ?? "primary"} onClick={() => setPendingAction(a.action)}>
+              {a.label}
+            </Button>
+          ))}
+        {canApprove && (
+          <Button variant="danger" onClick={() => setRejectOpen(true)}>
+            Reject
+          </Button>
+        )}
+        {canAmend && (
+          <Button variant="secondary" onClick={() => setAmendOpen(true)}>
+            Amend
+          </Button>
+        )}
+        {canReceiveNow && <Button onClick={() => setReceiveModalOpen(true)}>Receive Stock</Button>}
+        {showApproverHint && (
+          <p className="mr-auto self-center text-sm text-text-secondary">
+            You created this order, so another approver must approve it.
+          </p>
+        )}
+      </DocumentActionBar>
 
       <ConfirmDialog
         isOpen={pendingAction !== null}

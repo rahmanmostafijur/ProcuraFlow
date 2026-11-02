@@ -64,7 +64,7 @@ export function BankChangeForm({ supplierId }: { supplierId: number }) {
 
   return (
     <form onSubmit={(event) => void submit(event)} className="space-y-3" aria-label="Request a bank details change">
-      <h3 className="text-sm font-semibold text-slate-800">Request a change</h3>
+      <h3 className="text-sm font-semibold text-text-primary">Request a change</h3>
       <div className="grid gap-3 sm:grid-cols-2">
         {FIELDS.map((field) => (
           <div key={field.name}>
@@ -78,7 +78,7 @@ export function BankChangeForm({ supplierId }: { supplierId: number }) {
         ))}
       </div>
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-danger-fg">
           {error}
         </p>
       )}

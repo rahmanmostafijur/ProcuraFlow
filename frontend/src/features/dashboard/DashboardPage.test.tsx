@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 
 import { apiClient } from "@/api/client";
@@ -53,7 +54,9 @@ function renderDashboard() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
-      <DashboardPage />
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }

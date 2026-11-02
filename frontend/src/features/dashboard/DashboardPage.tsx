@@ -1,48 +1,37 @@
-import { AlertTriangle, Boxes, ClipboardList, DollarSign, Truck, Users as UsersIcon } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-
-import { useDashboardSummary, useMonthlyTrends, useRecentActivity } from "@/api/dashboard";
+import { useDashboardSummary, useMonthlyTrends } from "@/api/dashboard";
 import { Card } from "@/components/ui/Card";
+import { ThemedBarChart } from "@/components/ui/charts/ThemedBarChart";
+import { KpiCard } from "@/components/ui/KpiCard";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { useAuth } from "@/lib/auth-context";
-import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { formatCompactMoney, formatMoney, formatNumber } from "@/lib/format";
 
-function StatCard({ icon: Icon, label, value }: { icon: typeof Boxes; label: string; value: string | number }) {
-  return (
-    <Card className="flex items-center gap-4 p-5">
-      <div className="flex h-10 w-10 items-center justify-center rounded-md bg-brand-50 text-brand-600">
-        <Icon className="h-5 w-5" />
-      </div>
-      <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-        <p className="text-xl font-semibold text-slate-900">{value}</p>
-      </div>
-    </Card>
-  );
-}
+import { BudgetHealthCard, ExpiringDocumentsCard, RecentActivityCard, WaitingForYouCard } from "./DashboardCards";
+import { PipelineStrip } from "./PipelineStrip";
 
-// Mounted only for audit:read holders, so other roles never request a feed the API would refuse.
-function RecentActivityCard() {
-  const { data: activity, isLoading } = useRecentActivity();
+function SpendByMonth() {
+  const { data: trends, isLoading } = useMonthlyTrends();
+  const points = (trends ?? []).map((point) => ({ month: point.month, total_spend: Number(point.total_spend) }));
 
   return (
-    <Card className="p-5">
-      <h2 className="mb-4 text-sm font-semibold text-slate-900">Recent Activity</h2>
-      {isLoading || !activity ? (
+    <Card padding="md" className="lg:col-span-2">
+      {isLoading || !trends ? (
         <LoadingState />
-      ) : activity.length === 0 ? (
-        <p className="py-12 text-center text-sm text-slate-500">No recent activity.</p>
+      ) : points.length === 0 ? (
+        <>
+          <h2 className="mb-3 text-title text-text-primary">Committed Spend by Month</h2>
+          <p className="py-12 text-center text-sm text-text-secondary">No committed purchase orders yet.</p>
+        </>
       ) : (
-        <ul className="space-y-3">
-          {activity.map((item) => (
-            <li key={item.id} className="text-sm">
-              <p className="text-slate-800">
-                <span className="font-medium">{item.user_name ?? "System"}</span> {item.action.replace(/_/g, " ")}
-              </p>
-              <p className="text-xs text-slate-400">{formatDateTime(item.created_at)}</p>
-            </li>
-          ))}
-        </ul>
+        <ThemedBarChart
+          title="Committed Spend by Month"
+          data={points}
+          xKey="month"
+          series={[{ key: "total_spend", label: "Committed spend" }]}
+          formatValue={(value) => formatMoney(value)}
+          height={280}
+        />
       )}
     </Card>
   );
@@ -50,52 +39,46 @@ function RecentActivityCard() {
 
 export function DashboardPage() {
   const { hasPermission } = useAuth();
-  const { data: summary, isLoading: summaryLoading } = useDashboardSummary();
-  const { data: trends, isLoading: trendsLoading } = useMonthlyTrends();
-  const canViewActivity = hasPermission("audit:read");
+  const { data: summary, isLoading } = useDashboardSummary();
+  const { data: trends } = useMonthlyTrends();
 
-  if (summaryLoading || !summary) {
-    return <LoadingState label="Loading dashboard…" />;
-  }
+  if (isLoading || !summary) return <LoadingState label="Loading dashboard…" />;
+
+  const spendTrend = trends?.map((point) => Number(point.total_spend));
+  const committed = trends?.reduce((sum, point) => sum + Number(point.total_spend), 0) ?? 0;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Dashboard</h1>
-        <p className="text-sm text-slate-500">A live snapshot of procurement, inventory, and delivery activity.</p>
-      </div>
+      <PageHeader title="Dashboard" description="A live snapshot of procurement, inventory, and delivery activity." />
+
+      <PipelineStrip summary={summary} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={ClipboardList} label="Purchase Orders" value={summary.total_purchase_orders} />
-        <StatCard icon={AlertTriangle} label="Pending Orders" value={summary.pending_orders} />
-        <StatCard icon={Truck} label="Upcoming Deliveries" value={summary.upcoming_deliveries} />
-        <StatCard icon={UsersIcon} label="Active Suppliers" value={summary.supplier_count} />
-        <StatCard icon={DollarSign} label="Inventory Value" value={formatCurrency(summary.inventory_value)} />
-        <StatCard icon={Boxes} label="Low Stock Products" value={summary.low_stock_products} />
-        <StatCard icon={ClipboardList} label="Completed Orders" value={summary.completed_orders} />
+        <KpiCard
+          label="Inventory Value"
+          value={formatCompactMoney(summary.inventory_value)}
+          exactValue={formatMoney(summary.inventory_value)}
+        />
+        <KpiCard
+          label="Committed Spend"
+          value={formatCompactMoney(committed)}
+          exactValue={formatMoney(committed)}
+          trend={spendTrend}
+          hint="Last 6 months"
+        />
+        <KpiCard label="Active Suppliers" value={formatNumber(summary.supplier_count)} />
+        <KpiCard label="Low Stock Products" value={formatNumber(summary.low_stock_products)} goodWhen="down" />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card className={canViewActivity ? "p-5 lg:col-span-2" : "p-5 lg:col-span-3"}>
-          <h2 className="mb-4 text-sm font-semibold text-slate-900">Committed Spend by Month</h2>
-          {trendsLoading || !trends ? (
-            <LoadingState />
-          ) : trends.length === 0 ? (
-            <p className="py-12 text-center text-sm text-slate-500">No committed purchase orders yet.</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={trends}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-                <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
-                <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                <Bar dataKey="total_spend" name="Committed spend" fill="#3660f5" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </Card>
+        <SpendByMonth />
+        <WaitingForYouCard />
+      </div>
 
-        {canViewActivity && <RecentActivityCard />}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {hasPermission("budget:read") && <BudgetHealthCard />}
+        {hasPermission("supplier:write") && <ExpiringDocumentsCard />}
+        {hasPermission("audit:read") && <RecentActivityCard />}
       </div>
     </div>
   );

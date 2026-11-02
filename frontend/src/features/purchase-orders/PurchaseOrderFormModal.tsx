@@ -135,13 +135,13 @@ export function PurchaseOrderFormModal({ isOpen, onClose, onSubmit, isSubmitting
               <Plus className="h-3.5 w-3.5" /> Add item
             </Button>
           </div>
-          {errors.items?.message && <p className="mb-2 text-xs text-red-600">{errors.items.message}</p>}
+          {errors.items?.message && <p className="mb-2 text-xs text-danger-fg">{errors.items.message}</p>}
           <div className="space-y-2">
             {fields.map((field, index) => {
               const takenProductIds = productIdsChosenOnOtherLines(lineItems, index);
               return (
-                <div key={field.id} className="flex items-start gap-2">
-                  <div className="flex-1">
+                <div key={field.id} className="flex flex-wrap items-start gap-2">
+                  <div className="min-w-[12rem] flex-1">
                     <Select
                       error={errors.items?.[index]?.product_id?.message}
                       {...register(`items.${index}.product_id` as const)}
@@ -154,10 +154,10 @@ export function PurchaseOrderFormModal({ isOpen, onClose, onSubmit, isSubmitting
                       ))}
                     </Select>
                   </div>
-                  <div className="w-24">
+                  <div className="w-full sm:w-24">
                     <Input type="number" placeholder="Qty" {...register(`items.${index}.quantity` as const)} />
                   </div>
-                  <div className="w-28">
+                  <div className="w-full sm:w-28">
                     <Input
                       type="number"
                       step="0.0001"
@@ -166,7 +166,7 @@ export function PurchaseOrderFormModal({ isOpen, onClose, onSubmit, isSubmitting
                       {...register(`items.${index}.unit_price` as const)}
                     />
                   </div>
-                  <div className="w-44">
+                  <div className="w-full sm:w-44">
                     <Select aria-label="Tax rate" {...register(`items.${index}.tax_rate_id` as const)}>
                       <option value="">No tax</option>
                       {taxRates?.map((rate) => (

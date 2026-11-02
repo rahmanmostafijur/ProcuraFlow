@@ -65,6 +65,25 @@ export function usePaymentRuns(page: number, pageSize: number) {
   });
 }
 
+export type PaymentRunMethod = "bank_transfer" | "card" | "cheque";
+
+export interface PaymentRunInput {
+  invoice_ids: number[];
+  method: PaymentRunMethod;
+}
+
+/** The API groups approved invoices of one currency into a draft run. */
+export function useCreatePaymentRun() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: PaymentRunInput) => {
+      const { data } = await apiClient.post<PaymentRun>("/payment-runs", input);
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: RUNS_KEY }),
+  });
+}
+
 function useRunAction(action: "release" | "cancel") {
   const queryClient = useQueryClient();
   return useMutation({

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useEmailTemplates } from "@/api/emailTemplates";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { cn } from "@/lib/utils";
 
 import { TemplateEditor } from "./TemplateEditor";
@@ -15,10 +16,7 @@ export function EmailTemplatesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Email templates</h1>
-        <p className="text-sm text-slate-500">The wording of the emails ProcuraFlow sends on your behalf.</p>
-      </div>
+      <PageHeader title="Email templates" description="The wording of the emails ProcuraFlow sends on your behalf." />
       {isLoading && <LoadingState />}
       {isError && <ErrorState message="The templates could not be loaded. Reload the page to try again." />}
       {templates && selected && (
@@ -31,14 +29,14 @@ export function EmailTemplatesPage() {
                 aria-current={template.key === selected.key ? "true" : undefined}
                 onClick={() => setSelectedKey(template.key)}
                 className={cn(
-                  "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm font-medium",
+                  "flex w-full items-center justify-between rounded-control px-3 py-2 text-left text-sm font-medium",
                   template.key === selected.key
-                    ? "bg-brand-50 text-brand-700"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+                    ? "bg-brand-subtle text-brand-subtle-fg"
+                    : "text-text-secondary hover:bg-bg hover:text-text-primary",
                 )}
               >
                 {template.label}
-                {template.is_customised && <span className="text-xs font-normal text-slate-400">customised</span>}
+                {template.is_customised && <span className="text-xs font-normal text-text-muted">customised</span>}
               </button>
             ))}
           </nav>

@@ -6,7 +6,7 @@ import { extractErrorMessage } from "@/api/client";
 import { useRoles } from "@/api/roles";
 import type { ApprovalRule } from "@/api/types";
 import { DOCUMENT_TYPE_LABELS } from "@/components/approvals/documentLinks";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -41,7 +41,7 @@ export function RulesSection() {
 
   const columns: Column<ApprovalRule>[] = [
     { header: "Applies to", accessor: (row) => DOCUMENT_TYPE_LABELS[row.document_type] },
-    { header: "Name", accessor: (row) => <span className="font-medium text-slate-900">{row.name}</span> },
+    { header: "Name", accessor: (row) => <span className="font-medium text-text-primary">{row.name}</span> },
     {
       header: "Amount band",
       accessor: (row) => (
@@ -61,7 +61,7 @@ export function RulesSection() {
     {
       header: "Status",
       accessor: (row) => (
-        <Badge status={row.is_active ? "active" : "inactive"}>{row.is_active ? "Active" : "Inactive"}</Badge>
+        <StatusBadge status={row.is_active ? "active" : "inactive"} label={row.is_active ? "Active" : "Inactive"} />
       ),
     },
     {
@@ -96,10 +96,10 @@ export function RulesSection() {
 
   return (
     <Card>
-      <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-4">
+      <div className="flex items-start justify-between gap-4 border-b border-border p-4">
         <div>
-          <h2 className="text-base font-semibold text-slate-900">Approval rules</h2>
-          <p className="text-sm text-slate-500">
+          <h2 className="text-base font-semibold text-text-primary">Approval rules</h2>
+          <p className="text-sm text-text-secondary">
             The first matching amount band decides who must approve. Bands for the same kind of document cannot overlap.
           </p>
         </div>

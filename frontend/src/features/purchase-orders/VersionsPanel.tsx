@@ -1,7 +1,7 @@
 import { extractErrorMessage } from "@/api/client";
 import { usePurchaseOrderVersions, useWithdrawAmendment } from "@/api/purchaseOrders";
 import type { PurchaseOrder } from "@/api/types";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/toast-context";
@@ -27,21 +27,23 @@ export function VersionsPanel({ po }: { po: PurchaseOrder }) {
 
   return (
     <Card className="p-5">
-      <h2 className="mb-3 text-sm font-semibold text-slate-900">Versions</h2>
-      {isLoading && <p className="text-sm text-slate-500">Loading versions…</p>}
-      {isError && <p className="text-sm text-red-600">The versions could not be loaded.</p>}
-      {versions && versions.length === 0 && <p className="text-sm text-slate-500">This order has not been changed.</p>}
+      <h2 className="mb-3 text-sm font-semibold text-text-primary">Versions</h2>
+      {isLoading && <p className="text-sm text-text-secondary">Loading versions…</p>}
+      {isError && <p className="text-sm text-danger-fg">The versions could not be loaded.</p>}
+      {versions && versions.length === 0 && (
+        <p className="text-sm text-text-secondary">This order has not been changed.</p>
+      )}
       <ol className="space-y-4">
         {versions?.map((version) => (
-          <li key={version.id} className="space-y-2 border-b border-slate-100 pb-4 last:border-0">
+          <li key={version.id} className="space-y-2 border-b border-border pb-4 last:border-0">
             <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="font-medium text-slate-900">Version {version.version}</span>
-              <Badge status={version.status}>{version.status.replace(/_/g, " ")}</Badge>
-              <span className="text-slate-500">
+              <span className="font-medium text-text-primary">Version {version.version}</span>
+              <StatusBadge status={version.status} label={version.status.replace(/_/g, " ")} />
+              <span className="text-text-secondary">
                 {version.created_by_person.full_name} · {formatDateTime(version.created_at)}
               </span>
             </div>
-            <p className="text-sm text-slate-600">Reason: {version.reason}</p>
+            <p className="text-sm text-text-secondary">Reason: {version.reason}</p>
             <VersionDiff changes={version.changes} currency={po.currency_code} />
             {version.status === "pending_approval" && user?.id === version.created_by_person.id && (
               <Button

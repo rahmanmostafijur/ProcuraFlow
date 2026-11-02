@@ -77,9 +77,9 @@ export function LimitsSection() {
 
   return (
     <Card>
-      <div className="border-b border-slate-200 p-4">
-        <h2 className="text-base font-semibold text-slate-900">Approval limits</h2>
-        <p className="text-sm text-slate-500">
+      <div className="border-b border-border p-4">
+        <h2 className="text-base font-semibold text-text-primary">Approval limits</h2>
+        <p className="text-sm text-text-secondary">
           A person with a limit can approve only up to that amount in the company currency; bigger items go to the next
           step. Setting a limit again replaces the old one.
         </p>
@@ -94,7 +94,7 @@ export function LimitsSection() {
       <form
         onSubmit={(event) => void submit(event)}
         noValidate
-        className="grid gap-3 border-t border-slate-200 p-4 sm:grid-cols-4 sm:items-start"
+        className="grid gap-3 border-t border-border p-4 sm:grid-cols-4 sm:items-start"
       >
         <UserPicker id="limit_user" label="Person" value={userId} onChange={setUserId} error={errors.user} />
         <div>

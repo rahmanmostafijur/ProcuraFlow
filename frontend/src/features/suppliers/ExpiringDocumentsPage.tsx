@@ -1,4 +1,3 @@
-import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import {
@@ -7,9 +6,10 @@ import {
   useExpiringDocuments,
   type ExpiringDocument,
 } from "@/api/supplierDocuments";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { formatDate } from "@/lib/utils";
 
 export function ExpiringDocumentsPage() {
@@ -19,30 +19,26 @@ export function ExpiringDocumentsPage() {
     {
       header: "Supplier",
       accessor: (row) => (
-        <Link to={`/suppliers/${row.supplier_id}`} className="font-medium text-brand-700 hover:underline">
+        <Link to={`/suppliers/${row.supplier_id}`} className="font-medium text-brand hover:underline">
           {row.supplier_name}
         </Link>
       ),
     },
     { header: "Document", accessor: (row) => DOCUMENT_TYPE_LABELS[row.document_type] },
     { header: "Expires", accessor: (row) => (row.expiry_date ? formatDate(row.expiry_date) : "—") },
-    { header: "Status", accessor: (row) => <Badge status={row.status}>{DOCUMENT_STATUS_LABELS[row.status]}</Badge> },
+    {
+      header: "Status",
+      accessor: (row) => <StatusBadge status={row.status} label={DOCUMENT_STATUS_LABELS[row.status]} />,
+    },
   ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Link
-          to="/suppliers"
-          className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800"
-        >
-          <ArrowLeft className="h-4 w-4" /> Suppliers
-        </Link>
-        <h1 className="text-2xl font-semibold text-slate-900">Documents expiring soon</h1>
-        <p className="text-sm text-slate-500">
-          Documents of active suppliers that expire within 30 days or already have.
-        </p>
-      </div>
+    <div>
+      <PageHeader
+        title="Documents expiring soon"
+        description="Documents of active suppliers that expire within 30 days or already have."
+        breadcrumbs={[{ label: "Suppliers", to: "/suppliers" }, { label: "Documents expiring soon" }]}
+      />
       <Card>
         <DataTable
           columns={columns}

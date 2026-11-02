@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 
 import { extractErrorMessage } from "@/api/client";
 import { useInvitePortalUser, usePortalUsers } from "@/api/supplierPortalAdmin";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -37,23 +37,24 @@ export function SupplierPortalPanel({ supplierId }: { supplierId: number }) {
   return (
     <Card className="space-y-4 p-6">
       <div>
-        <h2 className="text-base font-semibold text-slate-900">Supplier portal</h2>
-        <p className="text-sm text-slate-500">
+        <h2 className="text-base font-semibold text-text-primary">Supplier portal</h2>
+        <p className="text-sm text-text-secondary">
           Invite a contact to see this supplier's orders, send invoices and keep documents current.
         </p>
       </div>
-      {isLoading && <p className="text-sm text-slate-500">Loading portal accounts…</p>}
-      {accounts?.length === 0 && <p className="text-sm text-slate-500">Nobody has been invited yet.</p>}
-      <ul className="divide-y divide-slate-100 text-sm">
+      {isLoading && <p className="text-sm text-text-secondary">Loading portal accounts…</p>}
+      {accounts?.length === 0 && <p className="text-sm text-text-secondary">Nobody has been invited yet.</p>}
+      <ul className="divide-y divide-border text-sm">
         {accounts?.map((account) => (
           <li key={account.id} className="flex items-center justify-between py-2">
             <span>
-              <span className="font-medium text-slate-900">{account.full_name}</span>{" "}
-              <span className="text-slate-500">{account.email}</span>
+              <span className="font-medium text-text-primary">{account.full_name}</span>{" "}
+              <span className="text-text-secondary">{account.email}</span>
             </span>
-            <Badge status={account.is_active ? "active" : "inactive"}>
-              {account.is_active ? "Active" : "Inactive"}
-            </Badge>
+            <StatusBadge
+              status={account.is_active ? "active" : "inactive"}
+              label={account.is_active ? "Active" : "Inactive"}
+            />
           </li>
         ))}
       </ul>
@@ -71,7 +72,7 @@ export function SupplierPortalPanel({ supplierId }: { supplierId: number }) {
           <Input id="portal-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
         </div>
         {error && (
-          <p role="alert" className="text-sm text-red-600 sm:col-span-2">
+          <p role="alert" className="text-sm text-danger-fg sm:col-span-2">
             {error}
           </p>
         )}

@@ -48,11 +48,11 @@ export function SupplierDocumentsPanel({ supplierId }: { supplierId: number }) {
   return (
     <Card className="space-y-4 p-6">
       <div>
-        <h2 className="text-base font-semibold text-slate-900">Documents</h2>
-        <p className="text-sm text-slate-500">W-9, VAT certificate, insurance, ISO certificate and bank letter.</p>
+        <h2 className="text-base font-semibold text-text-primary">Documents</h2>
+        <p className="text-sm text-text-secondary">W-9, VAT certificate, insurance, ISO certificate and bank letter.</p>
       </div>
-      {isLoading && <p className="text-sm text-slate-500">Loading documents…</p>}
-      {isError && <p className="text-sm text-red-600">The documents could not be loaded.</p>}
+      {isLoading && <p className="text-sm text-text-secondary">Loading documents…</p>}
+      {isError && <p className="text-sm text-danger-fg">The documents could not be loaded.</p>}
       {documents && (
         <DocumentsTable
           documents={documents}

@@ -36,21 +36,21 @@ export function PaymentRunModal({ run, onClose }: { run: PaymentRun | null; onCl
             <Badge status={run.status}>{run.status}</Badge>
             <span className="font-semibold">{formatCurrency(run.total, run.currency_code)}</span>
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-text-secondary">
             Created by {run.creator.full_name} on {formatDateTime(run.created_at)}
             {run.releaser && run.released_at
               ? ` · released by ${run.releaser.full_name} on ${formatDateTime(run.released_at)}`
               : ""}
           </p>
           <table className="w-full text-left text-sm">
-            <thead className="text-xs uppercase text-slate-500">
+            <thead className="text-xs uppercase text-text-secondary">
               <tr>
                 <th className="py-2 pr-3">Supplier</th>
                 <th className="py-2 pr-3">Invoice</th>
                 <th className="py-2 text-right">Amount</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {run.items.map((item) => (
                 <tr key={item.id}>
                   <td className="py-2 pr-3">{item.supplier_name}</td>

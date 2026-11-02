@@ -88,7 +88,7 @@ export function DocumentUploadForm({ isPending, onSubmit }: DocumentUploadFormPr
         />
       </div>
       {error && (
-        <p role="alert" className="text-sm text-red-600 sm:col-span-2">
+        <p role="alert" className="text-sm text-danger-fg sm:col-span-2">
           {error}
         </p>
       )}

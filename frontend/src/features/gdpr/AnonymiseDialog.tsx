@@ -27,7 +27,7 @@ export function AnonymiseDialog({ subjectName, isLoading, error, onConfirm, onCa
 
   return (
     <Modal isOpen={subjectName !== null} onClose={close} title="Anonymise personal data" size="sm">
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-text-secondary">
         This replaces the name and email of <strong>{subjectName}</strong> with placeholders. Financial records stay. It
         cannot be undone.
       </p>
@@ -36,7 +36,7 @@ export function AnonymiseDialog({ subjectName, isLoading, error, onConfirm, onCa
         <Input id="gdpr-confirm" value={typed} onChange={(event) => setTyped(event.target.value)} />
       </div>
       {error && (
-        <p role="alert" className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="mt-3 rounded-control bg-danger-bg px-3 py-2 text-sm text-danger-fg">
           {error}
         </p>
       )}

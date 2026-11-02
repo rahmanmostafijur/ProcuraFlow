@@ -37,15 +37,15 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("ThemeProvider", () => {
-  it("defaults to light and sets data-theme on the html element", () => {
+  it("defaults to following the system and leaves data-theme unset", () => {
     render(
       <ThemeProvider>
         <Probe />
       </ThemeProvider>,
     );
 
-    expect(screen.getByTestId("state")).toHaveTextContent("light/light");
-    expect(root).toHaveAttribute("data-theme", "light");
+    expect(screen.getByTestId("state")).toHaveTextContent("system/light");
+    expect(root).not.toHaveAttribute("data-theme");
     expect(root).not.toHaveClass("dark");
   });
 
@@ -79,7 +79,7 @@ describe("ThemeProvider", () => {
         <Probe />
       </ThemeProvider>,
     );
-    expect(screen.getByTestId("state")).toHaveTextContent("light/light");
+    expect(screen.getByTestId("state")).toHaveTextContent("system/light");
   });
 
   it("in system mode leaves data-theme unset and follows the OS", () => {

@@ -1,14 +1,16 @@
 import { Plus } from "lucide-react";
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { extractErrorMessage } from "@/api/client";
 import { useCreateProduct, useProducts, useUpdateProduct, type ProductInput } from "@/api/products";
 import type { Product } from "@/api/types";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { Pagination } from "@/components/ui/Pagination";
 import { useToast } from "@/components/ui/toast-context";
 import { useAuth } from "@/lib/auth-context";
@@ -22,7 +24,8 @@ export function ProductsPage() {
   const { hasPermission } = useAuth();
   const { showToast } = useToast();
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isDrawerOpen, setDrawerOpen] = useState(false);
@@ -39,24 +42,28 @@ export function ProductsPage() {
   const canWrite = hasPermission("product:write");
 
   const columns: Column<Product>[] = [
-    { header: "SKU", accessor: (row) => <span className="font-mono text-xs text-slate-500">{row.sku}</span> },
-    { header: "Name", accessor: (row) => <span className="font-medium text-slate-900">{row.name}</span> },
+    { header: "SKU", accessor: (row) => <span className="font-mono text-xs text-text-secondary">{row.sku}</span> },
+    { header: "Name", accessor: (row) => <span className="font-medium text-text-primary">{row.name}</span> },
     { header: "Category", accessor: (row) => row.category?.name ?? "—" },
     { header: "Supplier", accessor: (row) => row.supplier?.name ?? "—" },
     {
       header: "Stock",
       accessor: (row) => (
-        <span className={cn(row.current_stock <= row.minimum_stock ? "font-semibold text-red-600" : "text-slate-700")}>
+        <span
+          className={cn(
+            row.current_stock <= row.minimum_stock ? "font-semibold text-danger-fg" : "text-text-secondary",
+          )}
+        >
           {row.current_stock} {row.unit}
           {row.current_stock <= row.minimum_stock && " (low)"}
         </span>
       ),
     },
-    { header: "Cost", accessor: (row) => formatCurrency(row.cost) },
+    { header: "Cost", accessor: (row) => formatCurrency(row.cost), isAmount: true },
     {
       header: "Status",
       accessor: (row) => (
-        <Badge status={row.is_active ? "active" : "inactive"}>{row.is_active ? "Active" : "Inactive"}</Badge>
+        <StatusBadge status={row.is_active ? "active" : "inactive"} label={row.is_active ? "Active" : "Inactive"} />
       ),
     },
   ];
@@ -89,20 +96,20 @@ export function ProductsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Products</h1>
-          <p className="text-sm text-slate-500">Manage catalog items, stock thresholds, and cost.</p>
-        </div>
-        {canWrite && (
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" /> New Product
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Products"
+        description="Manage catalog items, stock thresholds, and cost."
+        primaryAction={
+          canWrite && (
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4" /> New Product
+            </Button>
+          )
+        }
+      />
 
       <Card>
-        <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 p-4">
+        <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
           <Input
             placeholder="Search products…"
             aria-label="Search products"
@@ -114,7 +121,7 @@ export function ProductsPage() {
             }}
             className="max-w-xs"
           />
-          <label className="flex items-center gap-2 text-sm text-slate-600">
+          <label className="flex items-center gap-2 text-sm text-text-secondary">
             <input
               type="checkbox"
               name="lowStockOnly"
@@ -123,7 +130,7 @@ export function ProductsPage() {
                 setLowStockOnly(event.target.checked);
                 setPage(1);
               }}
-              className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+              className="rounded border-border-strong text-brand focus:ring-focus"
             />
             Low stock only
           </label>

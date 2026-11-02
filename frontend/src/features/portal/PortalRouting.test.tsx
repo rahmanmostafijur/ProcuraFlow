@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "@/App";
 import { apiClient } from "@/api/client";
 import type { User } from "@/api/types";
+import { ThemeProvider } from "@/lib/theme";
 import { renderWithProviders, testUser } from "@/test/render";
 
 const supplierUser: User = {
@@ -35,7 +36,12 @@ describe("routing between the internal app and the supplier portal", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("sends a supplier who lands on the home page to the portal shell", async () => {
-    renderWithProviders(<App />, { user: supplierUser, route: "/" });
+    renderWithProviders(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+      { user: supplierUser, route: "/" },
+    );
 
     expect(await screen.findByRole("heading", { name: "Your orders" })).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Supplier portal" })).toBeInTheDocument();
@@ -46,7 +52,12 @@ describe("routing between the internal app and the supplier portal", () => {
   });
 
   it("never renders or calls the internal app for a supplier, whichever internal URL they open", async () => {
-    renderWithProviders(<App />, { user: supplierUser, route: "/suppliers" });
+    renderWithProviders(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+      { user: supplierUser, route: "/suppliers" },
+    );
 
     expect(await screen.findByRole("heading", { name: "Your orders" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Suppliers" })).not.toBeInTheDocument();
@@ -54,7 +65,12 @@ describe("routing between the internal app and the supplier portal", () => {
   });
 
   it("sends an internal user who opens /portal back to the dashboard", async () => {
-    renderWithProviders(<App />, { user: testUser, route: "/portal" });
+    renderWithProviders(
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>,
+      { user: testUser, route: "/portal" },
+    );
 
     // The internal sidebar renders and the dashboard is the current page.
     expect(await screen.findByRole("link", { name: "Dashboard" })).toHaveAttribute("aria-current", "page");

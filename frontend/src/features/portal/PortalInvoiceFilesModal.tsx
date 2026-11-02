@@ -32,8 +32,8 @@ export function PortalInvoiceFilesModal({ invoice, onClose }: { invoice: PortalI
 
   return (
     <Modal isOpen={invoice !== null} onClose={onClose} title={`Files for ${invoice?.invoice_number ?? ""}`} size="md">
-      {files?.length === 0 && <p className="text-sm text-slate-500">No files attached.</p>}
-      <ul className="divide-y divide-slate-100">
+      {files?.length === 0 && <p className="text-sm text-text-secondary">No files attached.</p>}
+      <ul className="divide-y divide-border">
         {files?.map((file) => (
           <li key={file.id} className="flex items-center justify-between py-2 text-sm">
             <span className="truncate">{file.filename}</span>

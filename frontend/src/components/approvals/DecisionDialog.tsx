@@ -60,8 +60,8 @@ function DecisionForm({ mode, subject, notice, isSubmitting, onClose, onSubmit }
       }}
       className="space-y-4"
     >
-      <p className="text-sm text-slate-600">{subject}</p>
-      {notice && <p className="text-sm text-slate-500">{notice}</p>}
+      <p className="text-sm text-text-secondary">{subject}</p>
+      {notice && <p className="text-sm text-text-secondary">{notice}</p>}
       <div>
         <Label htmlFor={fieldId} required={isReject}>
           {isReject ? "Reason for rejecting" : "Comment (optional)"}

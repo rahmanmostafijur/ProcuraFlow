@@ -49,7 +49,7 @@ function ReceiveForm({ onClose, purchaseOrder, onSubmit, isSubmitting }: Receive
   return (
     <div className="space-y-4">
       {pendingItems.length === 0 ? (
-        <p className="text-sm text-slate-500">All items on this order have already been received.</p>
+        <p className="text-sm text-text-secondary">All items on this order have already been received.</p>
       ) : (
         <div className="space-y-3">
           {pendingItems.map((item) => {
@@ -57,12 +57,12 @@ function ReceiveForm({ onClose, purchaseOrder, onSubmit, isSubmitting }: Receive
             return (
               <div key={item.id} className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium text-slate-800">Product #{item.product_id}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-sm font-medium text-text-primary">Product #{item.product_id}</p>
+                  <p className="text-xs text-text-secondary">
                     {item.received_quantity} of {item.quantity} received &middot; {remaining} remaining
                   </p>
                 </div>
-                <div className="w-28">
+                <div className="w-28 shrink-0">
                   <Label htmlFor={`qty-${item.product_id}`}>Receive qty</Label>
                   <Input
                     id={`qty-${item.product_id}`}

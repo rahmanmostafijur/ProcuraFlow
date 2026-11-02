@@ -100,9 +100,9 @@ export function ExchangeRatesSection({ baseCurrency }: { baseCurrency: string })
 
   return (
     <Card>
-      <div className="border-b border-slate-200 p-4">
-        <h2 className="text-base font-semibold text-slate-900">Exchange rates</h2>
-        <p className="text-sm text-slate-500">
+      <div className="border-b border-border p-4">
+        <h2 className="text-base font-semibold text-text-primary">Exchange rates</h2>
+        <p className="text-sm text-text-secondary">
           Entered by hand. An order is converted to {baseCurrency} when it is approved, using the latest rate on or
           before that day, and keeps that rate for good.
         </p>
@@ -126,7 +126,7 @@ export function ExchangeRatesSection({ baseCurrency }: { baseCurrency: string })
       )}
       <form
         onSubmit={(event) => void handleSubmit(onSubmit)(event)}
-        className="grid gap-3 border-t border-slate-200 p-4 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end"
+        className="grid gap-3 border-t border-border p-4 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end"
       >
         <div>
           <Label htmlFor="rate_currency">Currency</Label>

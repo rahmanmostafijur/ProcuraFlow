@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import type { BudgetPosition } from "@/api/types";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
@@ -29,7 +29,7 @@ export function PositionsSection({ positions, isLoading, isError }: PositionsSec
     {
       header: "Cost centre",
       accessor: (row) => (
-        <span className="font-medium text-slate-900">
+        <span className="font-medium text-text-primary">
           {row.cost_centre_code} — {row.cost_centre_name}
         </span>
       ),
@@ -42,7 +42,7 @@ export function PositionsSection({ positions, isLoading, isError }: PositionsSec
       header: "Used",
       accessor: (row) => formatPercent(row.utilisation_percent),
     },
-    { header: "Health", accessor: (row) => <Badge status={row.health}>{HEALTH_LABELS[row.health]}</Badge> },
+    { header: "Health", accessor: (row) => <StatusBadge status={row.health} label={HEALTH_LABELS[row.health]} /> },
     {
       header: "",
       accessor: (row) => (
@@ -61,8 +61,8 @@ export function PositionsSection({ positions, isLoading, isError }: PositionsSec
 
   return (
     <Card>
-      <div className="border-b border-slate-200 p-4">
-        <h2 className="text-base font-semibold text-slate-900">Positions</h2>
+      <div className="border-b border-border p-4">
+        <h2 className="text-base font-semibold text-text-primary">Positions</h2>
       </div>
       {isError ? (
         <ErrorState message="Budgets could not be loaded." />

@@ -7,6 +7,7 @@ import { useUsers } from "@/api/users";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toast-context";
 import { cn } from "@/lib/utils";
 
@@ -84,14 +85,12 @@ export function GdprPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Personal data (GDPR)</h1>
-        <p className="text-sm text-slate-500">
-          Export what is stored about a person, or anonymise them. Both are recorded in the audit log.
-        </p>
-      </div>
+      <PageHeader
+        title="Personal data (GDPR)"
+        description="Export what is stored about a person, or anonymise them. Both are recorded in the audit log."
+      />
       <Card>
-        <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 p-4">
+        <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
           <div role="tablist" className="flex gap-1">
             {TABS.map((tab) => (
               <button
@@ -100,8 +99,8 @@ export function GdprPage() {
                 aria-selected={kind === tab.kind}
                 onClick={() => setKind(tab.kind)}
                 className={cn(
-                  "rounded-md px-3 py-1.5 text-sm font-medium",
-                  kind === tab.kind ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-slate-50",
+                  "rounded-control px-3 py-1.5 text-sm font-medium",
+                  kind === tab.kind ? "bg-brand-subtle text-brand-subtle-fg" : "text-text-secondary hover:bg-bg",
                 )}
               >
                 {tab.label}
@@ -119,16 +118,16 @@ export function GdprPage() {
         <Source search={search}>
           {(rows, isLoading) => (
             <>
-              {isLoading && <p className="p-4 text-sm text-slate-500">Loading…</p>}
+              {isLoading && <p className="p-4 text-sm text-text-secondary">Loading…</p>}
               {!isLoading && rows.length === 0 && (
-                <p className="p-4 text-sm text-slate-500">Nobody matches your search.</p>
+                <p className="p-4 text-sm text-text-secondary">Nobody matches your search.</p>
               )}
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-border">
                 {rows.map((row) => (
                   <li key={row.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
                     <div className="min-w-0">
-                      <p className="truncate font-medium text-slate-900">{row.name}</p>
-                      <p className="truncate text-xs text-slate-500">{row.detail}</p>
+                      <p className="truncate font-medium text-text-primary">{row.name}</p>
+                      <p className="truncate text-xs text-text-secondary">{row.detail}</p>
                     </div>
                     <div className="flex shrink-0 gap-2">
                       <Button

@@ -9,6 +9,7 @@ import type { DocumentUploadInput, SupplierDocument } from "@/api/supplierDocume
 import { DocumentsTable } from "@/components/documents/DocumentsTable";
 import { DocumentUploadForm } from "@/components/documents/DocumentUploadForm";
 import { Card } from "@/components/ui/Card";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/toast-context";
 
 export function PortalDocumentsPage() {
@@ -46,13 +47,13 @@ export function PortalDocumentsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Your documents</h1>
-        <p className="text-sm text-slate-500">Keep certificates and tax forms current so payments are not held up.</p>
-      </div>
+      <PageHeader
+        title="Your documents"
+        description="Keep certificates and tax forms current so payments are not held up."
+      />
       <Card className="space-y-4 p-6">
-        {isLoading && <p className="text-sm text-slate-500">Loading documents…</p>}
-        {isError && <p className="text-sm text-red-600">The documents could not be loaded.</p>}
+        {isLoading && <p className="text-sm text-text-secondary">Loading documents…</p>}
+        {isError && <p className="text-sm text-danger-fg">The documents could not be loaded.</p>}
         {documents && (
           <DocumentsTable
             documents={documents}

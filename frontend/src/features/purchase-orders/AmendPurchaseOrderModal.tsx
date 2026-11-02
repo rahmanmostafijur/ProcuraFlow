@@ -82,7 +82,7 @@ export function AmendPurchaseOrderModal({ isOpen, po, isSubmitting, onClose, onS
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Amend ${po.po_number}`} size="lg">
       <form onSubmit={(event) => void submit(event)} noValidate className="space-y-4">
-        <p className="rounded-md bg-slate-50 p-3 text-sm text-slate-600">
+        <p className="rounded-control bg-bg p-3 text-sm text-text-secondary">
           A change that keeps or lowers the total takes effect straight away. A change that raises the total waits for
           approval, and the order stays as it is until then.
         </p>
@@ -102,16 +102,16 @@ export function AmendPurchaseOrderModal({ isOpen, po, isSubmitting, onClose, onS
         </div>
 
         <fieldset>
-          <legend className="mb-2 text-sm font-medium text-slate-700">Line items</legend>
-          {errors.items?.message && <p className="mb-2 text-xs text-red-600">{errors.items.message}</p>}
+          <legend className="mb-2 text-sm font-medium text-text-secondary">Line items</legend>
+          {errors.items?.message && <p className="mb-2 text-xs text-danger-fg">{errors.items.message}</p>}
           <div className="space-y-2">
             {fields.map((field, index) => {
               const n = index + 1;
               const taken = productIdsChosenOnOtherLines(lineItems, index);
               const lineErrors = errors.items?.[index];
               return (
-                <div key={field.id} className="flex items-start gap-2">
-                  <div className="flex-1">
+                <div key={field.id} className="flex flex-wrap items-start gap-2">
+                  <div className="min-w-[12rem] flex-1">
                     <Select
                       aria-label={`Product for line ${n}`}
                       error={lineErrors?.product_id?.message}
@@ -132,7 +132,7 @@ export function AmendPurchaseOrderModal({ isOpen, po, isSubmitting, onClose, onS
                         ))}
                     </Select>
                   </div>
-                  <div className="w-24">
+                  <div className="w-full sm:w-24">
                     <Input
                       type="number"
                       aria-label={`Quantity for line ${n}`}
@@ -140,7 +140,7 @@ export function AmendPurchaseOrderModal({ isOpen, po, isSubmitting, onClose, onS
                       {...register(`items.${index}.quantity` as const)}
                     />
                   </div>
-                  <div className="w-28">
+                  <div className="w-full sm:w-28">
                     <Input
                       type="number"
                       step="0.0001"
@@ -149,7 +149,7 @@ export function AmendPurchaseOrderModal({ isOpen, po, isSubmitting, onClose, onS
                       {...register(`items.${index}.unit_price` as const)}
                     />
                   </div>
-                  <div className="w-40">
+                  <div className="w-full sm:w-40">
                     <Select aria-label={`Tax rate for line ${n}`} {...register(`items.${index}.tax_rate_id` as const)}>
                       <option value="">No tax</option>
                       {taxRates?.map((rate) => (

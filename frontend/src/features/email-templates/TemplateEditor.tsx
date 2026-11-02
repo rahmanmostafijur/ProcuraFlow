@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Textarea } from "@/components/ui/Textarea";
 import { useToast } from "@/components/ui/toast-context";
+import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes";
 
 const schema = z.object({
   subject: z.string().min(1, "Subject is required"),
@@ -37,6 +38,7 @@ export function TemplateEditor({ template }: { template: EmailTemplate }) {
     resolver: zodResolver(schema),
     defaultValues: { subject: template.subject, body: template.body },
   });
+  useUnsavedChangesWarning(isDirty);
 
   const onSubmit = async (values: FormValues) => {
     setServerError(null);
@@ -66,16 +68,16 @@ export function TemplateEditor({ template }: { template: EmailTemplate }) {
   return (
     <Card className="p-6">
       <div className="mb-4 flex items-center gap-3">
-        <h2 className="text-base font-semibold text-slate-900">{template.label}</h2>
+        <h2 className="text-base font-semibold text-text-primary">{template.label}</h2>
         {template.is_customised && <Badge status="active">Customised</Badge>}
       </div>
 
       <div className="mb-4">
-        <p className="mb-1 text-sm font-medium text-slate-700">Available variables</p>
+        <p className="mb-1 text-sm font-medium text-text-secondary">Available variables</p>
         <ul className="flex flex-wrap gap-2">
           {template.variables.map((name) => (
             <li key={name}>
-              <code className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-700">{`{{ ${name} }}`}</code>
+              <code className="rounded bg-bg px-2 py-0.5 text-xs text-text-secondary">{`{{ ${name} }}`}</code>
             </li>
           ))}
         </ul>
@@ -83,7 +85,7 @@ export function TemplateEditor({ template }: { template: EmailTemplate }) {
 
       <form onSubmit={(event) => void handleSubmit(onSubmit)(event)} className="space-y-4">
         {serverError && (
-          <div role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div role="alert" className="rounded-control bg-danger-bg px-3 py-2 text-sm text-danger-fg">
             {serverError}
           </div>
         )}

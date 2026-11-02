@@ -45,11 +45,11 @@ export function LogoUploader({ settings }: { settings: CompanySettings }) {
 
   return (
     <div className="flex flex-wrap items-center gap-4">
-      <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+      <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-card border border-border bg-bg">
         {logo ? (
           <img src={logo} alt="Current company logo" className="h-full w-full object-contain" />
         ) : (
-          <span className="text-xs text-slate-400">No logo</span>
+          <span className="text-xs text-text-muted">No logo</span>
         )}
       </div>
       <div className="space-y-2">
@@ -83,7 +83,7 @@ export function LogoUploader({ settings }: { settings: CompanySettings }) {
             </Button>
           )}
         </div>
-        <p className="text-xs text-slate-500">PNG or JPEG, up to 1 MB. Used in the app, on PDFs and in emails.</p>
+        <p className="text-xs text-text-secondary">PNG or JPEG, up to 1 MB. Used in the app, on PDFs and in emails.</p>
       </div>
     </div>
   );

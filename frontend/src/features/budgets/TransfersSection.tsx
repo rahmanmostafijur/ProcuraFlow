@@ -4,7 +4,7 @@ import { useDecideTransfer, useRequestTransfer, useTransfers } from "@/api/budge
 import { extractErrorMessage } from "@/api/client";
 import type { BudgetPosition, BudgetTransfer } from "@/api/types";
 import { DecisionDialog } from "@/components/approvals/DecisionDialog";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
@@ -94,12 +94,12 @@ export function TransfersSection({ positions, canRequest, canDecide }: Transfers
       accessor: (row) => (
         <div>
           <p>{row.reason}</p>
-          {row.decision_comment && <p className="text-xs text-slate-500">“{row.decision_comment}”</p>}
+          {row.decision_comment && <p className="text-xs text-text-secondary">“{row.decision_comment}”</p>}
         </div>
       ),
     },
     { header: "Requested by", accessor: (row) => `${row.requested_by.full_name} · ${formatDate(row.created_at)}` },
-    { header: "Status", accessor: (row) => <Badge status={row.status}>{row.status}</Badge> },
+    { header: "Status", accessor: (row) => <StatusBadge status={row.status} label={row.status} /> },
     {
       header: "",
       accessor: (row) =>
@@ -133,9 +133,9 @@ export function TransfersSection({ positions, canRequest, canDecide }: Transfers
 
   return (
     <Card>
-      <div className="border-b border-slate-200 p-4">
-        <h2 className="text-base font-semibold text-slate-900">Budget transfers</h2>
-        <p className="text-sm text-slate-500">Moving budget between cost centres needs finance approval.</p>
+      <div className="border-b border-border p-4">
+        <h2 className="text-base font-semibold text-text-primary">Budget transfers</h2>
+        <p className="text-sm text-text-secondary">Moving budget between cost centres needs finance approval.</p>
       </div>
       <DataTable
         columns={columns}
@@ -148,7 +148,7 @@ export function TransfersSection({ positions, canRequest, canDecide }: Transfers
         <form
           onSubmit={(event) => void submit(event)}
           noValidate
-          className="grid gap-3 border-t border-slate-200 p-4 sm:grid-cols-4 sm:items-start"
+          className="grid gap-3 border-t border-border p-4 sm:grid-cols-4 sm:items-start"
         >
           <div>
             <Label htmlFor="transfer_from">Move from</Label>

@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { extractErrorMessage } from "@/api/client";
 import { maskIdentifier, useBankDetails, useDecideBankChange, type BankDetails } from "@/api/supplierBank";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useAuth } from "@/lib/auth-context";
@@ -23,8 +23,8 @@ function DetailsList({ details }: { details: BankDetails }) {
     <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
       {rows.map(([label, value]) => (
         <div key={label} className="flex justify-between gap-3">
-          <dt className="text-slate-500">{label}</dt>
-          <dd className="font-mono text-slate-900">{value}</dd>
+          <dt className="text-text-secondary">{label}</dt>
+          <dd className="font-mono text-text-primary">{value}</dd>
         </div>
       ))}
     </dl>
@@ -53,35 +53,38 @@ export function SupplierBankPanel({ supplierId }: { supplierId: number }) {
   return (
     <Card className="space-y-4 p-6">
       <div>
-        <h2 className="text-base font-semibold text-slate-900">Bank details</h2>
-        <p className="text-sm text-slate-500">
+        <h2 className="text-base font-semibold text-text-primary">Bank details</h2>
+        <p className="text-sm text-text-secondary">
           Account numbers are masked. A change needs approval by a second person.
         </p>
       </div>
-      {isLoading && <p className="text-sm text-slate-500">Loading bank details…</p>}
-      {isError && <p className="text-sm text-red-600">The bank details could not be loaded.</p>}
+      {isLoading && <p className="text-sm text-text-secondary">Loading bank details…</p>}
+      {isError && <p className="text-sm text-danger-fg">The bank details could not be loaded.</p>}
       {data && (
         <>
           <section aria-label="Current bank details">
-            <h3 className="mb-2 text-sm font-semibold text-slate-800">Current</h3>
+            <h3 className="mb-2 text-sm font-semibold text-text-primary">Current</h3>
             {data.current ? (
               <DetailsList details={data.current} />
             ) : (
-              <p className="text-sm text-slate-500">No approved bank details yet.</p>
+              <p className="text-sm text-text-secondary">No approved bank details yet.</p>
             )}
           </section>
           {pending && (
-            <section aria-label="Pending change" className="rounded-md border border-amber-200 bg-amber-50 p-4">
+            <section
+              aria-label="Pending change"
+              className="rounded-control border border-warning-fg/30 bg-warning-bg p-4"
+            >
               <div className="mb-2 flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-slate-800">Pending change</h3>
-                <Badge status="pending_approval">Waiting for approval</Badge>
+                <h3 className="text-sm font-semibold text-text-primary">Pending change</h3>
+                <StatusBadge status="pending_approval" label="Waiting for approval" />
               </div>
-              <p className="mb-2 text-xs text-slate-600">
+              <p className="mb-2 text-xs text-text-secondary">
                 Requested by {pending.requested_by.full_name} on {formatDateTime(pending.requested_at)}
               </p>
               <DetailsList details={pending} />
               {isOwnChange ? (
-                <p className="mt-3 text-sm text-slate-700">
+                <p className="mt-3 text-sm text-text-secondary">
                   You requested this change, so someone else has to approve it.
                 </p>
               ) : (
@@ -100,7 +103,7 @@ export function SupplierBankPanel({ supplierId }: { supplierId: number }) {
                 </div>
               )}
               {decisionError && (
-                <p role="alert" className="mt-3 text-sm text-red-700">
+                <p role="alert" className="mt-3 text-sm text-danger-fg">
                   {decisionError}
                 </p>
               )}
@@ -109,12 +112,12 @@ export function SupplierBankPanel({ supplierId }: { supplierId: number }) {
           {!pending && <BankChangeForm supplierId={supplierId} />}
           {data.history.length > 0 && (
             <section aria-label="Bank details history">
-              <h3 className="mb-2 text-sm font-semibold text-slate-800">History</h3>
-              <ul className="divide-y divide-slate-100 text-sm">
+              <h3 className="mb-2 text-sm font-semibold text-text-primary">History</h3>
+              <ul className="divide-y divide-border text-sm">
                 {data.history.map((entry) => (
                   <li key={entry.id} className="flex justify-between gap-3 py-2">
                     <span className="font-mono">{maskIdentifier(entry.iban ?? entry.bank_account_number)}</span>
-                    <span className="text-slate-500">
+                    <span className="text-text-secondary">
                       {entry.status} · {formatDateTime(entry.decided_at ?? entry.requested_at)}
                     </span>
                   </li>

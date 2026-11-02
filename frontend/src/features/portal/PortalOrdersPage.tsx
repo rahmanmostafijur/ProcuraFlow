@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { Pagination } from "@/components/ui/Pagination";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 import { PortalOrderModal } from "./PortalOrderModal";
@@ -17,7 +18,7 @@ export function PortalOrdersPage() {
   const { data, isLoading } = usePortalOrders(page, PAGE_SIZE);
 
   const columns: Column<PortalOrderSummary>[] = [
-    { header: "Order", accessor: (row) => <span className="font-medium text-slate-900">{row.po_number}</span> },
+    { header: "Order", accessor: (row) => <span className="font-medium text-text-primary">{row.po_number}</span> },
     { header: "Status", accessor: (row) => <Badge status={row.status}>{row.status.replace(/_/g, " ")}</Badge> },
     { header: "Total", accessor: (row) => formatCurrency(row.grand_total, row.currency_code) },
     {
@@ -33,10 +34,7 @@ export function PortalOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Your orders</h1>
-        <p className="text-sm text-slate-500">Open an order to see its lines and confirm that you received it.</p>
-      </div>
+      <PageHeader title="Your orders" description="Open an order to see its lines and confirm that you received it." />
       <Card>
         <DataTable
           columns={columns}

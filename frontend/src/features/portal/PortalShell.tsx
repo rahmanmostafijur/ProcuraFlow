@@ -22,12 +22,12 @@ export function PortalShell() {
   useApplyBrandColor(branding?.brand_color);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
+    <div className="min-h-screen bg-bg">
+      <header className="border-b border-border bg-surface">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
           <CompanyMark branding={branding} />
           <div className="flex items-center gap-4">
-            <span className="text-sm text-slate-600">{user?.full_name}</span>
+            <span className="text-sm text-text-secondary">{user?.full_name}</span>
             <Button variant="ghost" size="sm" onClick={logout}>
               <LogOut className="h-4 w-4" /> Sign out
             </Button>
@@ -43,8 +43,8 @@ export function PortalShell() {
                 cn(
                   "border-b-2 px-3 py-2 text-sm font-medium",
                   isActive
-                    ? "border-brand-600 text-brand-700"
-                    : "border-transparent text-slate-600 hover:text-slate-900",
+                    ? "border-brand text-brand"
+                    : "border-transparent text-text-secondary hover:text-text-primary",
                 )
               }
             >

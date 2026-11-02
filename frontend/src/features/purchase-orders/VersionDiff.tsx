@@ -19,8 +19,8 @@ function money(value: string | undefined, currency: string): string {
 function Arrow({ from, to }: { from: string; to: string }) {
   return (
     <span>
-      <span className="text-slate-500 line-through">{from}</span> <span aria-hidden="true">→</span>
-      <span className="sr-only"> changed to </span> <span className="font-medium text-slate-900">{to}</span>
+      <span className="text-text-secondary line-through">{from}</span> <span aria-hidden="true">→</span>
+      <span className="sr-only"> changed to </span> <span className="font-medium text-text-primary">{to}</span>
     </span>
   );
 }
@@ -38,28 +38,28 @@ function ChangeRow({ change, currency }: { change: VersionChange; currency: stri
     case "field":
       return (
         <>
-          <span className="text-slate-600">{change.label}: </span>
+          <span className="text-text-secondary">{change.label}: </span>
           <Arrow from={show(change.from)} to={show(change.to)} />
         </>
       );
     case "line_added":
       return (
         <>
-          <span className="font-medium text-green-700">Added</span> {change.label}:{" "}
+          <span className="font-medium text-success-fg">Added</span> {change.label}:{" "}
           <LineSummary change={change} currency={currency} />
         </>
       );
     case "line_removed":
       return (
         <>
-          <span className="font-medium text-red-700">Removed</span> {change.label}:{" "}
+          <span className="font-medium text-danger-fg">Removed</span> {change.label}:{" "}
           <LineSummary change={change} currency={currency} />
         </>
       );
     case "line_changed":
       return (
         <>
-          <span className="font-medium text-slate-800">Changed</span> {change.label}
+          <span className="font-medium text-text-primary">Changed</span> {change.label}
           <ul className="ml-4 list-disc">
             {change.changes?.map((item) => (
               <li key={item.field}>
@@ -75,7 +75,7 @@ function ChangeRow({ change, currency }: { change: VersionChange; currency: stri
     case "total":
       return (
         <>
-          <span className="font-semibold text-slate-800">{change.label}: </span>
+          <span className="font-semibold text-text-primary">{change.label}: </span>
           <Arrow from={money(String(change.from ?? ""), currency)} to={money(String(change.to ?? ""), currency)} />
         </>
       );
@@ -84,9 +84,9 @@ function ChangeRow({ change, currency }: { change: VersionChange; currency: stri
 
 /** What changed from the version before, one readable line per field, line item or total. */
 export function VersionDiff({ changes, currency }: VersionDiffProps) {
-  if (changes.length === 0) return <p className="text-sm text-slate-500">No changes from the version before.</p>;
+  if (changes.length === 0) return <p className="text-sm text-text-secondary">No changes from the version before.</p>;
   return (
-    <ul className="space-y-1 text-sm text-slate-700">
+    <ul className="space-y-1 text-sm text-text-secondary">
       {changes.map((change, index) => (
         <li key={`${change.kind}-${change.label}-${index}`}>
           <ChangeRow change={change} currency={currency} />
