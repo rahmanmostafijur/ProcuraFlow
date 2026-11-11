@@ -6,9 +6,8 @@ All notable changes to ProcuraFlow are recorded here. The format follows
 ## [1.0.0] - release date to be set when the release check passes
 
 Version 1.0.0 turns the earlier procurement, inventory and delivery tool into a complete, self-hosted procure-to-pay
-application for small and mid-size companies. It was built in the phases of `PLAN.md`, one commit per step. Items
-marked "pending at time of writing" were not finished when this entry was written (see `HANDOFF.md`); confirm them
-against the repository before tagging the release.
+application for small and mid-size companies. It was built in the phases of `PLAN.md`, one commit per step. The
+results of the final checks, and what was and was not verified in a browser, are in `RELEASE_CHECK.md`.
 
 ### Added
 
@@ -46,12 +45,14 @@ against the repository before tagging the release.
 - **Design system and redesign (phase 7).** Design tokens with light and dark themes, self-hosted fonts, `Intl`-based
   money and date formatting, a component library with a development-only `/design-system` page, a scope-aware search
   endpoint for the command palette, and every screen redesigned with a grouped sidebar, document pages (request, PO,
-  invoice, payment run) and an invoice page. Step 7E, the visual QA loop at three viewport sizes with accessibility
-  checks, was pending at time of writing.
-- **Landing page and demo mode (phase 8).** In progress at time of writing. `DEMO_MODE`, `ALLOW_DEMO_IN_PRODUCTION`
-  and `DEMO_PASSWORD` settings exist in `backend/app/core/config.py`; the demo reset command
-  (`python -m app.cli.demo_reset`), the 12-month demo seed and the landing-page Lighthouse targets were not yet
-  confirmed.
+  invoice, payment run) and an invoice page. A Playwright capture (`npm run qa:capture`) takes every page at three
+  viewport sizes in light and dark with axe-core, overflow and console checks (204 captures, none with findings after
+  the fixes logged in `DESIGN_REVIEW.md`), and axe-core also runs in the frontend tests.
+- **Landing page and demo mode (phase 8).** A public landing page at `/` (Lighthouse on the production build:
+  performance 94, accessibility 100, best practices 100, SEO 100). `DEMO_MODE=true` gives one-click sign-in for every
+  role including two supplier-portal accounts, blocks destructive admin actions, and only logs outgoing email;
+  `python -m app.cli.demo_reset` rebuilds a 12-month, three-currency demo company through the application's own API,
+  so totals, approvals, matching and stock agree. Demo mode in production needs `ALLOW_DEMO_IN_PRODUCTION=true` as well.
 - **Documentation and deployment (phase 9).** `README.md`, `HowToSetup.md`, `AGENTS.md`, this changelog, a complete
   `.env.example`, `docs/metrics.md`, `docs/sizing.md`, a Docker Compose stack with Caddy and automatic HTTPS
   (`deploy/`), and database backup and restore scripts for Linux/macOS (`.sh`) and Windows (`.ps1`).
@@ -69,7 +70,11 @@ against the repository before tagging the release.
 
 ### Changed
 
-- Frontend dependency versions are pinned exactly; build artefacts are no longer tracked.
+- Frontend dependency versions are pinned exactly; build artefacts are no longer tracked. zod is upgraded to 4.6.7
+  and `@hookform/resolvers` to 5.9.2; `follow-redirects` is bumped in the lockfile, which clears the `npm audit`
+  advisory. Starlette's `HTTP_422_UNPROCESSABLE_CONTENT` replaces the deprecated `..._ENTITY` name.
+- The shell and sign-in pages load on demand, which shrinks the entry bundle from 492 kB to 306 kB.
+- Status badges everywhere use the token-based `StatusBadge`; the legacy light-only `Badge` is removed.
 - Dashboard and reports read stored base-currency amounts and use the company time zone for "this month".
 - Migrations only add or widen columns and tables; each has a working downgrade covered by the round-trip test.
 
@@ -78,7 +83,8 @@ against the repository before tagging the release.
 Listed in `PLAN.md` ("Decisions to review") and `HANDOFF.md`. Notably: a rejected purchase order ends as `cancelled`
 with the reason kept; approval rules exist only in demo data until an admin adds them; SMTP credentials live in
 environment variables; the role matrix is defined in code; account numbers are stored unencrypted; payment files cover
-EUR (SEPA) and USD (NACHA) only; supplier emails carry PO details but not the PDF.
+EUR (SEPA) and USD (NACHA) only; supplier emails carry PO details but not the PDF; purchase order lines show a
+product id, not a name, because the order item response carries only `product_id`.
 
 ### Baseline
 
