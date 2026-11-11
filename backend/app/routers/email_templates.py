@@ -70,7 +70,7 @@ async def save_template(
     try:
         validate_template(key, payload.subject, payload.body)
     except TemplateRenderError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
     row = (await _edited(db)).get(key)
     if row is None:
         row = EmailTemplate(key=key, subject=payload.subject, body=payload.body)

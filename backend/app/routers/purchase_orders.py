@@ -190,7 +190,7 @@ async def send_purchase_order_to_supplier(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Only an ordered purchase order can be sent")
     if not po.supplier.email:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="The supplier has no email address"
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="The supplier has no email address"
         )
     company = await get_company_settings(db)
     await queue_email(
