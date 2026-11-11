@@ -24,6 +24,7 @@ from tests.fixture_types import MakeUser, StockMatchesLedger
 
 STRONG_SECRET = "k3Vq9xLr0TzP7mWb2NcY8sHd5FgJ1aUe6RoXiQ4vEyZt"
 STRONG_PASSWORD = "Vq9-xLr0-TzP7-mWb2"
+STRONG_DATABASE_URL = "postgresql+asyncpg://procuraflow:Zq8vL2mN7xR4tW9k@db.internal:5432/procuraflow"
 ADMIN_EMAIL = "seed-admin@example.com"
 
 
@@ -32,6 +33,7 @@ def make_settings(environment: Environment, password: str) -> Settings:
         _env_file=None,
         environment=environment,
         jwt_secret_key=STRONG_SECRET,
+        database_url=STRONG_DATABASE_URL,
         default_admin_email=ADMIN_EMAIL,
         default_admin_password=password,
     )
@@ -150,7 +152,13 @@ def test_demo_data_is_seeded_by_default_only_in_local_environments(
 
 @pytest.mark.parametrize("flag", [True, False])
 def test_an_explicit_seed_demo_data_setting_overrides_the_environment_default(flag: bool) -> None:
-    settings = Settings(_env_file=None, environment="production", jwt_secret_key=STRONG_SECRET, seed_demo_data=flag)
+    settings = Settings(
+        _env_file=None,
+        environment="production",
+        jwt_secret_key=STRONG_SECRET,
+        database_url=STRONG_DATABASE_URL,
+        seed_demo_data=flag,
+    )
 
     assert settings.should_seed_demo_data is flag
 
@@ -175,6 +183,7 @@ async def test_seed_adds_the_demo_catalogue_when_explicitly_enabled_and_stays_id
         _env_file=None,
         environment="production",
         jwt_secret_key=STRONG_SECRET,
+        database_url=STRONG_DATABASE_URL,
         default_admin_email=ADMIN_EMAIL,
         default_admin_password=STRONG_PASSWORD,
         seed_demo_data=True,
@@ -195,6 +204,7 @@ async def test_several_instances_seeding_at_once_do_not_collide(
         _env_file=None,
         environment="production",
         jwt_secret_key=STRONG_SECRET,
+        database_url=STRONG_DATABASE_URL,
         default_admin_email=ADMIN_EMAIL,
         default_admin_password=STRONG_PASSWORD,
         seed_demo_data=True,

@@ -128,7 +128,8 @@ async def test_logout_is_idempotent_without_a_session(client: AsyncClient) -> No
 
 
 def test_refresh_cookie_is_secure_outside_local_environments(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("JWT_SECRET_KEY", "x" * 48)
+    monkeypatch.setenv("JWT_SECRET_KEY", "k3Vq9xLr0TzP7mWb2NcY8sHd5FgJ1aUe6RoXiQ4vEyZt")
+    monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://procuraflow:Zq8vL2mN7xR4tW9k@db.internal:5432/procuraflow")
     monkeypatch.setenv("ENVIRONMENT", "production")
     production = Settings(_env_file=None)
     monkeypatch.setenv("ENVIRONMENT", "development")

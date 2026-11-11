@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.auth_cookie import REFRESH_COOKIE_NAME, refresh_cookie_options
 from app.core.config import get_settings
+from app.core.demo_guard import is_demo_email
 from app.core.deps import AnyUser, DbSession
 from app.core.security import create_access_token, verify_password
 from app.models.role import Role
@@ -60,7 +61,12 @@ async def login(
     )
     user = result.scalar_one_or_none()
 
-    if user is None or not user.is_active or not verify_password(payload.password, user.hashed_password):
+    if (
+        user is None
+        or not user.is_active
+        or (is_demo_email(user.email) and not get_settings().demo_mode)
+        or not verify_password(payload.password, user.hashed_password)
+    ):
         # Logged so the proxy setup can be verified against a real request; never the email or password.
         logger.warning(
             "failed sign-in client_ip=%s forwarded_entries=%s",
@@ -72,6 +78,11 @@ async def login(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
 
     await throttle.record_success(db, payload.email)
+    return await start_session(db, user, response)
+
+
+async def start_session(db: DbSession, user: User, response: Response) -> AccessTokenResponse:
+    """The one place a sign-in becomes a session: refresh cookie, audit entry and access token."""
     await purge_expired_tokens(db)
     refresh_token = await issue_refresh_token(db, user.id)
     await record_audit_event(db, user_id=user.id, action="login", entity_type="user", entity_id=user.id)

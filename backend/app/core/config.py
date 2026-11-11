@@ -3,6 +3,7 @@ from typing import Literal
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import make_url
 
 from app.core.database_url import normalize_database_url, uses_connection_pooler
 
@@ -16,6 +17,14 @@ PLACEHOLDER_JWT_SECRETS = frozenset(
         "change-this-to-a-random-secret-in-production",
     }
 )
+# Fragments that mark a secret as copied from an example file rather than generated.
+WEAK_SECRET_MARKERS = ("changeme", "change-me", "change-this", "change_this", "insecure", "placeholder")
+MIN_DISTINCT_SECRET_CHARACTERS = 10
+# Database passwords that ship in example files, compose files and tutorials.
+WEAK_DATABASE_PASSWORDS = frozenset(
+    {"procuraflow", "postgres", "password", "admin", "root", "changeme", "change-me", "secret", "123456", "test"}
+)
+MIN_DATABASE_PASSWORD_LENGTH = 8
 Environment = Literal["development", "test", "staging", "production"]
 StorageBackendName = Literal["local", "s3"]
 SECRET_HINT = 'generate one with: python -c "import secrets; print(secrets.token_urlsafe(48))"'  # noqa: S105 - help text
@@ -87,6 +96,15 @@ class Settings(BaseSettings):
     # wants them (a public demo) must say so; a real one never gets them by accident.
     seed_demo_data: bool | None = None
 
+    # Public demo: one-click role sign-in, destructive admin actions blocked, email logged only (see app/demo and
+    # app/core/demo_guard.py). Off by default. In production it also needs ALLOW_DEMO_IN_PRODUCTION=true, because a
+    # demo exposes sign-in without a password; see _require_safe_demo_mode.
+    demo_mode: bool = False
+    allow_demo_in_production: bool = False
+    # Password of the seeded demo accounts. Unset: derived from JWT_SECRET_KEY (app/demo/accounts.py), so every
+    # deployment has its own and none is written in the source. Demo accounts only sign in while DEMO_MODE is true.
+    demo_password: str | None = Field(default=None, min_length=12)
+
     @field_validator("database_url", "test_database_url", "migration_database_url")
     @classmethod
     def _normalize_database_url(cls, value: str | None) -> str | None:
@@ -135,17 +153,62 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _require_strong_secret_outside_local(self) -> "Settings":
+        """Production rule 1: outside development and test, JWT_SECRET_KEY must be a generated secret.
+
+        Refused: a known placeholder, anything containing a placeholder marker (for example "change-me"), fewer
+        than MIN_JWT_SECRET_LENGTH characters, or fewer than MIN_DISTINCT_SECRET_CHARACTERS different characters.
+        """
         if self.is_local:
             return self
-        if self.jwt_secret_key in PLACEHOLDER_JWT_SECRETS:
+        secret = self.jwt_secret_key
+        if secret in PLACEHOLDER_JWT_SECRETS or any(marker in secret.lower() for marker in WEAK_SECRET_MARKERS):
             raise ValueError(
                 f"JWT_SECRET_KEY is a known placeholder and cannot be used in {self.environment}; "
                 f"set JWT_SECRET_KEY to a random value ({SECRET_HINT})"
             )
-        if len(self.jwt_secret_key) < MIN_JWT_SECRET_LENGTH:
+        if len(secret) < MIN_JWT_SECRET_LENGTH or len(set(secret)) < MIN_DISTINCT_SECRET_CHARACTERS:
             raise ValueError(
-                f"JWT_SECRET_KEY must be at least {MIN_JWT_SECRET_LENGTH} characters in {self.environment}; "
-                f"set JWT_SECRET_KEY to a random value ({SECRET_HINT})"
+                f"JWT_SECRET_KEY must be at least {MIN_JWT_SECRET_LENGTH} characters and not repetitive in "
+                f"{self.environment}; set JWT_SECRET_KEY to a random value ({SECRET_HINT})"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _require_strong_database_password_outside_local(self) -> "Settings":
+        """Production rule 2: outside development and test, the database password must not be a default.
+
+        Refused: no password, one of WEAK_DATABASE_PASSWORDS (case-insensitive) or one shorter than
+        MIN_DATABASE_PASSWORD_LENGTH characters. The message never repeats the password.
+        """
+        if self.is_local:
+            return self
+        for name, url in (("DATABASE_URL", self.database_url), ("MIGRATION_DATABASE_URL", self.migration_database_url)):
+            if not url:  # an unset or empty MIGRATION_DATABASE_URL falls back to DATABASE_URL
+                continue
+            password = make_url(url).password
+            if (
+                not password
+                or password.lower() in WEAK_DATABASE_PASSWORDS
+                or len(password) < MIN_DATABASE_PASSWORD_LENGTH
+            ):
+                raise ValueError(
+                    f"{name} has no password, a default one or a very short one, which cannot be used in "
+                    f"{self.environment}; set a strong password for the database user"
+                )
+        return self
+
+    @model_validator(mode="after")
+    def _require_safe_demo_mode(self) -> "Settings":
+        """Production rule 3: DEMO_MODE=true together with ENVIRONMENT=production is refused.
+
+        A demo lets anyone sign in as any role without a password, so it must never switch on by a stray variable
+        in a real deployment. A deliberate public demo hosted as production sets ALLOW_DEMO_IN_PRODUCTION=true as
+        well. Development, test and staging need nothing extra.
+        """
+        if self.demo_mode and self.environment == "production" and not self.allow_demo_in_production:
+            raise ValueError(
+                "DEMO_MODE=true is refused when ENVIRONMENT=production: it lets visitors sign in without a "
+                "password. Set ALLOW_DEMO_IN_PRODUCTION=true as well only for a public demo deployment"
             )
         return self
 

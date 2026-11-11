@@ -58,8 +58,10 @@ def _send_smtp(settings: Settings, host: str, message: EmailMessage) -> None:
 def deliver(settings: Settings, row: EmailOutbox) -> None:
     """Attempt one delivery and record the outcome on the row. Never raises for a delivery problem."""
     row.attempts += 1
-    if not settings.smtp_host:
-        logger.info("Email (not sent, SMTP not configured) to=%s subject=%s", row.to_address, row.subject)
+    # The demo never sends mail, even when SMTP happens to be configured: the outbox only records it as logged.
+    if settings.demo_mode or not settings.smtp_host:
+        reason = "demo mode" if settings.demo_mode else "SMTP not configured"
+        logger.info("Email (not sent, %s) to=%s subject=%s", reason, row.to_address, row.subject)
         row.status = OUTBOX_LOGGED
         row.sent_at = datetime.now(UTC)
         return

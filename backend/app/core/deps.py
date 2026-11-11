@@ -7,6 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.config import get_settings
+from app.core.demo_guard import is_demo_email
 from app.core.permissions import SUPPLIER_ROLE
 from app.core.security import TokenError, decode_token
 from app.db.session import get_db
@@ -40,6 +42,9 @@ async def get_authenticated_user(token: Annotated[str, Depends(oauth2_scheme)], 
     )
     user = result.scalar_one_or_none()
     if user is None or not user.is_active:
+        raise credentials_exception
+    if is_demo_email(user.email) and not get_settings().demo_mode:
+        # Demo accounts only work while the demo is on, whatever token or password they still hold.
         raise credentials_exception
     return user
 

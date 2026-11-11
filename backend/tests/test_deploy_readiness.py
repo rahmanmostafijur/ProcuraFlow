@@ -10,7 +10,8 @@ from app.core.database_url import asyncpg_connect_args, normalize_database_url, 
 from app.db.session import get_db
 from app.main import app
 
-STRONG_SECRET = "x" * 48
+STRONG_SECRET = "k3Vq9xLr0TzP7mWb2NcY8sHd5FgJ1aUe6RoXiQ4vEyZt"
+STRONG_DATABASE_URL = "postgresql+asyncpg://procuraflow:Zq8vL2mN7xR4tW9k@db.internal:5432/procuraflow"
 
 
 @pytest.mark.parametrize(
@@ -74,12 +75,14 @@ def test_cors_is_closed_by_default_in_production(monkeypatch: pytest.MonkeyPatch
     monkeypatch.delenv("CORS_ORIGINS", raising=False)
     monkeypatch.setenv("ENVIRONMENT", "production")
     monkeypatch.setenv("JWT_SECRET_KEY", STRONG_SECRET)
+    monkeypatch.setenv("DATABASE_URL", STRONG_DATABASE_URL)
     assert Settings(_env_file=None).cors_origin_list == []
 
 
 def test_explicit_cors_origins_are_honoured_in_production(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ENVIRONMENT", "production")
     monkeypatch.setenv("JWT_SECRET_KEY", STRONG_SECRET)
+    monkeypatch.setenv("DATABASE_URL", STRONG_DATABASE_URL)
     monkeypatch.setenv("CORS_ORIGINS", "https://app.example.com, https://admin.example.com")
     assert Settings(_env_file=None).cors_origin_list == ["https://app.example.com", "https://admin.example.com"]
 

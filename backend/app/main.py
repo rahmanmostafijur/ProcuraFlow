@@ -1,8 +1,9 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import get_settings
+from app.core.demo_guard import demo_guard
 from app.core.proxy import TrustedProxyMiddleware
 from app.routers import (
     account,
@@ -18,6 +19,7 @@ from app.routers import (
     currencies,
     dashboard,
     deliveries,
+    demo_auth,
     email_templates,
     exports,
     gdpr,
@@ -46,7 +48,8 @@ from app.routers import (
 
 settings = get_settings()
 
-app = FastAPI(title="ProcuraFlow API", version="1.0.0")
+# One application-wide guard for the public demo (a no-op unless DEMO_MODE is on); see app/core/demo_guard.py.
+app = FastAPI(title="ProcuraFlow API", version="1.0.0", dependencies=[Depends(demo_guard)])
 
 app.add_middleware(
     CORSMiddleware,
@@ -80,6 +83,7 @@ app.include_router(health.router, prefix="/api")
 
 API_PREFIX = "/api/v1"
 app.include_router(auth.router, prefix=API_PREFIX)
+app.include_router(demo_auth.router, prefix=API_PREFIX)
 app.include_router(account.router, prefix=API_PREFIX)
 app.include_router(email_templates.router, prefix=API_PREFIX)
 app.include_router(notifications.router, prefix=API_PREFIX)
