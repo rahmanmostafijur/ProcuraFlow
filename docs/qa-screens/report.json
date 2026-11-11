@@ -1,0 +1,1838 @@
+[
+  {
+    "route": "/",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/login",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/login",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/forgot-password",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/forgot-password",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/dashboard",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/dashboard",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/suppliers",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/suppliers",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/suppliers/1",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/suppliers/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/suppliers/expiring-documents",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/suppliers/expiring-documents",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/products",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/products",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/invoices",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/invoices",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/invoices/1",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/invoices/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/purchase-orders",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/purchase-orders",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/purchase-orders/1",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/purchase-orders/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/requests",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/requests",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/requests/1",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/requests/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/approvals",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/approvals",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/catalog",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/catalog",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/budgets",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/budgets",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/approval-settings",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/approval-settings",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/inventory",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/inventory",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/deliveries",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/deliveries",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/reports",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/reports",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/profile",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/profile",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/audit-log",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/audit-log",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/users",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/users",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/settings",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/settings",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/settings/email-templates",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/settings/email-templates",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/payment-runs",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/payment-runs",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/exports",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/exports",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/gdpr",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/gdpr",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/finance",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/finance",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/portal",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal/invoices",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/portal/invoices",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal/documents",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/portal/documents",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal/password",
+    "viewport": "1440x900",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/portal/password",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/login",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/login",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/forgot-password",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/forgot-password",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/dashboard",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/dashboard",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/suppliers",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/suppliers",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/suppliers/1",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/suppliers/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/suppliers/expiring-documents",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/suppliers/expiring-documents",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/products",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/products",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/invoices",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/invoices",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/invoices/1",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/invoices/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/purchase-orders",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/purchase-orders",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/purchase-orders/1",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/purchase-orders/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/requests",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/requests",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/requests/1",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/requests/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/approvals",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/approvals",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/catalog",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/catalog",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/budgets",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/budgets",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/approval-settings",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/approval-settings",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/inventory",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/inventory",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/deliveries",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/deliveries",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/reports",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/reports",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/profile",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/profile",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/audit-log",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/audit-log",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/users",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/users",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/settings",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/settings",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/settings/email-templates",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/settings/email-templates",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/payment-runs",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/payment-runs",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/exports",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/exports",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/gdpr",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/gdpr",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/finance",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/finance",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/portal",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal/invoices",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/portal/invoices",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal/documents",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/portal/documents",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal/password",
+    "viewport": "1440x900",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/portal/password",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/login",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/login",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/forgot-password",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/forgot-password",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/dashboard",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/dashboard",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/suppliers",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/suppliers",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/suppliers/1",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/suppliers/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/suppliers/expiring-documents",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/suppliers/expiring-documents",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/products",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/products",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/invoices",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/invoices",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/invoices/1",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/invoices/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/purchase-orders",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/purchase-orders",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/purchase-orders/1",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/purchase-orders/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/requests",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/requests",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/requests/1",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/requests/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/approvals",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/approvals",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/catalog",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/catalog",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/budgets",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/budgets",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/approval-settings",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/approval-settings",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/inventory",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/inventory",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/deliveries",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/deliveries",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/reports",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/reports",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/profile",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/profile",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/audit-log",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/audit-log",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/users",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/users",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/settings",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/settings",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/settings/email-templates",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/settings/email-templates",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/payment-runs",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/payment-runs",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/exports",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/exports",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/gdpr",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/gdpr",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/finance",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/finance",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/portal",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal/invoices",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/portal/invoices",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal/documents",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/portal/documents",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal/password",
+    "viewport": "1024x768",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/portal/password",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/login",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/login",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/forgot-password",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/forgot-password",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/dashboard",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/dashboard",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/suppliers",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/suppliers",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/suppliers/1",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/suppliers/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/suppliers/expiring-documents",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/suppliers/expiring-documents",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/products",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/products",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/invoices",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/invoices",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/invoices/1",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/invoices/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/purchase-orders",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/purchase-orders",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/purchase-orders/1",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/purchase-orders/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/requests",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/requests",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/requests/1",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/requests/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/approvals",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/approvals",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/catalog",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/catalog",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/budgets",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/budgets",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/approval-settings",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/approval-settings",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/inventory",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/inventory",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/deliveries",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/deliveries",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/reports",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/reports",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/profile",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/profile",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/audit-log",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/audit-log",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/users",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/users",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/settings",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/settings",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/settings/email-templates",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/settings/email-templates",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/payment-runs",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/payment-runs",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/exports",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/exports",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/gdpr",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/gdpr",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/finance",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/finance",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/portal",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal/invoices",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/portal/invoices",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal/documents",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/portal/documents",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal/password",
+    "viewport": "1024x768",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/portal/password",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/login",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/login",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/forgot-password",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/forgot-password",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/dashboard",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/dashboard",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/suppliers",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/suppliers",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/suppliers/1",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/suppliers/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/suppliers/expiring-documents",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/suppliers/expiring-documents",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/products",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/products",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/invoices",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/invoices",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/invoices/1",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/invoices/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/purchase-orders",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/purchase-orders",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/purchase-orders/1",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/purchase-orders/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/requests",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/requests",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/requests/1",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/requests/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/approvals",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/approvals",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/catalog",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/catalog",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/budgets",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/budgets",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/approval-settings",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/approval-settings",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/inventory",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/inventory",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/deliveries",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/deliveries",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/reports",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/reports",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/profile",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/profile",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/audit-log",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/audit-log",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/users",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/users",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/settings",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/settings",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/settings/email-templates",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/settings/email-templates",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/payment-runs",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/payment-runs",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/exports",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/exports",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/gdpr",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/gdpr",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/finance",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/finance",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/portal",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal/invoices",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/portal/invoices",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal/documents",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/portal/documents",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal/password",
+    "viewport": "390x844",
+    "theme": "light",
+    "finalUrl": "http://127.0.0.1:5180/portal/password",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/login",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/login",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/forgot-password",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/forgot-password",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/dashboard",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/dashboard",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/suppliers",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/suppliers",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/suppliers/1",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/suppliers/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/suppliers/expiring-documents",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/suppliers/expiring-documents",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/products",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/products",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/invoices",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/invoices",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/invoices/1",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/invoices/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/purchase-orders",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/purchase-orders",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/purchase-orders/1",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/purchase-orders/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/requests",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/requests",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/requests/1",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/requests/1",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/approvals",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/approvals",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/catalog",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/catalog",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/budgets",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/budgets",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/approval-settings",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/approval-settings",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/inventory",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/inventory",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/deliveries",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/deliveries",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/reports",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/reports",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/profile",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/profile",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/audit-log",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/audit-log",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/users",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/users",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/settings",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/settings",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/settings/email-templates",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/settings/email-templates",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/payment-runs",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/payment-runs",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/exports",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/exports",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/gdpr",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/gdpr",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/finance",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/finance",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/portal",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal/invoices",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/portal/invoices",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal/documents",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/portal/documents",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  },
+  {
+    "route": "/portal/password",
+    "viewport": "390x844",
+    "theme": "dark",
+    "finalUrl": "http://127.0.0.1:5180/portal/password",
+    "errors": [],
+    "violations": [],
+    "overflowX": 0
+  }
+]
