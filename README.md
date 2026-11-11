@@ -143,24 +143,27 @@ Every setting is listed, with comments and safe placeholders, in [.env.example](
 
 ## Screenshots
 
-Screenshots are captured by a script at 1920x1080 and stored in `docs/screenshots/`. They are added when the
-documentation phase is finished; the folder is empty until then. Planned set (file names are the intended ones, not
-yet present):
+The images are 1920x1080 captures of the demo company (fictional data, see `backend/app/demo/`), taken by
+`npm run screenshots` in `frontend/` against a backend running with `DEMO_MODE=true` after
+`python -m app.cli.demo_reset`.
 
-| Screen | File |
-|---|---|
-| Landing page | `docs/screenshots/landing.png` |
-| Dashboard | `docs/screenshots/dashboard.png` |
-| Purchase request and approvals | `docs/screenshots/requests.png`, `docs/screenshots/approvals.png` |
-| Purchase order | `docs/screenshots/purchase-order.png` |
-| Supplier invoice with matching | `docs/screenshots/invoice.png` |
-| Payment run | `docs/screenshots/payment-run.png` |
-| Budgets | `docs/screenshots/budgets.png` |
-| Reports | `docs/screenshots/reports.png` |
-| Supplier portal | `docs/screenshots/supplier-portal.png` |
-| Settings | `docs/screenshots/settings.png` |
-
-Once the images exist, reference them here with `![Dashboard](docs/screenshots/dashboard.png)`.
+![Landing page](docs/screenshots/landing.png)
+![Sign-in with one-click demo roles](docs/screenshots/login.png)
+![Dashboard](docs/screenshots/dashboard.png)
+![Dashboard in dark mode](docs/screenshots/dashboard-dark.png)
+![Purchase requests](docs/screenshots/requests.png)
+![My approvals](docs/screenshots/approvals.png)
+![Purchase orders](docs/screenshots/purchase-orders.png)
+![Purchase order with lifecycle, approval history and versions](docs/screenshots/purchase-order.png)
+![Supplier invoices](docs/screenshots/invoices.png)
+![Supplier invoice with three-way match](docs/screenshots/invoice.png)
+![Payment runs](docs/screenshots/payment-run.png)
+![Budgets](docs/screenshots/budgets.png)
+![Suppliers](docs/screenshots/suppliers.png)
+![Inventory](docs/screenshots/inventory.png)
+![Reports](docs/screenshots/reports.png)
+![Supplier portal](docs/screenshots/supplier-portal.png)
+![Company settings](docs/screenshots/settings.png)
 
 ## Security
 
