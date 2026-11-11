@@ -2,11 +2,6 @@ import { Suspense, lazy } from "react";
 import { Route, Routes } from "react-router-dom";
 
 import { LoadingState } from "@/components/ui/LoadingState";
-import { AppShell } from "@/components/layout/AppShell";
-import { AcceptInvitationPage } from "@/features/auth/AcceptInvitationPage";
-import { ForgotPasswordPage } from "@/features/auth/ForgotPasswordPage";
-import { LoginPage } from "@/features/auth/LoginPage";
-import { ResetPasswordPage } from "@/features/auth/ResetPasswordPage";
 import { CompanySettingsProvider } from "@/lib/CompanySettingsProvider";
 import { InternalRoute } from "@/routes/InternalRoute";
 import { PermissionRoute } from "@/routes/PermissionRoute";
@@ -14,6 +9,19 @@ import { LandingRoute } from "@/routes/LandingRoute";
 import { PortalRoute } from "@/routes/PortalRoute";
 import { ProtectedRoute } from "@/routes/ProtectedRoute";
 
+// The shell and the sign-in pages are loaded on demand: a visitor of the landing page needs none of them, and
+// they bring the form, validation and navigation libraries with them.
+const AppShell = lazy(() => import("@/components/layout/AppShell").then((m) => ({ default: m.AppShell })));
+const AcceptInvitationPage = lazy(() =>
+  import("@/features/auth/AcceptInvitationPage").then((m) => ({ default: m.AcceptInvitationPage })),
+);
+const ForgotPasswordPage = lazy(() =>
+  import("@/features/auth/ForgotPasswordPage").then((m) => ({ default: m.ForgotPasswordPage })),
+);
+const LoginPage = lazy(() => import("@/features/auth/LoginPage").then((m) => ({ default: m.LoginPage })));
+const ResetPasswordPage = lazy(() =>
+  import("@/features/auth/ResetPasswordPage").then((m) => ({ default: m.ResetPasswordPage })),
+);
 const ApprovalSettingsPage = lazy(() =>
   import("@/features/approval-settings/ApprovalSettingsPage").then((m) => ({ default: m.ApprovalSettingsPage })),
 );

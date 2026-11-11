@@ -11,6 +11,8 @@ import { MemoryRouter } from "react-router-dom";
 
 import { LandingPage } from "./LandingPage";
 
+const LAZY_CHUNK_WAIT_MS = 20_000;
+
 function renderAnonymousApp() {
   return render(
     <AuthContext.Provider
@@ -50,25 +52,33 @@ describe("landing page", () => {
     expect(await screen.findByRole("heading", { level: 1 })).toHaveTextContent("No monthly fee");
   });
 
-  it("sends a signed-in internal user at / to the dashboard route", async () => {
-    const branding = { company_name: "Northbeam", brand_color: "#0F766E", logo_url: null };
-    vi.spyOn(apiClient, "get").mockImplementation((url) => {
-      if (url === "/company-settings/branding") return Promise.resolve({ data: branding });
-      if (url === "/company-settings")
-        return Promise.resolve({ data: { ...branding, updated_at: "2026-11-01T00:00:00Z" } });
-      return Promise.reject(new Error(`unexpected GET ${url}`));
-    });
-    renderWithProviders(
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>,
-      { user: testUser, route: "/" },
-    );
+  it(
+    "sends a signed-in internal user at / to the dashboard route",
+    async () => {
+      const branding = { company_name: "Northbeam", brand_color: "#0F766E", logo_url: null };
+      vi.spyOn(apiClient, "get").mockImplementation((url) => {
+        if (url === "/company-settings/branding") return Promise.resolve({ data: branding });
+        if (url === "/company-settings")
+          return Promise.resolve({ data: { ...branding, updated_at: "2026-11-01T00:00:00Z" } });
+        return Promise.reject(new Error(`unexpected GET ${url}`));
+      });
+      renderWithProviders(
+        <ThemeProvider>
+          <App />
+        </ThemeProvider>,
+        { user: testUser, route: "/" },
+      );
 
-    expect(await screen.findByRole("link", { name: "Dashboard" })).toHaveAttribute("aria-current", "page");
-    expect(screen.queryByRole("heading", { level: 1, name: /No monthly fee/ })).not.toBeInTheDocument();
-    vi.restoreAllMocks();
-  });
+      // The shell and the dashboard are separate chunks that load on demand, so the first import takes a moment.
+      expect(await screen.findByRole("link", { name: "Dashboard" }, { timeout: LAZY_CHUNK_WAIT_MS })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+      expect(screen.queryByRole("heading", { level: 1, name: /No monthly fee/ })).not.toBeInTheDocument();
+      vi.restoreAllMocks();
+    },
+    LAZY_CHUNK_WAIT_MS * 2,
+  );
 
   it("opens and closes a FAQ answer", () => {
     renderWithProviders(
