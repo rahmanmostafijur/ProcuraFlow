@@ -94,6 +94,10 @@ def _touches_protected_setting(body: Body) -> bool:
 
 
 DEMO_RULES: tuple[DemoRule, ...] = (
+    # A visitor who is the demo admin could otherwise create an admin with a password of their choosing; such an
+    # account is not a demo account, so it would outlive the demo being switched off. Invitations stay open: they
+    # carry no password and the invitation email is only logged in the demo.
+    DemoRule("POST", _compiled(r"/users"), "New accounts cannot be created"),
     DemoRule("DELETE", _compiled(r"/users/\d+"), "Users cannot be deleted"),
     DemoRule(
         "PATCH",

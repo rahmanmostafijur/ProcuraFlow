@@ -152,6 +152,40 @@ async def test_demo_accounts_cannot_sign_in_or_use_old_tokens_once_the_demo_is_o
     assert (after_login.status_code, after_token.status_code) == (401, 401)
 
 
+async def test_a_demo_refresh_cookie_stops_working_once_the_demo_is_off(
+    client: AsyncClient, db_session: AsyncSession, roles: dict[str, Role], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await _demo_user(db_session, roles, "admin")
+    settings = get_settings()
+    monkeypatch.setattr(settings, "demo_mode", True)
+    assert (await client.post(LOGIN_URL, json={"role": "admin"})).status_code == 200
+    assert (await client.post(f"{API}/auth/refresh")).status_code == 200
+    monkeypatch.setattr(settings, "demo_mode", False)
+
+    after = await client.post(f"{API}/auth/refresh")
+
+    assert after.status_code == 401
+
+
+@pytest.mark.usefixtures("demo_on")
+async def test_a_demo_admin_cannot_create_an_account_with_a_password_of_their_choosing(
+    client: AsyncClient, db_session: AsyncSession, roles: dict[str, Role]
+) -> None:
+    await _demo_user(db_session, roles, "admin")
+    token = (await client.post(LOGIN_URL, json={"role": "admin"})).json()["access_token"]
+    body = {
+        "email": "new.admin@example.com",
+        "full_name": "New Admin",
+        "role_id": roles["admin"].id,
+        "password": "A-long-password-1",
+    }
+
+    response = await client.post(f"{API}/users", json=body, headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 403
+    assert BLOCKED in response.json()["detail"]
+
+
 def test_the_demo_password_comes_from_configuration() -> None:
     base: dict[str, Any] = {"_env_file": None, "environment": "test", "jwt_secret_key": STRONG_SECRET}
     derived = demo_password(Settings(**base))
@@ -307,6 +341,8 @@ async def test_the_seed_may_do_what_a_visitor_may_not(client: AsyncClient, auth_
 @pytest.mark.parametrize(
     ("method", "path", "body", "blocked"),
     [
+        ("POST", "/api/v1/users", {"email": "x@example.com", "role_id": 1, "password": "A-long-password-1"}, True),
+        ("POST", "/api/v1/users/invite", {"email": "x@example.com", "role_id": 2}, False),
         ("DELETE", "/api/v1/users/5", None, True),
         ("PATCH", "/api/v1/users/5", {"is_active": False}, True),
         ("PATCH", "/api/v1/users/5", {"is_active": True}, False),

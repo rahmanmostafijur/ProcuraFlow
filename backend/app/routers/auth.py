@@ -103,6 +103,10 @@ async def refresh_access_token(
     except RefreshTokenError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
 
+    if is_demo_email(rotation.user.email) and not get_settings().demo_mode:
+        # Same rule as sign-in and bearer tokens: demo accounts only work while the demo is on, so no new cookie.
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not signed in")
+
     if rotation.refresh_token is not None:
         _set_refresh_cookie(response, rotation.refresh_token)
     return AccessTokenResponse(access_token=create_access_token(str(rotation.user.id), rotation.user.role.name))
