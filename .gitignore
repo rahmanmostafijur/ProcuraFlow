@@ -25,3 +25,6 @@ frontend/*.tsbuildinfo
 frontend/vite.config.js
 frontend/vite.config.d.ts
 backend/var/
+
+## Visual QA captures (regenerate with npm run qa:capture; the report is kept)
+docs/qa-screens/*/
