@@ -48,7 +48,7 @@ export const settingsSchema = z.object({
     .string()
     .trim()
     .regex(/^[A-Za-z]{3}$/, "Use a three-letter ISO currency code"),
-  fiscal_year_start_month: z.coerce.number().int().min(1).max(12),
+  fiscal_year_start_month: z.coerce.number<number>().int().min(1).max(12),
   date_format: z.enum(["YYYY-MM-DD", "MM/DD/YYYY", "DD/MM/YYYY", "DD.MM.YYYY"]),
   timezone: z.string().min(1, "Choose a time zone"),
   po_number_prefix: z
@@ -56,11 +56,11 @@ export const settingsSchema = z.object({
     .trim()
     .regex(/^[A-Za-z0-9]{1,10}$/, "1 to 10 letters or digits"),
   invoice_tolerance_percent: z.coerce
-    .number({ invalid_type_error: "Enter a percentage" })
+    .number<number>({ error: "Enter a percentage" })
     .min(0, "0 or more")
     .max(100, "100 or less")
     .multipleOf(0.01, "At most two decimals"),
-  default_payment_terms_days: z.coerce.number().int("Whole days only").min(0).max(365),
+  default_payment_terms_days: z.coerce.number<number>().int("Whole days only").min(0).max(365),
   payer_iban: optionalText(34),
   payer_bic: optionalText(11),
   payer_routing_number: optionalText(9),

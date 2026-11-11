@@ -13,9 +13,9 @@ export function productIdsChosenOnOtherLines(items: readonly LineProduct[], inde
 
 const itemSchema = z.object({
   product_id: z.string().min(1, "Select a product"),
-  quantity: z.coerce.number().int().positive("Must be greater than 0"),
+  quantity: z.coerce.number<number>().int().positive("Must be greater than 0"),
   unit_price: z.coerce
-    .number()
+    .number<number>()
     .min(0, "Must be zero or more")
     .refine((value) => Math.abs(value * 10_000 - Math.round(value * 10_000)) < 1e-6, "At most 4 decimals"),
   // Empty means no tax on this line; otherwise the id of a tax rate.

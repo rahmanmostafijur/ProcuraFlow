@@ -12,7 +12,7 @@ import { Select } from "@/components/ui/Select";
 const schema = z.object({
   product_id: z.string().min(1, "Select a product"),
   quantity_delta: z.coerce
-    .number()
+    .number<number>()
     .int()
     .refine((val) => val !== 0, "Enter a non-zero quantity"),
   reason: z.string().min(1, "Reason is required").max(255),

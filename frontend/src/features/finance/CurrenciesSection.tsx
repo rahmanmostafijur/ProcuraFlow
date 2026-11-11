@@ -21,7 +21,7 @@ const schema = z.object({
     .regex(/^[A-Za-z]{3}$/, "Three letters, e.g. CHF"),
   name: z.string().trim().min(1, "Name is required").max(100),
   symbol: z.string().trim().min(1, "Symbol is required").max(8),
-  minor_units: z.coerce.number().int("Whole number").min(0).max(4),
+  minor_units: z.coerce.number<number>().int("Whole number").min(0).max(4),
 });
 
 type FormValues = z.infer<typeof schema>;

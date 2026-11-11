@@ -7,8 +7,8 @@ export const productFormSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
   category_id: z.string().optional(),
   unit: z.string().min(1, "Unit is required").max(32),
-  cost: z.coerce.number().min(0, "Cost must be zero or more"),
-  minimum_stock: z.coerce.number().int().min(0, "Minimum stock must be zero or more"),
+  cost: z.coerce.number<number>().min(0, "Cost must be zero or more"),
+  minimum_stock: z.coerce.number<number>().int().min(0, "Minimum stock must be zero or more"),
   supplier_id: z.string().optional(),
   is_active: z.enum(["true", "false"]).optional(),
 });

@@ -11,7 +11,7 @@ export const catalogFormSchema = z
     contract_price: z.string().trim().regex(PRICE_PATTERN, "A price with up to 4 decimals"),
     currency_code: z.string(),
     lead_time_days: z.coerce
-      .number({ invalid_type_error: "Enter a number of days" })
+      .number<number>({ error: "Enter a number of days" })
       .int("Whole days only")
       .min(0, "Zero or more")
       .max(3650, "At most 3650"),

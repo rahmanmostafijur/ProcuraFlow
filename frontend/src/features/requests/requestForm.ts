@@ -8,7 +8,7 @@ const PRICE_PATTERN = /^\d{1,10}(\.\d{1,4})?$/;
 const lineSchema = z.object({
   description: z.string().trim().min(1, "Describe what is needed").max(500, "At most 500 characters"),
   quantity: z.coerce
-    .number({ invalid_type_error: "Enter a quantity" })
+    .number<number>({ error: "Enter a quantity" })
     .int("Whole units only")
     .positive("Must be greater than 0")
     .max(1_000_000),
