@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { usePaymentRuns, type PaymentRun } from "@/api/paymentRuns";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
@@ -26,7 +26,7 @@ export function PaymentRunsPage() {
 
   const columns: Column<PaymentRun>[] = [
     { header: "Run", accessor: (row) => <span className="font-medium text-text-primary">{row.number}</span> },
-    { header: "Status", accessor: (row) => <Badge status={row.status}>{row.status}</Badge> },
+    { header: "Status", accessor: (row) => <StatusBadge status={row.status} /> },
     { header: "Payments", accessor: (row) => row.items.length },
     { header: "Total", accessor: (row) => formatCurrency(row.total, row.currency_code) },
     { header: "Created", accessor: (row) => formatDate(row.created_at) },

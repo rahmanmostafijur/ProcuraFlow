@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { usePortalOrders, type PortalOrderSummary } from "@/api/portal";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { Pagination } from "@/components/ui/Pagination";
@@ -19,7 +19,7 @@ export function PortalOrdersPage() {
 
   const columns: Column<PortalOrderSummary>[] = [
     { header: "Order", accessor: (row) => <span className="font-medium text-text-primary">{row.po_number}</span> },
-    { header: "Status", accessor: (row) => <Badge status={row.status}>{row.status.replace(/_/g, " ")}</Badge> },
+    { header: "Status", accessor: (row) => <StatusBadge status={row.status} /> },
     { header: "Total", accessor: (row) => formatCurrency(row.grand_total, row.currency_code) },
     {
       header: "Delivery",
@@ -28,7 +28,7 @@ export function PortalOrdersPage() {
     {
       header: "Acknowledged",
       accessor: (row) =>
-        row.acknowledged_at ? formatDate(row.acknowledged_at) : <Badge status="pending">Waiting</Badge>,
+        row.acknowledged_at ? formatDate(row.acknowledged_at) : <StatusBadge status="pending" label="Waiting" />,
     },
   ];
 

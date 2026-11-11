@@ -1,5 +1,6 @@
 import { absoluteLogoUrl } from "@/api/companySettings";
 import type { Branding } from "@/api/types";
+import { readableTextOn } from "@/lib/contrast";
 import { cn } from "@/lib/utils";
 
 interface CompanyMarkProps {
@@ -7,6 +8,8 @@ interface CompanyMarkProps {
   size?: "sm" | "lg";
   showName?: boolean;
 }
+
+const DEFAULT_BRAND = "#0F766E";
 
 function initials(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);
@@ -22,6 +25,7 @@ function initials(name: string): string {
 export function CompanyMark({ branding, size = "sm", showName = true }: CompanyMarkProps) {
   const name = branding?.company_name ?? "ProcuraFlow";
   const logo = absoluteLogoUrl(branding?.logo_url ?? null);
+  const brand = /^#[0-9a-f]{6}$/i.test(branding?.brand_color ?? "") ? (branding?.brand_color as string) : DEFAULT_BRAND;
   const box = size === "lg" ? "h-12 w-12 text-lg" : "h-8 w-8 text-sm";
 
   return (
@@ -31,8 +35,8 @@ export function CompanyMark({ branding, size = "sm", showName = true }: CompanyM
       ) : (
         <div
           aria-hidden="true"
-          className={cn("flex shrink-0 items-center justify-center rounded-control font-bold text-on-brand", box)}
-          style={{ backgroundColor: "var(--company-brand, #0F766E)" }}
+          className={cn("flex shrink-0 items-center justify-center rounded-control font-bold", box)}
+          style={{ backgroundColor: brand, color: readableTextOn(brand) }}
         >
           {initials(name)}
         </div>

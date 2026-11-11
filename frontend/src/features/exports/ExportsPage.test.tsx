@@ -19,7 +19,7 @@ describe("ExportsPage", () => {
       target: { value: "2026-01-01" },
     });
     fireEvent.change(screen.getByLabelText("Bills for QuickBooks Online status"), { target: { value: "approved" } });
-    fireEvent.click(screen.getByRole("button", { name: "Download Bills for QuickBooks Online" }));
+    fireEvent.click(screen.getByRole("button", { name: "Download CSV of Bills for QuickBooks Online" }));
 
     await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
     expect(get).toHaveBeenCalledWith("/exports/bills/quickbooks.csv", {
@@ -34,7 +34,7 @@ describe("ExportsPage", () => {
     vi.spyOn(download, "saveBlob").mockImplementation(() => undefined);
     renderWithProviders(<ExportsPage />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Download Suppliers" }));
+    fireEvent.click(screen.getByRole("button", { name: "Download CSV of Suppliers" }));
 
     await waitFor(() =>
       expect(get).toHaveBeenCalledWith("/exports/suppliers.csv", { params: {}, responseType: "blob" }),
@@ -52,7 +52,7 @@ describe("ExportsPage", () => {
     vi.spyOn(apiClient, "get").mockRejectedValue(new Error("boom"));
     renderWithProviders(<ExportsPage />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Download Purchase orders" }));
+    fireEvent.click(screen.getByRole("button", { name: "Download CSV of Purchase orders" }));
 
     expect(await screen.findByText("The export could not be downloaded. Please try again.")).toBeInTheDocument();
   });

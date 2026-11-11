@@ -5,6 +5,7 @@ import {
   deriveLocale,
   formatCompactMoney,
   formatMoney,
+  formatMonth,
   formatNumber,
   formatPercent,
   formatRelative,
@@ -105,5 +106,21 @@ describe("deriveLocale", () => {
   it("falls back to the browser language for a missing or invalid country", () => {
     expect(deriveLocale(null)).toBe(navigator.language);
     expect(deriveLocale("not-a-country!")).toBe(navigator.language);
+  });
+});
+
+describe("formatMonth", () => {
+  it("writes a month key as a short month and year in the company locale", () => {
+    configureFormatting({ locale: "en-US" });
+    expect(formatMonth("2026-05")).toBe("May 2026");
+    configureFormatting({ locale: "de-DE" });
+    expect(formatMonth("2026-03")).toBe("März 2026");
+  });
+
+  it("leaves text that is not a month key as it is and blanks out empty input", () => {
+    expect(formatMonth("Q3")).toBe("Q3");
+    expect(formatMonth("")).toBe("—");
+    expect(formatMonth(null)).toBe("—");
+    expect(formatMonth(7)).toBe("—");
   });
 });

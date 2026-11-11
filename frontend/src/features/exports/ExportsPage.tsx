@@ -76,7 +76,7 @@ function ExportCard({ kind }: { kind: ExportKind }) {
         )}
       </div>
       <div className="mt-4 flex justify-end">
-        <Button disabled={isBusy} onClick={() => void download()} aria-label={`Download ${kind.label}`}>
+        <Button disabled={isBusy} onClick={() => void download()} aria-label={`Download CSV of ${kind.label}`}>
           <Download className="h-4 w-4" /> {isBusy ? "Preparing…" : "Download CSV"}
         </Button>
       </div>

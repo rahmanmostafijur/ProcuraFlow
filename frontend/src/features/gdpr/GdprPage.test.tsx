@@ -66,7 +66,7 @@ describe("GdprPage", () => {
     const save = vi.spyOn(download, "saveBlob").mockImplementation(() => undefined);
     renderWithProviders(<GdprPage />, { permissions: ["gdpr:manage"] });
 
-    fireEvent.click(await screen.findByRole("button", { name: "Export data of Ada Admin" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Export JSON data of Ada Admin" }));
 
     await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
     expect(save.mock.calls[0][1]).toBe("gdpr-users-4.json");

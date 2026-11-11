@@ -4,7 +4,7 @@ import { useState } from "react";
 import { extractErrorMessage } from "@/api/client";
 import { useCreateUser, useUpdateUser, useUsers } from "@/api/users";
 import type { User } from "@/api/types";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
@@ -39,9 +39,7 @@ export function UsersPage() {
     { header: "Role", accessor: (row) => <span className="capitalize">{row.role.name.replace(/_/g, " ")}</span> },
     {
       header: "Status",
-      accessor: (row) => (
-        <Badge status={row.is_active ? "active" : "inactive"}>{row.is_active ? "Active" : "Inactive"}</Badge>
-      ),
+      accessor: (row) => <StatusBadge status={row.is_active ? "active" : "inactive"} />,
     },
     { header: "Joined", accessor: (row) => formatDate(row.created_at) },
   ];

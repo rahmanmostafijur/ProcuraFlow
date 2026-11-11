@@ -5,7 +5,7 @@ import { KpiCard } from "@/components/ui/KpiCard";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useAuth } from "@/lib/auth-context";
-import { formatCompactMoney, formatMoney, formatNumber } from "@/lib/format";
+import { formatCompactMoney, formatMoney, formatMonth, formatNumber } from "@/lib/format";
 
 import { BudgetHealthCard, ExpiringDocumentsCard, RecentActivityCard, WaitingForYouCard } from "./DashboardCards";
 import { PipelineStrip } from "./PipelineStrip";
@@ -30,6 +30,7 @@ function SpendByMonth() {
           xKey="month"
           series={[{ key: "total_spend", label: "Committed spend" }]}
           formatValue={(value) => formatMoney(value)}
+          formatX={formatMonth}
           height={280}
         />
       )}

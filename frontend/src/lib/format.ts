@@ -174,6 +174,20 @@ export function formatDate(value: string | null | undefined): string {
   return assemble(year, month, day);
 }
 
+const MONTH_KEY = /^(\d{4})-(\d{2})$/;
+
+/** "2026-05" as "May 2026" in the company locale (a calendar month, so no time zone shift applies). */
+export function formatMonth(value: string | number | null | undefined): string {
+  const match = typeof value === "string" ? MONTH_KEY.exec(value) : null;
+  if (!match) return typeof value === "string" && value !== "" ? value : PLACEHOLDER;
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1));
+  try {
+    return new Intl.DateTimeFormat(activeLocale(), { month: "short", year: "numeric", timeZone: "UTC" }).format(date);
+  } catch {
+    return match[0];
+  }
+}
+
 export function formatDateTime(value: string | null | undefined): string {
   if (!value) return PLACEHOLDER;
   const date = new Date(value);

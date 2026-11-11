@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { extractErrorMessage } from "@/api/client";
 import { type EmailTemplate, useResetEmailTemplate, useSaveEmailTemplate } from "@/api/emailTemplates";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -69,7 +69,7 @@ export function TemplateEditor({ template }: { template: EmailTemplate }) {
     <Card className="p-6">
       <div className="mb-4 flex items-center gap-3">
         <h2 className="text-base font-semibold text-text-primary">{template.label}</h2>
-        {template.is_customised && <Badge status="active">Customised</Badge>}
+        {template.is_customised && <StatusBadge status="active" label="Customised" />}
       </div>
 
       <div className="mb-4">

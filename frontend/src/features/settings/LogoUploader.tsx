@@ -58,6 +58,7 @@ export function LogoUploader({ settings }: { settings: CompanySettings }) {
             ref={inputRef}
             id={inputId}
             type="file"
+            aria-label="Choose a logo file"
             accept={ACCEPTED_TYPES}
             className="sr-only"
             onChange={(event) => void handleFile(event)}

@@ -57,7 +57,9 @@ export function PurchaseOrderLines({ po }: { po: PurchaseOrder }) {
   return (
     <Card className="p-5 lg:col-span-2">
       <h2 className="mb-4 text-sm font-semibold text-text-primary">Line Items</h2>
-      <div className="overflow-x-auto">
+      {/* A scrollable region needs a tab stop so keyboard users can scroll it (axe: scrollable-region-focusable). */}
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
+      <div className="overflow-x-auto" role="region" aria-label="Line items" tabIndex={0}>
         <table className="min-w-full divide-y divide-border text-sm">
           <thead>
             <tr className="text-left text-xs font-semibold uppercase tracking-wide text-text-secondary">

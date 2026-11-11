@@ -1,6 +1,6 @@
 import { extractErrorMessage } from "@/api/client";
 import { useCancelPaymentRun, useReleasePaymentRun, type PaymentRun } from "@/api/paymentRuns";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/toast-context";
@@ -33,7 +33,7 @@ export function PaymentRunModal({ run, onClose }: { run: PaymentRun | null; onCl
       {run && (
         <div className="space-y-4">
           <div className="flex items-center justify-between text-sm">
-            <Badge status={run.status}>{run.status}</Badge>
+            <StatusBadge status={run.status} />
             <span className="font-semibold">{formatCurrency(run.total, run.currency_code)}</span>
           </div>
           <p className="text-xs text-text-secondary">

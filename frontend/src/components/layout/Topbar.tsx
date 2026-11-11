@@ -37,7 +37,7 @@ export function Topbar({ onOpenSearch, onOpenMenu }: TopbarProps) {
         <NotificationBell />
         <Link
           to="/profile"
-          aria-label="Your profile"
+          title="Your profile"
           className="hidden rounded-control px-2 py-1 text-right hover:bg-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus lg:block"
         >
           <p className="text-sm font-medium text-text-primary">{user?.full_name}</p>

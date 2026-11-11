@@ -2,7 +2,7 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 
 import { usePortalInvoices, type PortalInvoice } from "@/api/portal";
-import { Badge } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable, type Column } from "@/components/ui/DataTable";
@@ -30,7 +30,7 @@ export function PortalInvoicesPage() {
     { header: "Date", accessor: (row) => formatDate(row.invoice_date) },
     { header: "Total", accessor: (row) => formatCurrency(row.grand_total, row.currency_code) },
     { header: "Open", accessor: (row) => formatCurrency(row.open_amount, row.currency_code) },
-    { header: "Status", accessor: (row) => <Badge status={row.status}>{row.status.replace(/_/g, " ")}</Badge> },
+    { header: "Status", accessor: (row) => <StatusBadge status={row.status} /> },
   ];
 
   return (

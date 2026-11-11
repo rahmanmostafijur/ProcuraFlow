@@ -21,6 +21,8 @@ interface ThemedBarChartProps {
   xKey: string;
   series: ChartSeries[];
   formatValue?: (value: number) => string;
+  /** Formats the category on the axis and in the tooltip (for example a month key). */
+  formatX?: (value: string | number) => string;
   height?: number;
   stacked?: boolean;
 }
@@ -34,6 +36,7 @@ export function ThemedBarChart({
   xKey,
   series,
   formatValue = (value) => formatNumber(value),
+  formatX,
   height = 240,
   stacked = false,
 }: ThemedBarChartProps) {
@@ -50,9 +53,12 @@ export function ThemedBarChart({
       <ResponsiveContainer width="100%" height={height} initialDimension={{ width: CHART_MIN_WIDTH, height }}>
         <BarChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
           <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey={xKey} tick={AXIS_TICK} axisLine={AXIS_LINE} tickLine={false} />
+          <XAxis dataKey={xKey} tick={AXIS_TICK} axisLine={AXIS_LINE} tickLine={false} tickFormatter={formatX} />
           <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={48} tickFormatter={compact} />
-          <Tooltip cursor={{ fill: "var(--brand-subtle)" }} content={<ChartTooltip formatValue={formatValue} />} />
+          <Tooltip
+            cursor={{ fill: "var(--brand-subtle)" }}
+            content={<ChartTooltip formatValue={formatValue} formatLabel={formatX} />}
+          />
           {series.map((item, index) => (
             <Bar
               key={item.key}

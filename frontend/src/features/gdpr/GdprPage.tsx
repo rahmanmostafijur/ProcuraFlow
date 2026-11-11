@@ -133,7 +133,7 @@ export function GdprPage() {
                       <Button
                         variant="secondary"
                         size="sm"
-                        aria-label={`Export data of ${row.name}`}
+                        aria-label={`Export JSON data of ${row.name}`}
                         onClick={() => void exportData(row)}
                       >
                         Export JSON
