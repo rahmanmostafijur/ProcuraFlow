@@ -51,8 +51,10 @@ one-time licence with no monthly fee and full source code (see [Licence](#licenc
 - One service computes every business figure; the dashboard, reports and badges call the same functions and tests prove
   they agree. See [docs/metrics.md](docs/metrics.md).
 
-Features of the landing page and the one-click demo mode belong to phase 8 of [PLAN.md](PLAN.md); check
-[HANDOFF.md](HANDOFF.md) and [CHANGELOG.md](CHANGELOG.md) for whether they are in the build you are running.
+**Landing page and demo**
+- A public landing page at `/` and a demo mode (`DEMO_MODE=true`): one-click sign-in for every role, including a
+  supplier, destructive admin actions blocked, email logged and never sent. `python -m app.cli.demo_reset` rebuilds a
+  12-month, three-currency demo company through the application's own API. See [HowToSetup.md](HowToSetup.md).
 
 ## Architecture
 

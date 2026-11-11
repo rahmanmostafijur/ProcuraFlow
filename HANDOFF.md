@@ -1,6 +1,6 @@
 # Vibe96 build: where things stand
 
-Branch `vibe96`, written 2026-11-12 after the final check. The plan is `PLAN.md`. The results of the final check are in
+Branch `vibe96`, written 2026-11-11 after the final check. The plan is `PLAN.md`. The results of the final check are in
 `RELEASE_CHECK.md`; read that first. `NEXT_STEPS.md` is the older deploy checklist for the pre-vibe96 application.
 
 ## State
@@ -34,8 +34,8 @@ into `main`, tagging 1.0.0 and the decisions listed in `RELEASE_CHECK.md`.
   scripts do the second part themselves. The demo QA run used backend 8010 and frontend 5180.
 - `npm audit fix` can prune `node_modules`; run `npm ci` afterwards.
 - Never run two pytest processes at once: they share one test database.
-- The GateGuard hook asks for facts before the first Write or Edit to each file, and a config-protection hook blocks
-  edits to `eslint.config.js`; satisfy lint in the source, not in the config.
+- Editor hooks in this setup may ask for a short statement before the first edit of a file, and edits to
+  `eslint.config.js` are blocked; satisfy lint in the source, not in the config.
 
 ## How to resume
 

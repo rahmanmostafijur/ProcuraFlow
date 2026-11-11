@@ -18,7 +18,7 @@ provider's own pricing page on the day you buy.
 
 The API is a single worker process. For a procurement tool used by office staff (a handful of requests per user per
 minute at peak) this is the normal case; if you find it is not, add instances behind Caddy and follow "Migrations and
-scaling" in the README (`RUN_MIGRATIONS_ON_START=false` plus one migration step).
+scaling" in HowToSetup.md, section 11 (`RUN_MIGRATIONS_ON_START=false` plus one migration step).
 
 ## Starting-point tiers (estimates, to verify)
 
@@ -52,7 +52,7 @@ US dollars before tax. Treat them as orders of magnitude, not quotes.
 
 | Item | Small | Larger |
 |---|---|---|
-| Render web service | free tier sleeps after 15 minutes idle and takes about a minute to wake (see README); a paid always-on instance is needed for a real team | paid instance sized like the API row above |
+| Render web service | free tier sleeps after 15 minutes idle and takes about a minute to wake (see HowToSetup.md); a paid always-on instance is needed for a real team | paid instance sized like the API row above |
 | Neon Postgres | free tier suits a trial; a real installation needs a paid plan with enough storage and no auto-suspend surprises | paid plan |
 | Vercel | hobby tier is for non-commercial use; check the terms before running a company on it | paid plan |
 | Email, domain | as in route A | as in route A |

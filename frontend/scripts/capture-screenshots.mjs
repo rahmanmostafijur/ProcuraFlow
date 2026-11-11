@@ -1,9 +1,10 @@
-/* global console, process, localStorage */
+/* global console, process, URL, localStorage */
 // Documentation screenshots: 1920x1080 captures of the demo company into docs/screenshots/ (referenced from README.md).
 // Needs the demo backend (DEMO_MODE=true after `python -m app.cli.demo_reset`) and the dev server. Usage:
 //   node scripts/capture-screenshots.mjs [--base http://127.0.0.1:5180] [--api http://127.0.0.1:8010/api/v1]
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 
 const args = process.argv.slice(2);
@@ -11,7 +12,8 @@ const option = (name, fallback) => {
   const at = args.indexOf(`--${name}`);
   return at >= 0 ? args[at + 1] : fallback;
 };
-const OUT = path.resolve(option("out", "../docs/screenshots"));
+// Relative to this file, not to the working directory, so the images always land in the repository's docs/.
+const OUT = path.resolve(option("out", fileURLToPath(new URL("../../docs/screenshots", import.meta.url))));
 const BASE = option("base", "http://127.0.0.1:5180");
 const API = option("api", "http://127.0.0.1:8010/api/v1");
 const VIEWPORT = { width: 1920, height: 1080 };

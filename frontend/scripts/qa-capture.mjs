@@ -1,4 +1,4 @@
-/* global console, process, window, document, localStorage, getComputedStyle */
+/* global console, process, URL, window, document, localStorage, getComputedStyle */
 // Visual QA capture: every page at three viewports in light and dark, with an axe run and an overflow check.
 // Needs the demo backend and the dev server running (see HowToSetup.md). Usage:
 //   node scripts/qa-capture.mjs [--out ../docs/qa-screens] [--base http://127.0.0.1:5173] [--api http://127.0.0.1:8010/api/v1]
@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 
 const require = createRequire(import.meta.url);
@@ -16,7 +17,8 @@ const option = (name, fallback) => {
   const at = args.indexOf(`--${name}`);
   return at >= 0 ? args[at + 1] : fallback;
 };
-const OUT = path.resolve(option("out", "../docs/qa-screens"));
+// Relative to this file, not to the working directory, so the images always land in the repository's docs/.
+const OUT = path.resolve(option("out", fileURLToPath(new URL("../../docs/qa-screens", import.meta.url))));
 const BASE = option("base", "http://127.0.0.1:5180");
 const API = option("api", "http://127.0.0.1:8010/api/v1");
 const ONLY = option("only", "");

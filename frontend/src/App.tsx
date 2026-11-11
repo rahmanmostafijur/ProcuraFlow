@@ -98,7 +98,13 @@ const DesignSystemPage = import.meta.env.DEV
 
 export function App() {
   return (
-    <Suspense fallback={<LoadingState />}>
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center bg-bg">
+          <LoadingState />
+        </div>
+      }
+    >
       <Routes>
         <Route path="/" element={<LandingRoute />} />
         <Route path="/login" element={<LoginPage />} />

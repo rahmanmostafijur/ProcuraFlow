@@ -275,8 +275,11 @@ Example crontab (adjust the path):
 15 2 * * *   /opt/procuraflow/deploy/backup.sh >> /var/log/procuraflow-backup.log 2>&1
 ```
 
-A demo installation is planned (`PLAN.md`, phase 8) to restore its data nightly with `python -m app.cli.demo_reset`.
-That module did not exist in `backend/app/cli/` when this guide was written; confirm it exists in your release first.
+A demo installation (`DEMO_MODE=true`) restores its data nightly with `python -m app.cli.demo_reset`, for example
+`10 3 * * *   cd /opt/procuraflow && docker compose --env-file .env -f deploy/docker-compose.yml exec -T backend python -m app.cli.demo_reset`.
+The command deletes every table except roles, permissions and currencies before it builds the demo company, and the only
+thing that stops it on a real database is `DEMO_MODE` being off, so never set `DEMO_MODE=true` on an installation that
+holds real data. In production the application refuses `DEMO_MODE=true` unless `ALLOW_DEMO_IN_PRODUCTION=true` is also set.
 
 ## 9. Backups and restore
 
