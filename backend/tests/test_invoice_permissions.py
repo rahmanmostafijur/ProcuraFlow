@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 from httpx import AsyncClient
 
-from app.core.permissions import PERMISSIONS, ROLE_PERMISSIONS
+from app.core.permissions import PERMISSIONS, ROLE_PERMISSIONS, SUPPLIER_ROLE
 from app.models.product import Product
 from app.models.supplier import Supplier
 from tests.fixture_types import AuthHeaders
@@ -18,6 +18,8 @@ from tests.invoice_helpers import (
     submit_invoice,
 )
 
+# Supplier accounts are stopped before any permission check (they may only use the portal); they have their own test.
+STAFF_ROLE_PERMISSIONS = {role: grants for role, grants in ROLE_PERMISSIONS.items() if role != SUPPLIER_ROLE}
 NEW_PERMISSIONS = ("invoice:read", "invoice:write", "invoice:approve", "payment:write", "payment:release")
 
 # method, path, body, the permission the endpoint requires
@@ -57,7 +59,7 @@ async def test_every_guarded_endpoint_refuses_roles_without_its_permission(
     body: dict[str, Any] | None,
     permission: str,
 ) -> None:
-    for role, permissions in ROLE_PERMISSIONS.items():
+    for role, permissions in STAFF_ROLE_PERMISSIONS.items():
         headers = await auth_headers(role)
 
         response = await client.request(method, path, json=body, headers=headers)
@@ -68,6 +70,21 @@ async def test_every_guarded_endpoint_refuses_roles_without_its_permission(
         else:
             assert response.status_code == 403, f"{role} must not reach {method} {path}"
             assert response.json()["detail"] == f"You do not have the '{permission}' permission"
+
+
+@pytest.mark.parametrize(("method", "path", "body", "permission"), GUARDED)
+async def test_a_supplier_account_reaches_none_of_them_and_is_pointed_to_the_portal(
+    client: AsyncClient,
+    auth_headers: AuthHeaders,
+    method: str,
+    path: str,
+    body: dict[str, Any] | None,
+    permission: str,
+) -> None:
+    response = await client.request(method, path, json=body, headers=await auth_headers(SUPPLIER_ROLE))
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Supplier accounts can only use the portal"
 
 
 @pytest.mark.parametrize(("method", "path", "body", "permission"), GUARDED)
@@ -86,7 +103,7 @@ async def test_endpoints_open_to_any_signed_in_user_still_need_sign_in(
     assert (await client.request(method, path, json=body)).status_code == 401
 
 
-@pytest.mark.parametrize("role", list(ROLE_PERMISSIONS))
+@pytest.mark.parametrize("role", list(STAFF_ROLE_PERMISSIONS))
 async def test_deciding_an_invoice_never_answers_forbidden_for_a_record_the_caller_cannot_see(
     client: AsyncClient, auth_headers: AuthHeaders, role: str
 ) -> None:
