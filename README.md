@@ -211,6 +211,7 @@ frontend build on every push and pull request.
 | File | Content |
 |---|---|
 | [HowToSetup.md](HowToSetup.md) | Local development, configuration, database, production deployment, backups, upgrades, troubleshooting |
+| [docs/HANDOVER.md](docs/HANDOVER.md) | Runbook for delivering it to a company: trial install, delivery day, acceptance script, roles, upkeep, hand-over list |
 | [.env.example](.env.example) | Every setting with comments and safe placeholders |
 | [docs/metrics.md](docs/metrics.md) | Definition, formula, source tables and screens for every number |
 | [docs/sizing.md](docs/sizing.md) | Server sizing, monthly cost ranges, storage growth |
